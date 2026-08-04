@@ -1,9 +1,27 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
 import { App } from "./App";
+
+beforeEach(() => {
+  // AuthProvider fires a real fetch("/api/auth/refresh") on mount to check
+  // for an existing session - mock it as "logged out" so tests don't hit a
+  // real network call jsdom can't resolve anyway.
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ message: "No refresh token cookie present" }),
+    }),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function renderAt(path: string) {
   const queryClient = new QueryClient();
@@ -17,19 +35,21 @@ function renderAt(path: string) {
 }
 
 describe("App routing", () => {
-  it("renders the app shell with the HobbyHub logo and primary nav", () => {
+  it("renders the app shell with the HobbyHub logo and primary nav", async () => {
     renderAt("/");
-    expect(screen.getByRole("link", { name: "HobbyHub" })).toBeInTheDocument();
+    // AuthProvider's mount-time session check resolves asynchronously -
+    // await it settling so React doesn't warn about an unwrapped act().
+    expect(await screen.findByRole("link", { name: "HobbyHub" })).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Primary" })).toBeInTheDocument();
   });
 
-  it("renders the home page content at /", () => {
+  it("renders the home page content at /", async () => {
     renderAt("/");
-    expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Home" })).toBeInTheDocument();
   });
 
-  it("renders the MTG page content at /mtg", () => {
+  it("renders the MTG page content at /mtg", async () => {
     renderAt("/mtg");
-    expect(screen.getByRole("heading", { name: "Magic: The Gathering" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Magic: The Gathering" })).toBeInTheDocument();
   });
 });

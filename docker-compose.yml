@@ -18,6 +18,11 @@ services:
       - DATABASE_URL=jdbc:postgresql://postgres:5432/hobbyhub
       - DATABASE_USER=${DATABASE_USER:-hobbyhub}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD:-hobbyhub}
+      # dev profile exposes password-reset tokens in the API response (see
+      # docs/adr/0007) so the flow is testable locally without real SMTP -
+      # never set this in a real deployment.
+      - SPRING_PROFILES_ACTIVE=dev
+      - COOKIE_SECURE=${COOKIE_SECURE:-true}
     depends_on:
       - postgres
 
