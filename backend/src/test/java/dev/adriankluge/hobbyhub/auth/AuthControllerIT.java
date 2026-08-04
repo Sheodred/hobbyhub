@@ -9,6 +9,7 @@ import dev.adriankluge.hobbyhub.auth.dto.PasswordResetRequest;
 import dev.adriankluge.hobbyhub.auth.dto.SignupRequest;
 import dev.adriankluge.hobbyhub.auth.dto.UserResponse;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +20,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -40,6 +42,19 @@ class AuthControllerIT {
 
     @Autowired
     private TestRestTemplate restTemplate;
+
+    @BeforeEach
+    void useJdkHttpClient() {
+        // TestRestTemplate's default request factory is backed by the
+        // legacy HttpURLConnection, which throws "HttpRetryException:
+        // cannot retry due to server authentication, in streaming mode" on
+        // POSTs that get a non-2xx response (e.g. our 401s) - it can't
+        // replay a streamed request body to process an error response.
+        // JdkClientHttpRequestFactory (java.net.http.HttpClient, JDK 11+)
+        // doesn't have this limitation. Caught on CI (Linux, where
+        // Testcontainers actually runs), not locally.
+        restTemplate.getRestTemplate().setRequestFactory(new JdkClientHttpRequestFactory());
+    }
 
     private static String cookieNameAndValue(ResponseEntity<?> response) {
         String setCookie = response.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
