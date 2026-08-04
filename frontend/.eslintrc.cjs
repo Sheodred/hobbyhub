@@ -8,7 +8,9 @@ module.exports = {
   parser: "@typescript-eslint/parser",
   parserOptions: { ecmaVersion: "latest", sourceType: "module" },
   plugins: ["react-hooks", "react-refresh"],
-  ignorePatterns: ["dist", "node_modules"],
+  // public/stockfish is vendored, minified Emscripten output (see
+  // scripts/copy-stockfish.cjs), not project source.
+  ignorePatterns: ["dist", "node_modules", "public/stockfish"],
   rules: {
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "warn",
