@@ -1,0 +1,31 @@
+import type { RouteObject } from "react-router-dom";
+
+import { AboutPage } from "../features/about/AboutPage";
+import { LoginPage } from "../features/auth/LoginPage";
+import { SignupPage } from "../features/auth/SignupPage";
+import { ChessPage } from "../features/chess/ChessPage";
+import { HomePage } from "../features/home/HomePage";
+import { ImpressumPage } from "../features/legal/ImpressumPage";
+import { PrivacyPolicyPage } from "../features/legal/PrivacyPolicyPage";
+import { TermsPage } from "../features/legal/TermsPage";
+import { MarketplacePage } from "../features/marketplace/MarketplacePage";
+import { MtgPage } from "../features/mtg/MtgPage";
+import { AppShell } from "../layout/AppShell";
+
+export const routes: RouteObject[] = [
+  {
+    element: <AppShell />,
+    children: [
+      { path: "/", element: <HomePage /> },
+      { path: "/about", element: <AboutPage /> },
+      { path: "/mtg", element: <MtgPage /> },
+      { path: "/marketplace", element: <MarketplacePage /> },
+      { path: "/chess", element: <ChessPage /> },
+      { path: "/legal/impressum", element: <ImpressumPage /> },
+      { path: "/legal/privacy", element: <PrivacyPolicyPage /> },
+      { path: "/legal/terms", element: <TermsPage /> },
+      { path: "/login", element: <LoginPage /> },
+      { path: "/signup", element: <SignupPage /> },
+    ],
+  },
+];
