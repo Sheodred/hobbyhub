@@ -6,6 +6,9 @@ backend/target/
 # frontend
 frontend/node_modules/
 frontend/dist/
+# Vendored by scripts/copy-stockfish.js (postinstall) - a ~7MB WASM binary,
+# reproduced on every install rather than committed.
+frontend/public/stockfish/
 
 # IDE
 .idea/

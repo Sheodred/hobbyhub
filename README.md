@@ -12,10 +12,11 @@ accounts, and the required legal pages for a Germany-based operator.
 homepage, the About Me page, the legal pages (Impressum/Privacy
 Policy/Terms — draft template content, see `docs/adr/0006`), the
 Magic: The Gathering card search/browse subpage (live Scryfall data via a
-backend proxy, see `docs/adr/0003`), and the marketplace (public
-browse/filter/sort, owner-only listing CRUD, see `docs/adr/0005`) are live.
-See [ROADMAP](#roadmap) below and `docs/adr/` for the technical decisions
-already locked in.
+backend proxy, see `docs/adr/0003`), the marketplace (public
+browse/filter/sort, owner-only listing CRUD, see `docs/adr/0005`), and
+chess vs. AI (Stockfish running fully client-side, see `docs/adr/0004`)
+are live. See [ROADMAP](#roadmap) below and `docs/adr/` for the technical
+decisions already locked in.
 
 ## Why this project
 
@@ -78,7 +79,7 @@ sidebar library, chess/marketplace/legal-page/password-reset scope for v1).
 - [x] About Me + legal pages
 - [x] Magic: The Gathering subpage
 - [x] Marketplace (listing/inquiry, no live checkout)
-- [ ] Chess vs. AI
+- [x] Chess vs. AI
 - [ ] Animation/responsive/accessibility polish
 - [ ] Test coverage hardening, deploy checklist
 
