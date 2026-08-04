@@ -61,21 +61,25 @@ public class MarketplaceDevSeeder implements ApplicationRunner {
                 .stream()
                 .toList();
 
-        List<Listing> boardGameListings = List.of(
-                new Listing(
-                        seller,
-                        "Wingspan (base game)",
-                        "Complete, all components present. A few light shelf-wear marks on the box.",
-                        ListingCategory.BOARD_GAME,
-                        new BigDecimal("28.00"),
-                        "Good"),
-                new Listing(
-                        seller,
-                        "Catan (5th edition)",
-                        "Played a handful of times, kept in original box with insert.",
-                        ListingCategory.BOARD_GAME,
-                        new BigDecimal("22.00"),
-                        "Excellent"));
+        Listing wingspan = new Listing(
+                seller,
+                "Wingspan (base game)",
+                "Complete, all components present. A few light shelf-wear marks on the box.",
+                ListingCategory.BOARD_GAME,
+                new BigDecimal("28.00"),
+                "Good");
+        wingspan.setImageUrls(List.of("https://commons.wikimedia.org/wiki/Special:FilePath/Cards_in_Wingspan_board_game.jpg"));
+
+        Listing catan = new Listing(
+                seller,
+                "Catan (5th edition)",
+                "Played a handful of times, kept in original box with insert.",
+                ListingCategory.BOARD_GAME,
+                new BigDecimal("22.00"),
+                "Excellent");
+        catan.setImageUrls(List.of("https://commons.wikimedia.org/wiki/Special:FilePath/A_game_of_Settlers_of_Catan.jpg"));
+
+        List<Listing> boardGameListings = List.of(wingspan, catan);
 
         listingRepository.saveAll(cardListings);
         listingRepository.saveAll(boardGameListings);

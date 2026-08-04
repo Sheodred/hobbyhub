@@ -52,6 +52,64 @@ describe("MtgCardDetailPage", () => {
     expect(screen.getByText("Alpha")).toBeInTheDocument();
   });
 
+  it("shows other printings once loaded, linking each to its own detail page", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string) => {
+        if (path.startsWith("/api/mtg/printings")) {
+          return Promise.resolve(
+            jsonResponse(200, [
+              {
+                id: "card-1",
+                name: "Lightning Bolt",
+                manaCost: "{R}",
+                typeLine: "Instant",
+                oracleText: null,
+                colors: ["R"],
+                setName: "Alpha",
+                rarity: "common",
+                imageUrl: "https://img/alpha.jpg",
+                artCropUrl: null,
+              },
+              {
+                id: "card-2",
+                name: "Lightning Bolt",
+                manaCost: "{R}",
+                typeLine: "Instant",
+                oracleText: null,
+                colors: ["R"],
+                setName: "Masters 25",
+                rarity: "uncommon",
+                imageUrl: "https://img/masters25.jpg",
+                artCropUrl: null,
+              },
+            ]),
+          );
+        }
+        return Promise.resolve(
+          jsonResponse(200, {
+            id: "card-1",
+            name: "Lightning Bolt",
+            manaCost: "{R}",
+            typeLine: "Instant",
+            oracleText: "Lightning Bolt deals 3 damage to any target.",
+            colors: ["R"],
+            setName: "Alpha",
+            rarity: "common",
+            imageUrl: "https://img/alpha.jpg",
+            artCropUrl: null,
+          }),
+        );
+      }),
+    );
+
+    renderAt("/mtg/card-1");
+    await screen.findByRole("heading", { name: "Lightning Bolt" });
+
+    expect(await screen.findByText("All printings (2)")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /masters 25/i })).toHaveAttribute("href", "/mtg/card-2");
+  });
+
   it("shows a not-found message for a missing card", async () => {
     vi.stubGlobal(
       "fetch",

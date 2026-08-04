@@ -2,6 +2,7 @@ package dev.adriankluge.hobbyhub.mtg.client;
 
 import dev.adriankluge.hobbyhub.mtg.dto.Card;
 import dev.adriankluge.hobbyhub.mtg.dto.CardSearchResponse;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -57,6 +58,27 @@ public class ScryfallClient {
         } catch (HttpClientErrorException.NotFound e) {
             // Scryfall's documented response for "no cards match this query".
             return CardSearchResponse.empty();
+        }
+    }
+
+    // All printings of a single named card - exact-name match (`!"..."`) plus
+    // `unique=prints` so Scryfall returns one result per printing instead of
+    // deduplicating to just the most recent one, sorted newest first.
+    @Cacheable(cacheNames = "scryfallSearch", key = "'prints:' + #cardName")
+    public List<Card> getPrintings(String cardName) {
+        throttle();
+        try {
+            ScryfallSearchResponseDto response = restClient
+                    .get()
+                    .uri("/cards/search?q={q}&unique=prints&order=released&dir=desc", "!\"" + cardName + "\"")
+                    .retrieve()
+                    .body(ScryfallSearchResponseDto.class);
+            if (response == null) {
+                return List.of();
+            }
+            return response.data().stream().map(ScryfallMapper::toCard).toList();
+        } catch (HttpClientErrorException.NotFound e) {
+            return List.of();
         }
     }
 
