@@ -8,8 +8,9 @@ Gathering card browser (Scryfall), a chess-vs-AI page (client-side
 Stockfish), a non-transactional board-games/cards listing page, member
 accounts, and the required legal pages for a Germany-based operator.
 
-**Status:** Milestone 0 — scaffold only. See [ROADMAP](#roadmap) below and
-`docs/adr/` for the technical decisions already locked in.
+**Status:** app shell, JWT auth (signup/login/logout/password reset), and
+the homepage are live. See [ROADMAP](#roadmap) below and `docs/adr/` for
+the technical decisions already locked in.
 
 ## Why this project
 
@@ -48,8 +49,11 @@ docker compose up --build
 ## Tests
 
 ```bash
-# backend
+# backend - unit tests only
 cd backend && mvn test
+
+# backend - unit + Testcontainers integration tests (needs Docker running)
+cd backend && mvn verify
 
 # frontend
 cd frontend && npm install && npm test
@@ -63,9 +67,9 @@ every non-obvious technical decision live in `docs/` — see
 sidebar library, chess/marketplace/legal-page/password-reset scope for v1).
 
 - [x] Milestone 0 — scaffold, Docker Compose, CI, ADRs
-- [ ] App shell (nav, resizable/collapsible sidebar, route transitions)
-- [ ] Auth (signup/login/logout/password reset, JWT)
-- [ ] Homepage
+- [x] App shell (nav, resizable/collapsible sidebar, route transitions)
+- [x] Auth (signup/login/logout/password reset, JWT)
+- [x] Homepage
 - [ ] About Me + legal pages
 - [ ] Magic: The Gathering subpage
 - [ ] Marketplace (listing/inquiry, no live checkout)

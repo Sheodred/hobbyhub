@@ -23,3 +23,17 @@ class ResizeObserverMock {
   disconnect() {}
 }
 window.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
+
+// Used by Framer Motion's `whileInView` (see HighlightCard).
+class IntersectionObserverMock {
+  root = null;
+  rootMargin = "";
+  thresholds: number[] = [];
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+}
+window.IntersectionObserver = IntersectionObserverMock as unknown as typeof IntersectionObserver;
