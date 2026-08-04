@@ -10,6 +10,8 @@ import { HomePage } from "../features/home/HomePage";
 import { ImpressumPage } from "../features/legal/ImpressumPage";
 import { PrivacyPolicyPage } from "../features/legal/PrivacyPolicyPage";
 import { TermsPage } from "../features/legal/TermsPage";
+import { ListingDetailPage } from "../features/marketplace/ListingDetailPage";
+import { ListingFormPage } from "../features/marketplace/ListingFormPage";
 import { MarketplacePage } from "../features/marketplace/MarketplacePage";
 import { MtgCardDetailPage } from "../features/mtg/MtgCardDetailPage";
 import { MtgPage } from "../features/mtg/MtgPage";
@@ -24,6 +26,23 @@ export const routes: RouteObject[] = [
       { path: "/mtg", element: <MtgPage /> },
       { path: "/mtg/:id", element: <MtgCardDetailPage /> },
       { path: "/marketplace", element: <MarketplacePage /> },
+      {
+        path: "/marketplace/new",
+        element: (
+          <ProtectedRoute>
+            <ListingFormPage />
+          </ProtectedRoute>
+        ),
+      },
+      { path: "/marketplace/:id", element: <ListingDetailPage /> },
+      {
+        path: "/marketplace/:id/edit",
+        element: (
+          <ProtectedRoute>
+            <ListingFormPage />
+          </ProtectedRoute>
+        ),
+      },
       { path: "/chess", element: <ChessPage /> },
       { path: "/legal/impressum", element: <ImpressumPage /> },
       { path: "/legal/privacy", element: <PrivacyPolicyPage /> },
