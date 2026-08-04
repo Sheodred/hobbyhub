@@ -3,6 +3,11 @@ export interface Highlight {
   title: string;
   description: string;
   accent: string;
+  /** Background art for the card. Currently only the MTG tile has one (a
+   * Scryfall art_crop, hotlinking is explicitly fine per Scryfall's
+   * guidelines - see docs/adr/0003). Optional so the other tiles keep their
+   * plain gradient treatment. */
+  imageUrl?: string;
 }
 
 export const highlights: Highlight[] = [
@@ -10,18 +15,20 @@ export const highlights: Highlight[] = [
     to: "/mtg",
     title: "Magic: The Gathering",
     description: "Search and browse the full card catalog, powered by Scryfall.",
-    accent: "from-violet-600/20 to-violet-600/0",
+    accent: "from-fuchsia-600/70 via-violet-600/40 to-blue-600/10",
+    // Omnath, Locus of Creation - art by Chris Rahn, via Scryfall.
+    imageUrl: "https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg",
   },
   {
     to: "/marketplace",
     title: "Marketplace",
     description: "Board games and cards currently up for sale - inquire directly, no checkout needed.",
-    accent: "from-amber-500/20 to-amber-500/0",
+    accent: "from-amber-500/60 via-orange-500/30 to-rose-500/10",
   },
   {
     to: "/chess",
     title: "Chess vs. AI",
     description: "Play against a client-side Stockfish engine at whatever difficulty you can handle.",
-    accent: "from-emerald-500/20 to-emerald-500/0",
+    accent: "from-emerald-500/60 via-teal-500/30 to-cyan-500/10",
   },
 ];

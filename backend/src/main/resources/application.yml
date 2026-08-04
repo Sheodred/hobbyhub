@@ -28,3 +28,7 @@ app:
     allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:5173}
   cookie:
     secure: ${COOKIE_SECURE:true}
+  mtg:
+    scryfall-base-url: ${SCRYFALL_BASE_URL:https://api.scryfall.com}
+    # Scryfall asks every client to identify itself (see their API guidelines).
+    user-agent: HobbyHub/0.1 (+https://github.com/Sheodred/hobbyhub)

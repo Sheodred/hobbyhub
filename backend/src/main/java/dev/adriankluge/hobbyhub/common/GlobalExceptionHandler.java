@@ -4,6 +4,7 @@ import dev.adriankluge.hobbyhub.auth.exception.DuplicateEmailException;
 import dev.adriankluge.hobbyhub.auth.exception.InvalidCredentialsException;
 import dev.adriankluge.hobbyhub.auth.exception.InvalidRefreshTokenException;
 import dev.adriankluge.hobbyhub.auth.exception.InvalidResetTokenException;
+import jakarta.validation.ConstraintViolationException;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
@@ -44,5 +46,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiError> handleResponseStatus(ResponseStatusException e) {
         return ResponseEntity.status(e.getStatusCode()).body(new ApiError(e.getReason()));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiError> handleConstraintViolation(ConstraintViolationException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiError(e.getMessage()));
+    }
+
+    @ExceptionHandler(RestClientException.class)
+    public ResponseEntity<ApiError> handleUpstreamUnavailable(RestClientException e) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(new ApiError("Card data is temporarily unavailable. Please try again shortly."));
     }
 }

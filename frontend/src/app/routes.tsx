@@ -11,6 +11,7 @@ import { ImpressumPage } from "../features/legal/ImpressumPage";
 import { PrivacyPolicyPage } from "../features/legal/PrivacyPolicyPage";
 import { TermsPage } from "../features/legal/TermsPage";
 import { MarketplacePage } from "../features/marketplace/MarketplacePage";
+import { MtgCardDetailPage } from "../features/mtg/MtgCardDetailPage";
 import { MtgPage } from "../features/mtg/MtgPage";
 import { AppShell } from "../layout/AppShell";
 
@@ -21,6 +22,7 @@ export const routes: RouteObject[] = [
       { path: "/", element: <HomePage /> },
       { path: "/about", element: <AboutPage /> },
       { path: "/mtg", element: <MtgPage /> },
+      { path: "/mtg/:id", element: <MtgCardDetailPage /> },
       { path: "/marketplace", element: <MarketplacePage /> },
       { path: "/chess", element: <ChessPage /> },
       { path: "/legal/impressum", element: <ImpressumPage /> },
