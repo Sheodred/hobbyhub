@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: hobbyhub
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/hobbyhub}
+    username: ${DATABASE_USER:hobbyhub}
+    password: ${DATABASE_PASSWORD:hobbyhub}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  flyway:
+    enabled: true
+
+server:
+  port: 8080
