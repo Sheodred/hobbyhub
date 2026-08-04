@@ -4,6 +4,7 @@ import dev.adriankluge.hobbyhub.mtg.client.ScryfallClient;
 import dev.adriankluge.hobbyhub.mtg.dto.Card;
 import dev.adriankluge.hobbyhub.mtg.dto.CardSearchResponse;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,5 +38,10 @@ public class MtgController {
         return scryfallClient
                 .getCard(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Card not found"));
+    }
+
+    @GetMapping("/printings")
+    public List<Card> printings(@RequestParam @NotBlank String name) {
+        return scryfallClient.getPrintings(name);
     }
 }

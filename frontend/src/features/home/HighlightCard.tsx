@@ -33,7 +33,7 @@ export function HighlightCard({ highlight, index }: HighlightCardProps) {
         )}
         <div
           aria-hidden="true"
-          className={`absolute inset-0 bg-gradient-to-t ${highlight.accent} opacity-80 transition-opacity duration-300 group-hover:opacity-100`}
+          className={`absolute inset-0 bg-gradient-to-tr ${highlight.accent} opacity-80 transition-opacity duration-300 group-hover:opacity-100`}
         />
         <div className="relative">
           <h3 className="text-lg font-semibold text-white drop-shadow-sm">{highlight.title}</h3>

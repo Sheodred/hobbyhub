@@ -27,3 +27,8 @@ export function searchCards(query: string, page: number): Promise<CardSearchResp
 export function getCard(id: string): Promise<Card> {
   return apiFetch<Card>(`/api/mtg/cards/${id}`);
 }
+
+export function getPrintings(name: string): Promise<Card[]> {
+  const params = new URLSearchParams({ name });
+  return apiFetch<Card[]>(`/api/mtg/printings?${params.toString()}`);
+}

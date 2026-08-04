@@ -53,4 +53,16 @@ class MtgControllerTest {
 
         mockMvc.perform(get("/api/mtg/cards/missing")).andExpect(status().isNotFound());
     }
+
+    @Test
+    void returnsAllPrintingsForAName() throws Exception {
+        Card alpha = new Card(
+                "id-alpha", "Lightning Bolt", "{R}", "Instant", "3 damage.", List.of("R"), "Alpha", "common",
+                "https://img/alpha.jpg", "https://img/alpha-art.jpg");
+        when(scryfallClient.getPrintings("Lightning Bolt")).thenReturn(List.of(alpha));
+
+        mockMvc.perform(get("/api/mtg/printings").param("name", "Lightning Bolt"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].setName").value("Alpha"));
+    }
 }

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 
@@ -35,12 +36,22 @@ function renderAt(path: string) {
 }
 
 describe("App routing", () => {
-  it("renders the app shell with the HobbyHub logo and primary nav", async () => {
+  it("renders the app shell with the HobbyHub logo", async () => {
     renderAt("/");
     // AuthProvider's mount-time session check resolves asynchronously -
     // await it settling so React doesn't warn about an unwrapped act().
     expect(await screen.findByRole("link", { name: "HobbyHub" })).toBeInTheDocument();
+  });
+
+  it("opening the mobile nav reveals the primary links", async () => {
+    const user = userEvent.setup();
+    renderAt("/");
+    await screen.findByRole("link", { name: "HobbyHub" });
+
+    await user.click(screen.getByRole("button", { name: /open navigation menu/i }));
+
     expect(screen.getByRole("navigation", { name: "Primary" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Marketplace" })).toBeInTheDocument();
   });
 
   it("renders the home page content at /", async () => {

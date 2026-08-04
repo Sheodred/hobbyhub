@@ -33,8 +33,14 @@ export function MtgPage() {
           aria-hidden="true"
           className="absolute inset-0 h-full w-full scale-105 object-cover opacity-50"
         />
+        {/* Two layers: a vertical dark fade for text legibility, and a
+            diagonal color sweep on top for a livelier, less flat look. */}
         <div
-          className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-fuchsia-600/30"
+          className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/55 to-transparent"
+          aria-hidden="true"
+        />
+        <div
+          className="absolute inset-0 bg-gradient-to-tr from-fuchsia-600/30 via-transparent to-blue-600/30"
           aria-hidden="true"
         />
         <div className="relative px-6 py-10">

@@ -2,15 +2,26 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 
 import { ApiError } from "../../lib/apiClient";
-import { getCard } from "./api";
+import { getCard, getPrintings } from "./api";
 
 export function MtgCardDetailPage() {
   const { id } = useParams<{ id: string }>();
 
-  const { data: card, isFetching, isError, error } = useQuery({
+  const {
+    data: card,
+    isFetching,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["mtg-card", id],
     queryFn: () => getCard(id!),
     enabled: Boolean(id),
+  });
+
+  const { data: printings } = useQuery({
+    queryKey: ["mtg-printings", card?.name],
+    queryFn: () => getPrintings(card!.name),
+    enabled: Boolean(card),
   });
 
   if (isFetching) {
@@ -69,6 +80,42 @@ export function MtgCardDetailPage() {
           </dl>
         </div>
       </div>
+
+      {printings && printings.length > 1 && (
+        <div className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+            All printings ({printings.length})
+          </h2>
+          <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+            {printings.map((printing) => (
+              <Link
+                key={printing.id}
+                to={`/mtg/${printing.id}`}
+                className={`group overflow-hidden rounded-lg border transition-colors ${
+                  printing.id === card.id
+                    ? "border-indigo-500"
+                    : "border-slate-800 hover:border-indigo-500/60"
+                }`}
+              >
+                {printing.imageUrl ? (
+                  <img
+                    src={printing.imageUrl}
+                    alt={`${printing.name} - ${printing.setName}`}
+                    className="aspect-[5/7] w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-[5/7] w-full items-center justify-center bg-slate-800 p-1 text-center text-[10px] text-slate-400">
+                    {printing.setName}
+                  </div>
+                )}
+                <p className="truncate p-1 text-center text-[11px] text-slate-400 group-hover:text-indigo-400">
+                  {printing.setName}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

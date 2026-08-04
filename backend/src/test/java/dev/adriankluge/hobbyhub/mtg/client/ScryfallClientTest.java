@@ -1,12 +1,15 @@
 package dev.adriankluge.hobbyhub.mtg.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import dev.adriankluge.hobbyhub.mtg.dto.Card;
 import dev.adriankluge.hobbyhub.mtg.dto.CardSearchResponse;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -108,5 +111,28 @@ class ScryfallClientTest {
                 .andRespond(withStatus(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).body("{}"));
 
         assertThat(client.getCard("missing-id")).isEmpty();
+    }
+
+    @Test
+    void getPrintingsReturnsEveryPrintingNewestFirst() {
+        server.expect(requestTo(allOf(containsString("unique=prints"), containsString("order=released"))))
+                .andRespond(withSuccess(
+                        """
+                        {
+                          "data": [
+                            {"id": "print-modern", "name": "Lightning Bolt", "set_name": "Masters 25", "rarity": "uncommon"},
+                            {"id": "print-alpha", "name": "Lightning Bolt", "set_name": "Alpha", "rarity": "common"}
+                          ],
+                          "has_more": false,
+                          "total_cards": 2
+                        }
+                        """,
+                        MediaType.APPLICATION_JSON));
+
+        List<Card> printings = client.getPrintings("Lightning Bolt");
+
+        assertThat(printings).hasSize(2);
+        assertThat(printings.get(0).setName()).isEqualTo("Masters 25");
+        assertThat(printings.get(1).setName()).isEqualTo("Alpha");
     }
 }
