@@ -1,33 +1,35 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 
 import { App } from "./App";
 
-describe("App", () => {
-  beforeEach(() => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ status: "ok" }),
-      }),
-    );
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it("renders the title and shows the backend status once loaded", async () => {
-    const queryClient = new QueryClient();
-    render(
-      <QueryClientProvider client={queryClient}>
+function renderAt(path: string) {
+  const queryClient = new QueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[path]}>
         <App />
-      </QueryClientProvider>,
-    );
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
 
-    expect(screen.getByText("HobbyHub")).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText(/ok/)).toBeInTheDocument());
+describe("App routing", () => {
+  it("renders the app shell with the HobbyHub logo and primary nav", () => {
+    renderAt("/");
+    expect(screen.getByRole("link", { name: "HobbyHub" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Primary" })).toBeInTheDocument();
+  });
+
+  it("renders the home page content at /", () => {
+    renderAt("/");
+    expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
+  });
+
+  it("renders the MTG page content at /mtg", () => {
+    renderAt("/mtg");
+    expect(screen.getByRole("heading", { name: "Magic: The Gathering" })).toBeInTheDocument();
   });
 });
