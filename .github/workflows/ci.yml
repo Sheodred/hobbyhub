@@ -18,8 +18,8 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - name: Test
-        run: mvn -B test
+      - name: Test (unit + Testcontainers integration)
+        run: mvn -B verify
 
   frontend:
     runs-on: ubuntu-latest
