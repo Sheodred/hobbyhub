@@ -2,6 +2,8 @@ import type { RouteObject } from "react-router-dom";
 
 import { AboutPage } from "../features/about/AboutPage";
 import { LoginPage } from "../features/auth/LoginPage";
+import { ProfilePage } from "../features/auth/ProfilePage";
+import { ProtectedRoute } from "../features/auth/ProtectedRoute";
 import { SignupPage } from "../features/auth/SignupPage";
 import { ChessPage } from "../features/chess/ChessPage";
 import { HomePage } from "../features/home/HomePage";
@@ -26,6 +28,14 @@ export const routes: RouteObject[] = [
       { path: "/legal/terms", element: <TermsPage /> },
       { path: "/login", element: <LoginPage /> },
       { path: "/signup", element: <SignupPage /> },
+      {
+        path: "/profile",
+        element: (
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        ),
+      },
     ],
   },
 ];
