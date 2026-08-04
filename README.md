@@ -18,6 +18,13 @@ chess vs. AI (Stockfish running fully client-side, see `docs/adr/0004`)
 are live. See [ROADMAP](#roadmap) below and `docs/adr/` for the technical
 decisions already locked in.
 
+## Architecture
+
+See [`docs/architecture.md`](docs/architecture.md) for the system diagram,
+the feature-area-to-code map, two annotated request flows, and the data
+model - `docs/adr/` covers the reasoning behind each individual decision
+in more depth.
+
 ## Why this project
 
 A second full-stack portfolio piece alongside
@@ -65,10 +72,30 @@ cd backend && mvn verify
 cd frontend && npm install && npm test
 ```
 
+## Known issues / planned improvements
+
+- **Mobile-drawer viewport behavior is only verified via jsdom unit
+  tests**, not a real narrow-viewport screenshot - the automation tool
+  used during development couldn't actually resize the browser viewport.
+  Planned: a manual pass on a real phone/resized window as part of the
+  Milestone 8 polish work below.
+- **Animation/responsive/accessibility polish (Milestone 8, in progress).**
+  Framer Motion entrance animations already respect
+  `prefers-reduced-motion` on the homepage (Hero, highlight cards); the
+  same pass still needs to reach the MTG, Marketplace, and Chess pages,
+  plus a general responsive/keyboard-navigation/contrast check across the
+  whole app.
+- **No production deployment target yet** (Milestone 9). Locally this runs
+  via `docker compose` with Vite's dev server in the frontend container -
+  a real deploy needs a production build (multi-stage Dockerfile serving
+  the static `vite build` output, not the dev server) and a hosting
+  decision, tracked as part of the deploy checklist below.
+
 ## Roadmap
 
 Full phased build order, data model, API surface, and the reasoning behind
 every non-obvious technical decision live in `docs/` — see
+[`docs/architecture.md`](docs/architecture.md) for the system overview and
 `docs/adr/` for individual decisions (JWT storage, Scryfall access pattern,
 sidebar library, chess/marketplace/legal-page/password-reset scope for v1).
 
