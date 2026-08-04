@@ -45,7 +45,9 @@ describe("App routing", () => {
 
   it("renders the home page content at /", async () => {
     renderAt("/");
-    expect(await screen.findByRole("heading", { name: "Home" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: /things I actually enjoy/i }),
+    ).toBeInTheDocument();
   });
 
   it("renders the MTG page content at /mtg", async () => {
