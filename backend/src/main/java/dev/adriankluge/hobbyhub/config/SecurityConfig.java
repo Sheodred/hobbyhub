@@ -33,7 +33,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/health", "/api/auth/**")
+                        .requestMatchers("/api/health", "/api/auth/**", "/api/mtg/**")
                         .permitAll()
                         .anyRequest()
                         .authenticated())

@@ -9,10 +9,11 @@ Stockfish), a non-transactional board-games/cards listing page, member
 accounts, and the required legal pages for a Germany-based operator.
 
 **Status:** app shell, JWT auth (signup/login/logout/password reset), the
-homepage, the About Me page, and the legal pages (Impressum/Privacy
-Policy/Terms — draft template content, see `docs/adr/0006`) are live. See
-[ROADMAP](#roadmap) below and `docs/adr/` for the technical decisions
-already locked in.
+homepage, the About Me page, the legal pages (Impressum/Privacy
+Policy/Terms — draft template content, see `docs/adr/0006`), and the
+Magic: The Gathering card search/browse subpage (live Scryfall data via a
+backend proxy, see `docs/adr/0003`) are live. See [ROADMAP](#roadmap) below
+and `docs/adr/` for the technical decisions already locked in.
 
 ## Why this project
 
@@ -73,7 +74,7 @@ sidebar library, chess/marketplace/legal-page/password-reset scope for v1).
 - [x] Auth (signup/login/logout/password reset, JWT)
 - [x] Homepage
 - [x] About Me + legal pages
-- [ ] Magic: The Gathering subpage
+- [x] Magic: The Gathering subpage
 - [ ] Marketplace (listing/inquiry, no live checkout)
 - [ ] Chess vs. AI
 - [ ] Animation/responsive/accessibility polish
