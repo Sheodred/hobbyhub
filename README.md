@@ -80,11 +80,12 @@ cd frontend && npm install && npm test
   Planned: a manual pass on a real phone/resized window as part of the
   Milestone 8 polish work below.
 - **Animation/responsive/accessibility polish (Milestone 8, in progress).**
-  Framer Motion entrance animations already respect
-  `prefers-reduced-motion` on the homepage (Hero, highlight cards); the
-  same pass still needs to reach the MTG, Marketplace, and Chess pages,
-  plus a general responsive/keyboard-navigation/contrast check across the
-  whole app.
+  Framer Motion entrance animations (respecting `prefers-reduced-motion`
+  throughout, via a shared `FadeIn` wrapper) now reach every page - MTG,
+  Marketplace, and Chess included, not just the homepage. Still open: a
+  general keyboard-navigation/contrast audit across the whole app, and
+  real-device confirmation of the mobile drawer (see the viewport-testing
+  gap above).
 - **No production deployment target yet** (Milestone 9). Locally this runs
   via `docker compose` with Vite's dev server in the frontend container -
   a real deploy needs a production build (multi-stage Dockerfile serving

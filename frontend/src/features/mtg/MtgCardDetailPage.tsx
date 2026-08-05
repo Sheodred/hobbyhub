@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 
+import { FadeIn } from "../../components/FadeIn";
 import { ApiError } from "../../lib/apiClient";
 import { getCard, getPrintings } from "./api";
 
@@ -48,7 +49,7 @@ export function MtgCardDetailPage() {
   }
 
   return (
-    <div>
+    <FadeIn key={card.id}>
       <Link to="/mtg" className="text-sm text-indigo-400 hover:underline">
         &larr; Back to search
       </Link>
@@ -116,6 +117,6 @@ export function MtgCardDetailPage() {
           </div>
         </div>
       )}
-    </div>
+    </FadeIn>
   );
 }
