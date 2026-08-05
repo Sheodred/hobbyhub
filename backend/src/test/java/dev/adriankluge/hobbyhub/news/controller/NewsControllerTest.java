@@ -39,4 +39,14 @@ class NewsControllerTest {
                 .andExpect(jsonPath("$[0].teaser").value("Teaser"))
                 .andExpect(jsonPath("$[0].url").value("https://example.com/1"));
     }
+
+    @Test
+    void returnsTheCachedWotcItems() throws Exception {
+        NewsItem item = new NewsItem(NewsSource.WOTC, "WotC headline", null, "https://magic.wizards.com/en/news/x", null, 0);
+        when(newsItemRepository.findBySourceOrderBySortOrderAsc(NewsSource.WOTC)).thenReturn(List.of(item));
+
+        mockMvc.perform(get("/api/news/wotc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].headline").value("WotC headline"));
+    }
 }
