@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
@@ -19,12 +20,15 @@ describe("HomePage", () => {
   });
 
   it("links all three highlight cards to their pages", async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
-      <MemoryRouter>
-        <AuthProvider>
-          <HomePage />
-        </AuthProvider>
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <AuthProvider>
+            <HomePage />
+          </AuthProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
 
     expect(await screen.findByRole("link", { name: /Magic: The Gathering/ })).toHaveAttribute("href", "/mtg");
