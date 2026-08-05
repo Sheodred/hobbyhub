@@ -93,12 +93,23 @@ docker compose exec php php /var/www/html/api/cron/refresh_mtg_meta.php
 ## Tests
 
 ```bash
-# api - syntax check only, no test suite (see docs/adr/0009's Consequences)
-docker run --rm -v "$(pwd)/api:/api" php:8.3-cli sh -c "find /api -name '*.php' -exec php -l {} \;"
+# api - PHPUnit against a real MySQL/MariaDB instance (env vars below match
+# the docker-compose mariadb service; adjust for a different DB target)
+cd api && composer install
+DB_HOST=mariadb DB_NAME=hobbyhub DB_USER=hobbyhub DB_PASSWORD=hobbyhub vendor/bin/phpunit
 
 # frontend
 cd frontend && npm install && npm test
 ```
+
+PHPUnit covers `ScryfallClient`'s cache-aside behavior (cache hit/miss/
+expiry, "no cards match" as an empty result rather than an error) and both
+cron scripts' replace-on-success / rollback-and-keep-existing-cache-on-
+failure behavior (`replace_news`, `replace_meta` in `api/lib/`) - the two
+areas named as the highest-risk untested surface after the PHP migration.
+Outbound third-party HTTP calls are faked via an injected callable per
+test; the database itself is real, not mocked, matching how the app
+actually behaves. Everything else in `api/` still has no test coverage.
 
 ## Known issues / planned improvements
 
@@ -116,10 +127,13 @@ cd frontend && npm install && npm test
   `api/sql/schema.sql` applied manually on the server once. See
   [`docs/deploy-checklist.md`](docs/deploy-checklist.md) for the full
   pre-launch checklist.
-- **No PHP test suite** - the migration to PHP/MySQL (`docs/adr/0009`)
-  dropped the 60+ backend JUnit tests with no equivalent added; CI only
-  runs a `php -l` syntax check. Named explicitly as a trade-off, not an
-  oversight.
+- **PHP test coverage is partial.** The migration to PHP/MySQL
+  (`docs/adr/0009`) dropped the 60+ backend JUnit tests with no equivalent
+  added at the time - later backfilled for the two highest-risk areas
+  (`ScryfallClient`'s cache-aside logic, both cron scripts' replace/
+  rollback behavior, see Tests above), but everything else in `api/`
+  (the other *Client classes, every endpoint's request/response handling)
+  still has no coverage beyond the `php -l` syntax check.
 - **The WotC news panel and the MTGGoldfish-sourced tier lists are
   scraping-based, explicitly "may break" integrations** - both have no
   official API, so they depend on those sites' current HTML structure.

@@ -14,6 +14,18 @@ class ScryfallClient
     private const CACHE_TTL_SECONDS = 300;
     private const THROTTLE_MIN_INTERVAL_MS = 100;
 
+    /** @var callable */
+    private $httpGetJson;
+
+    // Injectable HTTP fetch, defaulting to the real network call - lets
+    // tests substitute a canned response instead of hitting Scryfall for
+    // real, the same DI-seam lesson the RestClientCustomizer bean taught
+    // in the pre-migration Java version (see docs/project-history.md).
+    public function __construct(?callable $httpGetJson = null)
+    {
+        $this->httpGetJson = $httpGetJson ?? 'http_get_json';
+    }
+
     public function search(string $query, int $page): array
     {
         return $this->cached('search:' . $query . ':' . $page, function () use ($query, $page) {
@@ -104,7 +116,7 @@ class ScryfallClient
     private function request(string $path): ?array
     {
         $this->throttle();
-        return http_get_json(SCRYFALL_BASE_URL . $path, 10, ['User-Agent: ' . SCRYFALL_USER_AGENT]);
+        return ($this->httpGetJson)(SCRYFALL_BASE_URL . $path, 10, ['User-Agent: ' . SCRYFALL_USER_AGENT]);
     }
 
     private function throttle(): void

@@ -45,3 +45,11 @@ jobs:
           uploads: |
             frontend/dist/ => ./
             api/ => ./api/
+          # PHPUnit and its dev-only vendor/ directory never run in
+          # production - no reason to ship them to the live webspace.
+          ignore: |
+            api/vendor/**
+            api/tests/**
+            api/composer.json
+            api/composer.lock
+            api/phpunit.xml

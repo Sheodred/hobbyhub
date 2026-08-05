@@ -64,7 +64,15 @@ with SFTP for the PHP API.
   the real Java implementation.
 - Lost, out of scope for this migration: all 60+ backend JUnit tests, with
   no PHP equivalent added — worth naming plainly rather than silently
-  losing the coverage.
+  losing the coverage. **Update (2026-08-05): partially backfilled** —
+  PHPUnit tests now cover `ScryfallClient`'s cache-aside logic and both
+  cron scripts' replace-on-success/rollback-on-failure behavior (`api/lib/
+  NewsRefresh.php`, `api/lib/MetaRefresh.php`, extracted from the cron
+  scripts specifically to make them testable in isolation), run against a
+  real MySQL/MariaDB service container in CI with outbound HTTP calls
+  faked via an injected callable per client — not mocking the database,
+  matching how the app actually behaves. Everything else in `api/` is
+  still untested beyond `php -l`.
 - A real bug was found and fixed during Phase 3 verification, not
   preserved from Java: Apache's per-directory `.htaccess` rewriting
   restarts matching against the *rewritten* URI, which meant

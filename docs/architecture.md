@@ -39,9 +39,11 @@ weather).
 | About / Legal | none | `features/about/`, `features/legal/` | none | Static content; legal pages are a structural template, not legal advice - docs/adr/0006 |
 
 `api/lib/` holds the shared HTTP client helpers (`http_client.php`), the DB
-singleton (`db.php`), the JSON response helpers (`http.php`), and one
-`*Client.php` per third-party integration - the PHP equivalent of the old
-`common/`/`config/` cross-cutting packages.
+singleton (`db.php`), the JSON response helpers (`http.php`), one
+`*Client.php` per third-party integration, and the two cron scripts'
+extracted, unit-tested transaction helpers (`NewsRefresh.php`,
+`MetaRefresh.php`) - the PHP equivalent of the old `common/`/`config/`
+cross-cutting packages.
 
 ## Request flow: MTG search (public, no auth)
 
@@ -118,8 +120,9 @@ build time) falls back to `index.html` for any path that isn't a real
 file, so client-side routes survive a direct load/refresh. Needs
 `IONOS_SFTP_HOST`/`_USER`/`_PASSWORD` as GitHub repo secrets - see
 `docs/deploy-checklist.md`. CI (`.github/workflows/ci.yml`) runs frontend
-lint/test/build plus a `php -l` syntax check over `api/` on every PR/push
-to `main`.
+lint/test/build, a `php -l` syntax check over `api/`, and the PHPUnit
+suite (`api/tests/`, against a real MariaDB service container) on every
+PR/push to `main`.
 
 ## Why these decisions
 

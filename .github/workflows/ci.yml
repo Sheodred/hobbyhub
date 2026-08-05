@@ -8,13 +8,42 @@ on:
 jobs:
   api:
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10
+        env:
+          MARIADB_DATABASE: hobbyhub_test
+          MARIADB_USER: hobbyhub_test
+          MARIADB_PASSWORD: hobbyhub_test
+          MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
+          extensions: pdo, pdo_mysql
       - name: Syntax check
         run: find api -name '*.php' -exec php -l {} \;
+      - name: Apply schema
+        run: mysql -h127.0.0.1 -uhobbyhub_test -phobbyhub_test hobbyhub_test < api/sql/schema.sql
+      - name: Install Composer dependencies
+        working-directory: api
+        run: composer install --no-interaction --prefer-dist
+      - name: Test
+        working-directory: api
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: hobbyhub_test
+          DB_USER: hobbyhub_test
+          DB_PASSWORD: hobbyhub_test
+        run: vendor/bin/phpunit
 
   frontend:
     runs-on: ubuntu-latest

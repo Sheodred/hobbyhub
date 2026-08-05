@@ -1,8 +1,9 @@
 RewriteEngine On
 
-# Never allow direct web access to config/lib/cron/sql - they're either
-# included by an endpoint or run via WebCron, never requested directly.
-RewriteRule ^(config|config\.local|lib/.*|cron/.*|sql/.*)$ - [F,END]
+# Never allow direct web access to config/lib/cron/sql, or to the test
+# suite/Composer tooling (tests/, vendor/, composer.json/lock) - none of
+# these are ever requested directly, only included or run via CLI/WebCron.
+RewriteRule ^(config|config\.local|lib/.*|cron/.*|sql/.*|tests/.*|vendor/.*|composer\.(json|lock))$ - [F,END]
 
 # Static routes - extensionless URL -> the matching .php file. Order
 # matters: the more specific /mtg/cards/by-name rule must come before the

@@ -2,6 +2,8 @@
 
 # api (PHP) - production credentials, never committed (see api/config.example.php)
 api/config.local.php
+api/vendor/
+api/.phpunit.result.cache
 
 
 # frontend
