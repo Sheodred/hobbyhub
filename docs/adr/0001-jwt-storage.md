@@ -1,7 +1,14 @@
 # ADR-0001: JWT storage
 
 ## Status
-Accepted
+Superseded (2026-08-05) — auth was extracted to the separate
+[kluge-boards-and-cards](https://github.com/Sheodred/kluge-boards-and-cards)
+project as part of the PHP/MySQL migration (see `docs/adr/0009`). HobbyHub
+itself has no accounts and no JWTs anymore. Kept for reference; the
+reasoning below still applies wherever that project ends up implementing
+auth.
+
+~~Accepted~~
 
 ## Context
 The spec asks for "JWT-based sessions" without specifying where the token

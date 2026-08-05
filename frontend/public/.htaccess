@@ -1,0 +1,11 @@
+RewriteEngine On
+
+# Never rewrite real files/directories (assets, and the api/ subtree, which
+# has its own .htaccess) - only fall back to index.html for paths that
+# don't exist on disk, so React Router can handle client-side routes like
+# a direct load of /mtg/meta or a page refresh mid-route.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^ index.html [L]

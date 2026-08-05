@@ -1,37 +1,46 @@
 services:
-  postgres:
-    image: postgres:16-alpine
+  mariadb:
+    image: mariadb:10
     environment:
-      - POSTGRES_DB=hobbyhub
-      - POSTGRES_USER=${DATABASE_USER:-hobbyhub}
-      - POSTGRES_PASSWORD=${DATABASE_PASSWORD:-hobbyhub}
+      - MARIADB_DATABASE=hobbyhub
+      - MARIADB_USER=${DATABASE_USER:-hobbyhub}
+      - MARIADB_PASSWORD=${DATABASE_PASSWORD:-hobbyhub}
+      - MARIADB_RANDOM_ROOT_PASSWORD=yes
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - mariadbdata:/var/lib/mysql
+      - ./api/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
 
-  backend:
-    build: ./backend
+  php:
+    build: ./api
     ports:
-      - "8080:8080"
+      - "8081:80"
     environment:
-      - DATABASE_URL=jdbc:postgresql://postgres:5432/hobbyhub
-      - DATABASE_USER=${DATABASE_USER:-hobbyhub}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-hobbyhub}
-      # dev profile exposes password-reset tokens in the API response (see
-      # docs/adr/0007) so the flow is testable locally without real SMTP -
-      # never set this in a real deployment.
-      - SPRING_PROFILES_ACTIVE=dev
-      - COOKIE_SECURE=${COOKIE_SECURE:-true}
+      - DB_HOST=mariadb
+      - DB_NAME=hobbyhub
+      - DB_USER=${DATABASE_USER:-hobbyhub}
+      - DB_PASSWORD=${DATABASE_PASSWORD:-hobbyhub}
     depends_on:
-      - postgres
+      - mariadb
 
+  # Vite dev server, not the production nginx build - this compose file is
+  # local dev/staging only, production deploys straight to IONOS via SFTP
+  # (see .github/workflows/deploy.yml).
   frontend:
-    build: ./frontend
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
     ports:
-      - "5173:80"
+      - "5173:5173"
+    environment:
+      - VITE_API_PROXY_TARGET=http://php:80
     depends_on:
-      - backend
+      - php
 
 volumes:
-  pgdata:
+  mariadbdata:
+  frontend_node_modules:

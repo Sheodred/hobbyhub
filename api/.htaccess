@@ -1,0 +1,25 @@
+RewriteEngine On
+
+# Never allow direct web access to config/lib/cron/sql - they're either
+# included by an endpoint or run via WebCron, never requested directly.
+RewriteRule ^(config|config\.local|lib/.*|cron/.*|sql/.*)$ - [F,END]
+
+# Static routes - extensionless URL -> the matching .php file. Order
+# matters: the more specific /mtg/cards/by-name rule must come before the
+# generic /mtg/cards/{id} catch-all below it. Every rule uses END (not just
+# L) because .htaccess per-directory rewriting restarts matching against the
+# rewritten URI - without END, "mtg/cards/by-name" rewrites to
+# "mtg/cards/by-name.php", which then re-enters the ruleset and matches the
+# generic {id} catch-all below, turning into
+# "mtg/cards/get.php?id=by-name.php". END stops that restart.
+RewriteRule ^mtg/search/?$ mtg/search.php [QSA,END]
+RewriteRule ^mtg/printings/?$ mtg/printings.php [QSA,END]
+RewriteRule ^mtg/cards/by-name/?$ mtg/cards/by-name.php [QSA,END]
+RewriteRule ^mtg/combos/?$ mtg/combos.php [QSA,END]
+RewriteRule ^mtg/meta/?$ mtg/meta.php [QSA,END]
+RewriteRule ^news/tagesschau/?$ news/tagesschau.php [QSA,END]
+RewriteRule ^news/wotc/?$ news/wotc.php [QSA,END]
+RewriteRule ^health/?$ health.php [QSA,END]
+
+# Dynamic route: /mtg/cards/{id} - anything not already matched above.
+RewriteRule ^mtg/cards/([^/]+)/?$ mtg/cards/get.php?id=$1 [QSA,END]

@@ -10,6 +10,6 @@ describe("PrivacyPolicyPage", () => {
     expect(screen.getByRole("heading", { name: "Privacy Policy", level: 1 })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Controller" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Your rights" })).toBeInTheDocument();
-    expect(screen.getByText(/session cookie/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/open-meteo/i).length).toBeGreaterThan(0);
   });
 });

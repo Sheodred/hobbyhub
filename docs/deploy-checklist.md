@@ -1,78 +1,84 @@
 # Deploy checklist
 
-Concrete, project-specific items to work through before HobbyHub goes live -
-not a generic checklist. Each item names the actual file/setting involved.
+Concrete, project-specific items to work through before HobbyHub goes live
+on IONOS Webhosting Plus (sheoforge.de) - not a generic checklist. Each
+item names the actual file/setting involved. See `docs/adr/0009` for the
+hosting decision and migration reasoning behind this list.
 
 ## Blockers (must be done before any real launch)
 
 - [ ] **Legal pages are still placeholder content.** Impressum, Privacy
       Policy, and Terms of Service (see `docs/adr/0006`) use loud bracketed
       placeholders and a dev-only draft-content banner. Have the real text
-      reviewed (ideally by a lawyer, given the marketplace sells goods)
-      before removing the draft banner and going live.
-- [ ] **Password-reset emails aren't actually sent.** Per `docs/adr/0007`,
-      v1 only logs/returns the reset token under the `dev` Spring profile -
-      there is no real SMTP delivery yet. Either wire up Spring Mail + a
-      provider (Resend, Mailtrap, etc.) first, or launch without the
-      password-reset flow enabled.
-- [ ] **`SPRING_PROFILES_ACTIVE` must not be `dev` in production** - the dev
-      profile exposes password-reset tokens directly in the API response
-      (see `docker-compose.yml`'s comment on this). Set it to a real `prod`
-      profile (or leave it unset once dev-only beans are profile-gated).
+      reviewed before removing the draft banner and going live.
+- [ ] **`api/config.local.php` must exist on the server with real values**
+      (copy from `api/config.example.php`) - IONOS has no PHP env-var UI,
+      so this gitignored file is the only way `DB_HOST`/`DB_NAME`/
+      `DB_USER`/`DB_PASSWORD` get set in production. Without it, `api/`
+      falls back to the docker-compose dev defaults (`mariadb`/`hobbyhub`/
+      `hobbyhub`/`hobbyhub`), which won't resolve on the real host.
+- [ ] **`api/sql/schema.sql` must be applied manually once** via
+      phpMyAdmin or the IONOS MySQL CLI - it only auto-applies in local
+      docker-compose (`/docker-entrypoint-initdb.d`).
 
-## Required environment variables (production values, not the dev defaults)
+## GitHub repo secrets (for `.github/workflows/deploy.yml`)
 
-All of these currently fall back to insecure dev defaults baked into
-`backend/src/main/resources/application.yml` - every one of them must be
-set explicitly for a real deployment:
+| Secret | Purpose |
+| --- | --- |
+| `IONOS_SFTP_HOST` | SFTP host for the Webhosting Plus space |
+| `IONOS_SFTP_USER` | SFTP username |
+| `IONOS_SFTP_PASSWORD` | SFTP password |
 
-| Variable | Dev default | Production requirement |
-| --- | --- | --- |
-| `JWT_SECRET` | `dev-only-secret-...` | A real random secret, 32+ bytes (HMAC-SHA256 requirement) |
-| `DATABASE_URL` / `DATABASE_USER` / `DATABASE_PASSWORD` | `hobbyhub`/`hobbyhub` | Real managed-Postgres credentials, not the docker-compose defaults |
-| `CORS_ALLOWED_ORIGIN` | `http://localhost:5173` | The real frontend origin (e.g. `https://hobbyhub.example.com`) |
-| `COOKIE_SECURE` | `true` | Already correct - just confirm it isn't accidentally overridden to `false` |
+These need to be added in GitHub's repo settings by hand - not something
+set from a CI run.
+
+## WebCron (IONOS control panel)
+
+- [ ] `api/cron/refresh_news.php` - every 20 minutes (matches the old
+      `@Scheduled` interval).
+- [ ] `api/cron/refresh_mtg_meta.php` - every 4 hours.
+
+Both are plain URL-triggered scripts (`https://sheoforge.de/api/cron/...`
+is blocked from direct access by `api/.htaccess` - WebCron needs the actual
+file-system path or a signed URL, whichever IONOS's WebCron UI expects;
+confirm the exact invocation method against IONOS's docs when setting this
+up, since shared-hosting WebCron products vary here).
 
 ## Database
 
-- [ ] Flyway (`spring.flyway.enabled: true`) runs migrations automatically
-      on backend startup - fine for this project's size, but take a backup
-      before deploying any release that includes a new migration.
-- [ ] Decide where Postgres actually runs in production (see hosting below)
-      - `docker-compose.yml`'s `postgres` service with a named volume is
-      dev-only; a real deployment needs either a managed Postgres instance
-      or a VPS volume with an actual backup strategy.
+- [ ] `api/sql/schema.sql` applied once (see Blockers above) - no
+      migration tool, this project's size doesn't need one; future schema
+      changes get applied by hand the same way.
+- [ ] Confirm the MySQL/MariaDB database IONOS provisions matches what
+      `api/config.local.php` points at (IONOS assigns a `dbXXXXXXXX`-style
+      name/user, not `hobbyhub`).
 
 ## Frontend
 
-- [x] Production build (multi-stage Dockerfile -> nginx, done - frontend no
-      longer runs Vite's dev server in the container).
-- [ ] Point `CORS_ALLOWED_ORIGIN` at the real deployed frontend URL once
-      it's known.
+- [x] Production build via `npm run build` (Vite, `frontend/dist/`) -
+      uploaded by the deploy workflow, not built on the server.
+- [x] SPA-fallback `.htaccess` (`frontend/public/.htaccess`, copied into
+      `dist/` at build time) so a direct load or refresh on a client-side
+      route (e.g. `/mtg/meta`) doesn't 404 on Apache.
+- [ ] No CORS config needed - frontend and API share the same origin
+      (sheoforge.de) once deployed, per docs/adr/0009.
 
-## Hosting (proposed - confirm before committing to it)
+## Hosting
 
-Given the whole stack is already `docker compose`-shaped (frontend, backend,
-Postgres, no other infra dependencies), the least-new-tooling path is a
-small VPS running that same `docker-compose.yml` directly, fronted by
-[Caddy](https://caddyserver.com/) for automatic HTTPS - e.g. a Hetzner CX22
-(~4-5 EUR/month). This avoids learning a new platform's deploy model for a
-personal project and reuses everything already built.
-
-Alternative if less server ops is preferred: a managed platform like
-[Render](https://render.com/) (web service + managed Postgres, both have
-usable free/low tiers) - less control, no server to patch, but the app
-would need to be split into two separate Render services instead of one
-`docker compose up`.
-
-**This is a recommendation, not a decision already made - confirm which
-direction before spending money or setup time on either.**
+Decided: **IONOS Webhosting Plus** (sheoforge.de, already paid for) via a
+single GitHub Actions SFTP workflow uploading both the built SPA and
+`api/` into the same webspace. See `docs/adr/0009` for why IONOS Deploy Now
+was considered and rejected. Nothing further to decide here.
 
 ## After going live
 
-- [ ] Point DNS at the chosen host, confirm HTTPS works end-to-end.
-- [ ] Smoke-test the full auth flow (signup/login/logout) and one write path
-      per feature (create a marketplace listing, play a chess move) against
-      the real deployment, not just CI.
-- [ ] Remove the dev-only draft-content banners once real content is live
-      everywhere it appears (`DraftContentNotice` usages).
+- [ ] Point DNS at sheoforge.de if not already, confirm HTTPS works
+      end-to-end.
+- [ ] Smoke-test MTG search/detail/printings/combos, the Meta & Stats page,
+      both homepage news panels, and chess against the real deployment -
+      not just CI or local docker-compose.
+- [ ] Manually trigger both cron scripts once right after the first
+      deploy, so the news/meta tables aren't empty until the first
+      WebCron-scheduled run.
+- [ ] Remove the dev-only draft-content banners once real legal-page
+      content is live (`DraftContentNotice` usages).

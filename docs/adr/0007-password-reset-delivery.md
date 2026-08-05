@@ -1,7 +1,13 @@
 # ADR-0007: Password-reset email delivery
 
 ## Status
-Accepted (open for revisit)
+Superseded (2026-08-05) — auth (and with it, password reset) was extracted
+to the separate [kluge-boards-and-cards](https://github.com/Sheodred/kluge-boards-and-cards)
+project as part of the PHP/MySQL migration (see `docs/adr/0009`). Kept for
+reference; the reasoning below still applies wherever that project ends up
+wiring real delivery.
+
+~~Accepted (open for revisit)~~
 
 ## Context
 The spec asks for a password-reset flow but names no email/SMTP provider —

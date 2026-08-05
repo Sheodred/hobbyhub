@@ -12,7 +12,7 @@ export function HomePage() {
         <h2 id="highlights-heading" className="sr-only">
           Explore
         </h2>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {highlights.map((highlight, index) => (
             <HighlightCard key={highlight.to} highlight={highlight} index={index} />
           ))}

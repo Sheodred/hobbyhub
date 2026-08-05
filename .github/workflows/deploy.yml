@@ -1,0 +1,47 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+      # Direct SFTP protocol upload (not rsync-over-ssh) - IONOS Webhosting
+      # Plus only exposes the SFTP file-transfer subsystem, not a full SSH
+      # shell, so an rsync-based action (which needs to execute `rsync` on
+      # the remote side) would not work here.
+      #
+      # delete is deliberately left at its default (false/off): the target
+      # webspace root and api/ both already hold real files uploaded
+      # outside git (frontend static assets accumulate build hashes; api/
+      # holds config.local.php, gitignored production DB credentials that
+      # do not exist in this checkout at all). A mirroring delete would
+      # wipe config.local.php on every deploy.
+      - name: Deploy to IONOS via SFTP
+        uses: Dylan700/sftp-upload-action@v1.2.4
+        with:
+          server: ${{ secrets.IONOS_SFTP_HOST }}
+          username: ${{ secrets.IONOS_SFTP_USER }}
+          password: ${{ secrets.IONOS_SFTP_PASSWORD }}
+          port: 22
+          uploads: |
+            frontend/dist/ => ./
+            api/ => ./api/

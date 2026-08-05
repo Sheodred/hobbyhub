@@ -2,10 +2,8 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
-import { useAuth } from "../auth/AuthContext";
 
 export function Hero() {
-  const { user, isLoading } = useAuth();
   const reduceMotion = usePrefersReducedMotion();
 
   return (
@@ -38,8 +36,8 @@ export function Hero() {
         transition={{ duration: 0.4, delay: 0.1 }}
         className="mx-auto mt-4 max-w-xl text-lg text-slate-400"
       >
-        Magic: The Gathering, chess against an engine that doesn't go easy on you, and the odd
-        board game up for sale. No algorithm, no ads - just hobbies.
+        Magic: The Gathering, and chess against an engine that doesn't go easy on you. No
+        algorithm, no ads, no accounts - just hobbies.
       </motion.p>
 
       <motion.div
@@ -48,35 +46,18 @@ export function Hero() {
         transition={{ duration: 0.4, delay: 0.2 }}
         className="mt-8 flex flex-wrap items-center justify-center gap-3"
       >
-        {!isLoading && user ? (
-          <span className="text-slate-300">
-            Welcome back, <span className="font-medium text-slate-100">{user.displayName}</span> -
-            jump into a{" "}
-            <Link to="/chess" className="text-indigo-400 hover:underline">
-              game of chess
-            </Link>{" "}
-            or browse{" "}
-            <Link to="/mtg" className="text-indigo-400 hover:underline">
-              some cards
-            </Link>
-            .
-          </span>
-        ) : (
-          <>
-            <Link
-              to="/signup"
-              className="rounded-md bg-indigo-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-400"
-            >
-              Sign up
-            </Link>
-            <Link
-              to="/login"
-              className="rounded-md border border-slate-700 px-5 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
-            >
-              Log in
-            </Link>
-          </>
-        )}
+        <Link
+          to="/mtg"
+          className="rounded-md bg-indigo-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-400"
+        >
+          Browse cards
+        </Link>
+        <Link
+          to="/chess"
+          className="rounded-md border border-slate-700 px-5 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-800"
+        >
+          Play chess
+        </Link>
       </motion.div>
     </section>
   );

@@ -1,7 +1,13 @@
 # ADR-0005: Marketplace listing images
 
 ## Status
-Accepted (open for revisit — see open question in ROADMAP/plan)
+Superseded (2026-08-05) — the Marketplace feature was extracted to the
+separate [kluge-boards-and-cards](https://github.com/Sheodred/kluge-boards-and-cards)
+project as part of the PHP/MySQL migration (see `docs/adr/0009`) and put on
+that project's roadmap, not rebuilt there or here yet. Kept for reference;
+the reasoning below still applies whenever Marketplace actually gets built.
+
+~~Accepted (open for revisit — see open question in ROADMAP/plan)~~
 
 ## Context
 Listings need images. Building real upload/object-storage (S3, MinIO, or

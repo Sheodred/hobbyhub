@@ -16,6 +16,13 @@ original spec, kept for reference.
   in their place at the relevant points (ADRs in `docs/adr/` instead of an
   `architecture` skill, `docs/deploy-checklist.md` instead of a
   `deploy-checklist` skill run, etc).
+- **Post-launch (2026-08-05): the backend described below (Spring Boot,
+  PostgreSQL, JWT auth, marketplace) was migrated to PHP/MySQL on IONOS
+  Webhosting Plus, and auth/marketplace were extracted to a separate
+  project.** This brief and its Phase 0-12 checklist are kept as the
+  unmodified historical record of the original build - see
+  `docs/adr/0009` for the migration itself and `docs/architecture.md` for
+  the current system.
 
 ---
 
