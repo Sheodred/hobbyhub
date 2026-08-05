@@ -18,7 +18,9 @@ export function FadeIn({ children, className }: FadeInProps) {
     <motion.div
       initial={reduceMotion ? undefined : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
+      // Strong ease-out, under 300ms - entrances should start fast and feel
+      // responsive rather than linger (see emilkowalski/skills' emil-design-eng).
+      transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
       className={className}
     >
       {children}
