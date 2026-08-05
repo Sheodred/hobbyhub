@@ -38,7 +38,9 @@ the technical decisions already locked in.
 See [`docs/architecture.md`](docs/architecture.md) for the system diagram,
 the feature-area-to-code map, two annotated request flows, and the data
 model - `docs/adr/` covers the reasoning behind each individual decision
-in more depth.
+in more depth, and [`docs/project-history.md`](docs/project-history.md)
+tells the story of how the project got here, including the real pitfalls
+hit along the way.
 
 ## Why this project
 
