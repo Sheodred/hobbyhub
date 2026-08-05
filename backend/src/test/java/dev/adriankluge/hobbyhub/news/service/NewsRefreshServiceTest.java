@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import dev.adriankluge.hobbyhub.news.client.FetchedNewsItem;
 import dev.adriankluge.hobbyhub.news.client.TagesschauClient;
+import dev.adriankluge.hobbyhub.news.client.WotcNewsClient;
 import dev.adriankluge.hobbyhub.news.entity.NewsItem;
 import dev.adriankluge.hobbyhub.news.entity.NewsSource;
 import dev.adriankluge.hobbyhub.news.repository.NewsItemRepository;
@@ -24,6 +25,9 @@ class NewsRefreshServiceTest {
 
     @Mock
     private TagesschauClient tagesschauClient;
+
+    @Mock
+    private WotcNewsClient wotcNewsClient;
 
     @Mock
     private NewsItemRepository newsItemRepository;
@@ -51,5 +55,17 @@ class NewsRefreshServiceTest {
 
         verify(newsItemRepository, never()).deleteBySource(any());
         verify(newsItemRepository, never()).save(any());
+    }
+
+    @Test
+    void wotcRefreshReplacesTheCachedRowsForThatSourceOnly() {
+        when(wotcNewsClient.fetchLatest())
+                .thenReturn(List.of(new FetchedNewsItem("Headline", null, "https://magic.wizards.com/en/news/x", null)));
+
+        service.refreshWotc();
+
+        verify(newsItemRepository, times(1)).deleteBySource(NewsSource.WOTC);
+        verify(newsItemRepository, times(1)).save(any(NewsItem.class));
+        verify(newsItemRepository, never()).deleteBySource(NewsSource.TAGESSCHAU);
     }
 }

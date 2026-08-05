@@ -26,4 +26,11 @@ public class NewsController {
                 .map(NewsItemResponse::from)
                 .toList();
     }
+
+    @GetMapping("/wotc")
+    public List<NewsItemResponse> wotc() {
+        return newsItemRepository.findBySourceOrderBySortOrderAsc(NewsSource.WOTC).stream()
+                .map(NewsItemResponse::from)
+                .toList();
+    }
 }

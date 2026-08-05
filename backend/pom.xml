@@ -76,6 +76,13 @@
             <version>0.12.6</version>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <!-- HTML parsing for the WotC news scraper - there's no public
+                 news API to call instead (see news.client.WotcNewsClient). -->
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.18.1</version>
+        </dependency>
 
         <dependency>
             <groupId>com.h2database</groupId>

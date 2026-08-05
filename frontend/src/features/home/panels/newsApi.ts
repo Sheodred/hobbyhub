@@ -10,3 +10,7 @@ export interface NewsItem {
 export function getTagesschauNews(): Promise<NewsItem[]> {
   return apiFetch<NewsItem[]>("/api/news/tagesschau");
 }
+
+export function getWotcNews(): Promise<NewsItem[]> {
+  return apiFetch<NewsItem[]>("/api/news/wotc");
+}

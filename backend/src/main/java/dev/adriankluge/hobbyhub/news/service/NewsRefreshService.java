@@ -2,6 +2,7 @@ package dev.adriankluge.hobbyhub.news.service;
 
 import dev.adriankluge.hobbyhub.news.client.FetchedNewsItem;
 import dev.adriankluge.hobbyhub.news.client.TagesschauClient;
+import dev.adriankluge.hobbyhub.news.client.WotcNewsClient;
 import dev.adriankluge.hobbyhub.news.entity.NewsItem;
 import dev.adriankluge.hobbyhub.news.entity.NewsSource;
 import dev.adriankluge.hobbyhub.news.repository.NewsItemRepository;
@@ -32,10 +33,13 @@ public class NewsRefreshService {
     private static final Logger log = LoggerFactory.getLogger(NewsRefreshService.class);
 
     private final TagesschauClient tagesschauClient;
+    private final WotcNewsClient wotcNewsClient;
     private final NewsItemRepository newsItemRepository;
 
-    public NewsRefreshService(TagesschauClient tagesschauClient, NewsItemRepository newsItemRepository) {
+    public NewsRefreshService(
+            TagesschauClient tagesschauClient, WotcNewsClient wotcNewsClient, NewsItemRepository newsItemRepository) {
         this.tagesschauClient = tagesschauClient;
+        this.wotcNewsClient = wotcNewsClient;
         this.newsItemRepository = newsItemRepository;
     }
 
@@ -49,6 +53,19 @@ public class NewsRefreshService {
             replaceCache(NewsSource.TAGESSCHAU, items);
         } catch (Exception e) {
             log.warn("Failed to refresh Tagesschau news - keeping the existing cache", e);
+        }
+    }
+
+    // WotcNewsClient itself already falls back to a manual list on scrape
+    // failure rather than throwing, but this is still wrapped the same way
+    // as Tagesschau in case the DB write itself fails.
+    @Scheduled(initialDelay = 0, fixedRate = 20, timeUnit = TimeUnit.MINUTES)
+    public void refreshWotc() {
+        try {
+            List<FetchedNewsItem> items = wotcNewsClient.fetchLatest();
+            replaceCache(NewsSource.WOTC, items);
+        } catch (Exception e) {
+            log.warn("Failed to refresh WotC news - keeping the existing cache", e);
         }
     }
 
