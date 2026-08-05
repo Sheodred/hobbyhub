@@ -252,7 +252,8 @@ Work through this top to bottom. Each phase links back to the section above with
 - [ ] Wired into the main site's fan-game page — blocked on Phase 9 above not existing yet.
 
 ### Phase 11 — Lore chatbot
-- [ ] **On hold.** Depends on Phase 10's lore corpus (now exists) but the storage decision changed from this brief's pgvector-in-the-main-Postgres proposal to a dedicated Elasticsearch instance, kept separate from the one used by `hybrid-search-api` — still needs figuring out where that Elasticsearch would actually run before any of enable-pgvector/ingestion/RAG-endpoint/chat-panel work starts.
+- [x] Infrastructure concept decided and written up: `docs/adr/0008-lore-chatbot-elasticsearch.md` - a dedicated Elasticsearch instance in hobbyhub's own `docker-compose.yml` (separate network/volume/port from hybrid-search-api's, isolated by Docker Compose's per-project scoping), `lore_chunks` index with a `dense_vector` field for kNN in place of the brief's pgvector plan. Reference service YAML and index mapping are in the ADR, not yet applied to the real `docker-compose.yml`.
+- [ ] **Building the actual chatbot is on the roadmap, not being worked on now** - explicit instruction (2026-08-05). Nothing below this line is started: enabling the Elasticsearch service for real, picking an embeddings API (fixes the `dims` value), ingestion job, RAG endpoint, chat panel.
 
 ### Phase 12 — Polish & ship
 - [x] Animation pass across all pages.
