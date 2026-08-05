@@ -1,6 +1,7 @@
 import { Hero } from "./Hero";
 import { HighlightCard } from "./HighlightCard";
 import { highlights } from "./highlights";
+import { InfoPanels } from "./panels/InfoPanels";
 
 export function HomePage() {
   return (
@@ -16,6 +17,13 @@ export function HomePage() {
             <HighlightCard key={highlight.to} highlight={highlight} index={index} />
           ))}
         </div>
+      </section>
+
+      <section aria-labelledby="info-heading">
+        <h2 id="info-heading" className="sr-only">
+          Today
+        </h2>
+        <InfoPanels />
       </section>
     </div>
   );
