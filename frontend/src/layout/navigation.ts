@@ -8,7 +8,6 @@ export interface NavLinkItem {
 export const primaryNavLinks: NavLinkItem[] = [
   { to: "/", label: "Home" },
   { to: "/mtg", label: "Magic: The Gathering" },
-  { to: "/marketplace", label: "Marketplace" },
   { to: "/chess", label: "Chess vs. AI" },
   { to: "/about", label: "About Me" },
 ];

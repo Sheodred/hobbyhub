@@ -20,12 +20,6 @@ export const highlights: Highlight[] = [
     imageUrl: "https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg",
   },
   {
-    to: "/marketplace",
-    title: "Marketplace",
-    description: "Board games and cards currently up for sale - inquire directly, no checkout needed.",
-    accent: "from-amber-500/60 via-orange-500/30 to-rose-500/10",
-  },
-  {
     to: "/chess",
     title: "Chess vs. AI",
     description: "Play against a client-side Stockfish engine at whatever difficulty you can handle.",

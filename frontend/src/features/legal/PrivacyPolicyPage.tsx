@@ -23,29 +23,16 @@ export function PrivacyPolicyPage() {
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">What we collect and why</h2>
+      <p className="mt-2 text-slate-400">
+        This site has no accounts and requires no sign-up - everything below is what happens when you simply
+        browse it.
+      </p>
       <ul className="mt-2 flex flex-col gap-3">
         <li>
-          <span className="font-medium text-slate-100">Account data.</span> Email address, display name, and a
-          hashed password when you sign up. Used to operate your account and log you in. Legal basis: performance
-          of a contract (Art. 6(1)(b) GDPR).
-        </li>
-        <li>
-          <span className="font-medium text-slate-100">Session cookie.</span> A refresh token stored in an
-          httpOnly, Secure cookie, used only to keep you signed in. It is not readable by JavaScript and is not
-          used for tracking. Legal basis: necessary for the service you requested (Art. 6(1)(b) GDPR); as a
-          strictly necessary cookie it does not require consent under the ePrivacy rules.
-        </li>
-        <li>
-          <span className="font-medium text-slate-100">Marketplace listings.</span> Title, description, price,
-          and condition you submit for an item are stored and shown publicly on the marketplace page so others
-          can reach out about it. Legal basis: performance of a contract / your explicit action (Art. 6(1)(b)
-          GDPR).
-        </li>
-        <li>
           <span className="font-medium text-slate-100">MTG card search.</span> Search terms you enter are
-          forwarded to the Scryfall API through our backend to return card results. We do not attach your account
-          identity to these requests. Legal basis: legitimate interest in providing the feature (Art. 6(1)(f)
-          GDPR).
+          forwarded to the Scryfall API through our backend to return card results. We do not attach any
+          identifying information to these requests. Legal basis: legitimate interest in providing the feature
+          (Art. 6(1)(f) GDPR).
         </li>
         <li>
           <span className="font-medium text-slate-100">Location, for the homepage weather panel.</span> If you
@@ -64,9 +51,8 @@ export function PrivacyPolicyPage() {
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">What we do not do</h2>
       <p className="mt-2">
-        No analytics, advertising, or third-party tracking scripts run on this site. No non-essential cookies are
-        set. Password-reset tokens are only ever logged in a local development environment - never in production
-        - and are never emailed by a third-party provider at this time.
+        No analytics, advertising, or third-party tracking scripts run on this site. No accounts, no accounts
+        data, no non-essential cookies are set.
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Recipients and international transfers</h2>
@@ -85,9 +71,8 @@ export function PrivacyPolicyPage() {
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Retention</h2>
       <p className="mt-2">
-        Account data is kept until you delete your account or request removal. Marketplace listings are kept
-        until you remove them or your account is deleted. Server logs are rotated on a routine schedule by the
-        hosting infrastructure.
+        Server logs are rotated on a routine schedule by the hosting infrastructure. Cached third-party data
+        (card search results, news, MTG meta stats) is refreshed periodically and holds no personal data.
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Your rights</h2>
