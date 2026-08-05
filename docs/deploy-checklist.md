@@ -21,7 +21,7 @@ hosting decision and migration reasoning behind this list.
       phpMyAdmin or the IONOS MySQL CLI - it only auto-applies in local
       docker-compose (`/docker-entrypoint-initdb.d`).
 
-## GitHub repo secrets (for `.github/workflows/deploy.yml`, Phase 5)
+## GitHub repo secrets (for `.github/workflows/deploy.yml`)
 
 | Secret | Purpose |
 | --- | --- |
@@ -56,7 +56,10 @@ up, since shared-hosting WebCron products vary here).
 ## Frontend
 
 - [x] Production build via `npm run build` (Vite, `frontend/dist/`) -
-      uploaded by the deploy workflow (Phase 5), not built on the server.
+      uploaded by the deploy workflow, not built on the server.
+- [x] SPA-fallback `.htaccess` (`frontend/public/.htaccess`, copied into
+      `dist/` at build time) so a direct load or refresh on a client-side
+      route (e.g. `/mtg/meta`) doesn't 404 on Apache.
 - [ ] No CORS config needed - frontend and API share the same origin
       (sheoforge.de) once deployed, per docs/adr/0009.
 

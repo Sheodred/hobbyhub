@@ -108,12 +108,18 @@ real IONOS Apache host, port 8081), `frontend` (Vite dev server, port
 5173, proxying `/api` to the `php` service). This is dev/staging only -
 there is no IONOS-hosted preview environment (docs/adr/0009).
 
-Production deploys are not wired up yet - the plan (docs/adr/0009) is one
-GitHub Actions workflow that builds the frontend and SFTP-uploads
+`.github/workflows/deploy.yml` builds the frontend and SFTP-uploads
+(direct SFTP protocol, not rsync-over-ssh - IONOS Webhosting Plus only
+exposes the SFTP file-transfer subsystem, not a full SSH shell)
 `frontend/dist/*` and `api/*` into the same IONOS Webhosting Plus space
-(sheoforge.de) on push to `main`, one job, one destination, no CORS. CI
-(`.github/workflows/ci.yml`) runs frontend lint/test/build plus a `php -l`
-syntax check over `api/` on every PR/push to `main`.
+(sheoforge.de) on push to `main`, one job, one destination, no CORS. A
+root `.htaccess` (`frontend/public/.htaccess`, copied into `dist/` at
+build time) falls back to `index.html` for any path that isn't a real
+file, so client-side routes survive a direct load/refresh. Needs
+`IONOS_SFTP_HOST`/`_USER`/`_PASSWORD` as GitHub repo secrets - see
+`docs/deploy-checklist.md`. CI (`.github/workflows/ci.yml`) runs frontend
+lint/test/build plus a `php -l` syntax check over `api/` on every PR/push
+to `main`.
 
 ## Why these decisions
 

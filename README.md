@@ -106,11 +106,14 @@ cd frontend && npm install && npm test
   success on resizing but the viewport stays desktop-sized, a confirmed
   environment limitation rather than an app bug. Still a manual TODO: a
   pass on a real phone/resized window.
-- **Production deploy workflow not wired up yet.** The hosting decision
-  itself is made (IONOS Webhosting Plus, `docs/adr/0009`) and
-  [`docs/deploy-checklist.md`](docs/deploy-checklist.md) has the concrete
-  pre-launch checklist; the actual `.github/workflows/deploy.yml` SFTP
-  workflow is still open.
+- **Production deploy workflow untested against the real host.**
+  `.github/workflows/deploy.yml` builds and SFTP-uploads to IONOS on every
+  push to `main`, but it hasn't run against real IONOS credentials yet -
+  needs `IONOS_SFTP_HOST`/`_USER`/`_PASSWORD` added as GitHub repo secrets
+  first (not something set from a CI run), plus `api/config.local.php` and
+  `api/sql/schema.sql` applied manually on the server once. See
+  [`docs/deploy-checklist.md`](docs/deploy-checklist.md) for the full
+  pre-launch checklist.
 - **No PHP test suite** - the migration to PHP/MySQL (`docs/adr/0009`)
   dropped the 60+ backend JUnit tests with no equivalent added; CI only
   runs a `php -l` syntax check. Named explicitly as a trade-off, not an
@@ -158,7 +161,7 @@ features live in a separate project).
 - [x] MTG Meta & Stats page (EDHREC + MTGGoldfish)
 - [x] MTG related-combos panel (Commander Spellbook) + Scryfall hover previews
 - [x] Migrate backend from Spring Boot/PostgreSQL to PHP/MySQL for IONOS hosting; extract auth/marketplace to a separate project (`docs/adr/0009`)
-- [ ] Production deploy workflow (GitHub Actions → IONOS SFTP) - see Known issues
+- [~] Production deploy workflow (GitHub Actions → IONOS SFTP, `.github/workflows/deploy.yml`) - written and pinned, not yet run against real IONOS credentials, see Known issues
 - [ ] MTG fan-game link page (separate repo exists, not linked from this site yet)
 - [ ] MTG lore chatbot (infra concept decided, `docs/adr/0008` - build itself on the roadmap, see Known issues)
 - [ ] Marketplace - moved to [kluge-boards-and-cards](https://github.com/Sheodred/kluge-boards-and-cards)'s roadmap, not this repo's
