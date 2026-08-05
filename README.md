@@ -15,8 +15,10 @@ Magic: The Gathering card search/browse subpage (live Scryfall data via a
 backend proxy, see `docs/adr/0003`), the marketplace (public
 browse/filter/sort, owner-only listing CRUD, see `docs/adr/0005`), and
 chess vs. AI (Stockfish running fully client-side, see `docs/adr/0004`)
-are live. See [ROADMAP](#roadmap) below and `docs/adr/` for the technical
-decisions already locked in.
+are live. Entrance animation, a keyboard-nav/contrast pass, and a
+production frontend build (nginx serving the static bundle, not Vite's
+dev server) are done too. See [ROADMAP](#roadmap) below and `docs/adr/`
+for the technical decisions already locked in.
 
 ## Architecture
 
@@ -74,23 +76,22 @@ cd frontend && npm install && npm test
 
 ## Known issues / planned improvements
 
-- **Mobile-drawer viewport behavior is only verified via jsdom unit
-  tests**, not a real narrow-viewport screenshot - the automation tool
-  used during development couldn't actually resize the browser viewport.
-  Planned: a manual pass on a real phone/resized window as part of the
-  Milestone 8 polish work below.
-- **Animation/responsive/accessibility polish (Milestone 8, in progress).**
-  Framer Motion entrance animations (respecting `prefers-reduced-motion`
-  throughout, via a shared `FadeIn` wrapper) now reach every page - MTG,
-  Marketplace, and Chess included, not just the homepage. Still open: a
-  general keyboard-navigation/contrast audit across the whole app, and
-  real-device confirmation of the mobile drawer (see the viewport-testing
-  gap above).
-- **No production deployment target yet** (Milestone 9). Locally this runs
-  via `docker compose` with Vite's dev server in the frontend container -
-  a real deploy needs a production build (multi-stage Dockerfile serving
-  the static `vite build` output, not the dev server) and a hosting
-  decision, tracked as part of the deploy checklist below.
+- **Mobile-drawer viewport behavior is only verified via jsdom unit tests
+  and a code-level responsive review**, not a real narrow-viewport
+  screenshot - the browser automation used during development reports
+  success on resizing but the viewport stays desktop-sized, a confirmed
+  environment limitation rather than an app bug. Still a manual TODO: a
+  pass on a real phone/resized window.
+- **No hosting decision made yet** (Milestone 9). The frontend now runs a
+  real production build (multi-stage Dockerfile, nginx serving the static
+  bundle instead of Vite's dev server), and
+  [`docs/deploy-checklist.md`](docs/deploy-checklist.md) has the concrete
+  pre-launch checklist (required env vars, the two real launch blockers,
+  and a proposed hosting target) - actually picking and standing up that
+  target is still open.
+- **Test coverage could go further.** Auth, marketplace CRUD, and chess
+  move validation are well covered; broader hardening across the rest of
+  the backend is an ongoing, not one-and-done, item.
 
 ## Roadmap
 
@@ -108,8 +109,8 @@ sidebar library, chess/marketplace/legal-page/password-reset scope for v1).
 - [x] Magic: The Gathering subpage
 - [x] Marketplace (listing/inquiry, no live checkout)
 - [x] Chess vs. AI
-- [ ] Animation/responsive/accessibility polish
-- [ ] Test coverage hardening, deploy checklist
+- [x] Animation/responsive/accessibility polish (real-device mobile check still manual - see Known issues)
+- [ ] Test coverage hardening, deploy checklist, and a hosting decision (checklist and production build done - see Known issues)
 
 ## License
 
