@@ -47,9 +47,10 @@ export function TermsPage() {
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">6. Third-party data (Magic: The Gathering)</h2>
       <p className="mt-2">
-        Card data and images shown in the MTG section are sourced from the Scryfall API and remain the property
-        of their respective rights holders. This site is unofficial Fan Content, not endorsed by Wizards of the
-        Coast.
+        Card data and images shown in the MTG section are sourced from the Scryfall API; the Meta &amp; Stats
+        page additionally shows popularity and metagame data sourced from EDHREC and MTGGoldfish. All of it
+        remains the property of their respective rights holders. This site is unofficial Fan Content, not
+        endorsed by Wizards of the Coast.
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">7. Availability and warranty</h2>
