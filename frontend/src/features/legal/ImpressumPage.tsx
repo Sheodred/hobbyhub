@@ -3,25 +3,21 @@ import { DraftContentNotice } from "../../components/DraftContentNotice";
 export function ImpressumPage() {
   return (
     <div className="mx-auto max-w-2xl text-slate-300">
-      <DraftContentNotice message="Template only - fill in the bracketed placeholders with real details before this goes live (see docs/adr/0006). Not legal advice." />
+      <DraftContentNotice message="Template only - operated as a private, non-commercial project (no postal address shown accordingly, see docs/adr/0006) - fill in the remaining bracketed placeholders before this goes live. Not legal advice: have this reviewed, especially the private/non-commercial classification itself, before relying on it." />
 
       <h1 className="text-3xl font-semibold text-slate-100">Impressum</h1>
       <p className="mt-2 text-sm text-slate-400">Legal notice pursuant to Section 5 TMG and Section 18(2) MStV.</p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Service provider</h2>
       <p className="mt-2">
-        [Your Full Legal Name]
+        Sheodred
         <br />
-        [Street, House Number]
-        <br />
-        [Postal Code, City]
-        <br />
-        [Country]
+        Operated as a private, non-commercial hobby project - reachable via the contact details below.
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Contact</h2>
       <p className="mt-2">
-        Email: [your-email@example.com]
+        Email: kluge@sheoforge.de
         <br />
         Phone: [Phone number - optional]
       </p>
@@ -33,7 +29,7 @@ export function ImpressumPage() {
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Responsible for content (Section 18(2) MStV)</h2>
-      <p className="mt-2">[Your Full Legal Name], [Street, Postal Code, City] (same as above)</p>
+      <p className="mt-2">Sheodred (contact details above)</p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Dispute resolution</h2>
       <p className="mt-2">

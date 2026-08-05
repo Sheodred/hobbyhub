@@ -3,18 +3,16 @@ import { DraftContentNotice } from "../../components/DraftContentNotice";
 export function PrivacyPolicyPage() {
   return (
     <div className="mx-auto max-w-2xl text-slate-300">
-      <DraftContentNotice message="Template only - fill in the bracketed placeholders and confirm the hosting details before this goes live (see docs/adr/0006). Not legal advice." />
+      <DraftContentNotice message="Template only - operated as a private, non-commercial project (no postal address shown accordingly, see docs/adr/0006) - fill in the remaining bracketed placeholders and confirm the hosting details before this goes live. Not legal advice." />
 
       <h1 className="text-3xl font-semibold text-slate-100">Privacy Policy</h1>
       <p className="mt-2 text-sm text-slate-400">Information pursuant to Article 13 GDPR.</p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Controller</h2>
       <p className="mt-2">
-        [Your Full Legal Name]
+        Sheodred
         <br />
-        [Street, Postal Code, City, Country]
-        <br />
-        Email: [your-email@example.com]
+        Email: kluge@sheoforge.de
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Data protection officer</h2>
@@ -57,16 +55,17 @@ export function PrivacyPolicyPage() {
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Recipients and international transfers</h2>
       <p className="mt-2">
-        [Hosting Provider Name & Address] hosts the application and database. MTG card searches and card-image
-        lookups are relayed to Scryfall (scryfall.com); the homepage weather panel sends your device&apos;s
-        coordinates directly to Open-Meteo (open-meteo.com), not through our backend - see each provider&apos;s
-        own privacy policy for how they handle that data. The homepage news panels and the MTG Meta &amp; Stats
-        page are populated by a scheduled backend job that reads public content from tagesschau.de,
-        magic.wizards.com, edhrec.com, and mtggoldfish.com - none of your data is sent to those sources, they are
-        read-only content feeds. No other data is shared with third parties. [Confirm whether any of the above
-        involves a transfer outside the EU/EEA once the hosting provider and these third parties&apos; own
-        infrastructure locations are confirmed, and update this section accordingly - e.g. via an Art. 46 GDPR
-        safeguard (such as Standard Contractual Clauses) if a non-adequate third country is involved.]
+        IONOS SE (Montabaur, Germany) hosts the application and database - based in the EU, so no third-country
+        transfer applies to hosting itself. MTG card searches and card-image lookups are relayed to Scryfall
+        (scryfall.com); the homepage weather panel sends your device&apos;s coordinates directly to Open-Meteo
+        (open-meteo.com), not through our backend - see each provider&apos;s own privacy policy for how they
+        handle that data. The homepage news panels and the MTG Meta &amp; Stats page are populated by a scheduled
+        backend job that reads public content from tagesschau.de, magic.wizards.com, edhrec.com, and
+        mtggoldfish.com - none of your data is sent to those sources, they are read-only content feeds. No other
+        data is shared with third parties. [Confirm whether Scryfall, Open-Meteo, or any of the read-only content
+        sources involve a transfer outside the EU/EEA once their current infrastructure locations are confirmed,
+        and update this section accordingly - e.g. via an Art. 46 GDPR safeguard (such as Standard Contractual
+        Clauses) if a non-adequate third country is involved.]
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Retention</h2>
