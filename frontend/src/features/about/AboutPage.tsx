@@ -1,11 +1,12 @@
 import { DraftContentNotice } from "../../components/DraftContentNotice";
+import { FadeIn } from "../../components/FadeIn";
 
 export function AboutPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <DraftContentNotice message="Placeholder bio - personalize the text and swap in a real photo before sharing this widely." />
 
-      <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+      <FadeIn className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
         <div
           aria-hidden="true"
           className="flex h-32 w-32 shrink-0 items-center justify-center rounded-full border border-dashed border-slate-700 bg-slate-900 text-xs text-slate-500"
@@ -40,7 +41,7 @@ export function AboutPage() {
             </li>
           </ul>
         </div>
-      </div>
+      </FadeIn>
     </div>
   );
 }

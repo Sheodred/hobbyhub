@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
+import { FadeIn } from "../../components/FadeIn";
 import { ApiError } from "../../lib/apiClient";
 import { searchCards } from "./api";
 
@@ -26,7 +27,7 @@ export function MtgPage() {
 
   return (
     <div>
-      <div className="relative overflow-hidden rounded-xl border border-slate-800">
+      <FadeIn className="relative overflow-hidden rounded-xl border border-slate-800">
         <img
           src={FEATURED_ART}
           alt=""
@@ -47,27 +48,29 @@ export function MtgPage() {
             .
           </p>
         </div>
-      </div>
+      </FadeIn>
 
-      <form onSubmit={handleSubmit} className="mt-6 flex gap-2">
-        <label htmlFor="mtg-search" className="sr-only">
-          Search cards
-        </label>
-        <input
-          id="mtg-search"
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for a card, e.g. Lightning Bolt"
-          className="w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none"
-        />
-        <button
-          type="submit"
-          className="rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-400"
-        >
-          Search
-        </button>
-      </form>
+      <FadeIn delay={0.1}>
+        <form onSubmit={handleSubmit} className="mt-6 flex gap-2">
+          <label htmlFor="mtg-search" className="sr-only">
+            Search cards
+          </label>
+          <input
+            id="mtg-search"
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search for a card, e.g. Lightning Bolt"
+            className="w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none"
+          />
+          <button
+            type="submit"
+            className="rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-400"
+          >
+            Search
+          </button>
+        </form>
+      </FadeIn>
 
       <div className="mt-6">
         {submittedQuery.length === 0 && <p className="text-slate-400">Enter a card name above to start browsing.</p>}
@@ -88,26 +91,27 @@ export function MtgPage() {
           <>
             <p className="mb-3 text-sm text-slate-500">{data.totalCards} card(s) found</p>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {data.cards.map((card) => (
-                <Link
-                  key={card.id}
-                  to={`/mtg/${card.id}`}
-                  className="group overflow-hidden rounded-lg border border-slate-800 bg-slate-900/60 transition-colors hover:border-indigo-500"
-                >
-                  {card.imageUrl ? (
-                    <img src={card.imageUrl} alt={card.name} className="aspect-[5/7] w-full object-cover" />
-                  ) : (
-                    <div className="flex aspect-[5/7] w-full items-center justify-center bg-slate-800 p-2 text-center text-xs text-slate-400">
-                      {card.name}
+              {data.cards.map((card, index) => (
+                <FadeIn key={card.id} onScroll delay={Math.min(index * 0.03, 0.24)}>
+                  <Link
+                    to={`/mtg/${card.id}`}
+                    className="group block overflow-hidden rounded-lg border border-slate-800 bg-slate-900/60 transition-colors hover:border-indigo-500"
+                  >
+                    {card.imageUrl ? (
+                      <img src={card.imageUrl} alt={card.name} className="aspect-[5/7] w-full object-cover" />
+                    ) : (
+                      <div className="flex aspect-[5/7] w-full items-center justify-center bg-slate-800 p-2 text-center text-xs text-slate-400">
+                        {card.name}
+                      </div>
+                    )}
+                    <div className="p-2">
+                      <p className="truncate text-sm font-medium text-slate-100 group-hover:text-indigo-400">
+                        {card.name}
+                      </p>
+                      <p className="truncate text-xs text-slate-500">{card.setName}</p>
                     </div>
-                  )}
-                  <div className="p-2">
-                    <p className="truncate text-sm font-medium text-slate-100 group-hover:text-indigo-400">
-                      {card.name}
-                    </p>
-                    <p className="truncate text-xs text-slate-500">{card.setName}</p>
-                  </div>
-                </Link>
+                  </Link>
+                </FadeIn>
               ))}
             </div>
 

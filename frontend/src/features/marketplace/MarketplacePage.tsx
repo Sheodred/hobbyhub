@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
+import { FadeIn } from "../../components/FadeIn";
 import { useAuth } from "../auth/AuthContext";
 import { listListings, type ListingCategory } from "./api";
 import { categoryLabels } from "./categoryLabels";
@@ -26,7 +27,7 @@ export function MarketplacePage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <FadeIn className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-slate-100">Marketplace</h1>
           <p className="mt-2 text-slate-400">
@@ -41,9 +42,9 @@ export function MarketplacePage() {
             New listing
           </Link>
         )}
-      </div>
+      </FadeIn>
 
-      <div className="mt-6 flex flex-wrap gap-3">
+      <FadeIn delay={0.1} className="mt-6 flex flex-wrap gap-3">
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value as ListingCategory | "")}
@@ -85,7 +86,7 @@ export function MarketplacePage() {
           <option value="price_asc">Price: low to high</option>
           <option value="price_desc">Price: high to low</option>
         </select>
-      </div>
+      </FadeIn>
 
       <div className="mt-6">
         {isFetching && <p className="text-slate-400">Loading listings…</p>}
@@ -96,29 +97,34 @@ export function MarketplacePage() {
 
         {data && data.content.length > 0 && (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {data.content.map((listing) => (
-              <Link
-                key={listing.id}
-                to={`/marketplace/${listing.id}`}
-                className="group overflow-hidden rounded-lg border border-slate-800 bg-slate-900/60 transition-colors hover:border-indigo-500"
-              >
-                {listing.imageUrls[0] ? (
-                  <img src={listing.imageUrls[0]} alt={listing.title} className="aspect-square w-full object-cover" />
-                ) : (
-                  <div className="flex aspect-square w-full items-center justify-center bg-slate-800 p-2 text-center text-xs text-slate-400">
-                    {listing.title}
+            {data.content.map((listing, index) => (
+              <FadeIn key={listing.id} onScroll delay={Math.min(index * 0.03, 0.24)}>
+                <Link
+                  to={`/marketplace/${listing.id}`}
+                  className="group block overflow-hidden rounded-lg border border-slate-800 bg-slate-900/60 transition-colors hover:border-indigo-500"
+                >
+                  {listing.imageUrls[0] ? (
+                    <img
+                      src={listing.imageUrls[0]}
+                      alt={listing.title}
+                      className="aspect-square w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex aspect-square w-full items-center justify-center bg-slate-800 p-2 text-center text-xs text-slate-400">
+                      {listing.title}
+                    </div>
+                  )}
+                  <div className="p-3">
+                    <p className="truncate text-sm font-medium text-slate-100 group-hover:text-indigo-400">
+                      {listing.title}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-400">
+                      {categoryLabels[listing.category]} · {listing.condition}
+                    </p>
+                    <p className="mt-1 font-semibold text-slate-100">{listing.price.toFixed(2)} €</p>
                   </div>
-                )}
-                <div className="p-3">
-                  <p className="truncate text-sm font-medium text-slate-100 group-hover:text-indigo-400">
-                    {listing.title}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-400">
-                    {categoryLabels[listing.category]} · {listing.condition}
-                  </p>
-                  <p className="mt-1 font-semibold text-slate-100">{listing.price.toFixed(2)} €</p>
-                </div>
-              </Link>
+                </Link>
+              </FadeIn>
             ))}
           </div>
         )}

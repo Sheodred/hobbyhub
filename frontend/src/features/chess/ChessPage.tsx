@@ -1,6 +1,7 @@
 import type { Chess, Square } from "chess.js";
 import { useEffect, useRef, useState } from "react";
 
+import { FadeIn } from "../../components/FadeIn";
 import { ChessBoard } from "./ChessBoard";
 import { DIFFICULTY_DEPTH, DIFFICULTY_LABELS, type Difficulty } from "./difficulty";
 import { createStockfishEngine, type StockfishEngine } from "./stockfishEngine";
@@ -77,42 +78,44 @@ export function ChessPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold text-slate-100">Chess vs. AI</h1>
-      <p className="mt-2 text-slate-400">
-        You play White. The engine (Stockfish, running fully in your browser) plays Black.
-      </p>
+      <FadeIn>
+        <h1 className="text-3xl font-semibold text-slate-100">Chess vs. AI</h1>
+        <p className="mt-2 text-slate-400">
+          You play White. The engine (Stockfish, running fully in your browser) plays Black.
+        </p>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm text-slate-300">
-          Difficulty
-          <select
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-            className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-slate-300">
+            Difficulty
+            <select
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+              className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
+            >
+              {(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map((d) => (
+                <option key={d} value={d}>
+                  {DIFFICULTY_LABELS[d]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={newGame}
+            className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
           >
-            {(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map((d) => (
-              <option key={d} value={d}>
-                {DIFFICULTY_LABELS[d]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          onClick={newGame}
-          className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
-        >
-          New game
-        </button>
-      </div>
+            New game
+          </button>
+        </div>
 
-      <p role="status" className="mt-4 text-sm font-medium text-slate-300">
-        {thinking ? "Engine is thinking…" : statusText(chess)}
-      </p>
+        <p role="status" className="mt-4 text-sm font-medium text-slate-300">
+          {thinking ? "Engine is thinking…" : statusText(chess)}
+        </p>
+      </FadeIn>
 
-      <div className="mt-4">
+      <FadeIn delay={0.15} className="mt-4">
         <ChessBoard chess={chess} disabled={gameOver || thinking || chess.turn() !== "w"} onMove={handlePlayerMove} />
-      </div>
+      </FadeIn>
     </div>
   );
 }
