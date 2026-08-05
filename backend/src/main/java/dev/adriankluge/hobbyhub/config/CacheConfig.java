@@ -16,7 +16,8 @@ public class CacheConfig {
 
     @Bean
     public CaffeineCacheManager cacheManager() {
-        CaffeineCacheManager manager = new CaffeineCacheManager("scryfallSearch", "scryfallCard");
+        CaffeineCacheManager manager =
+                new CaffeineCacheManager("scryfallSearch", "scryfallCard", "commanderSpellbookCombos");
         manager.setCaffeine(Caffeine.newBuilder().expireAfterWrite(Duration.ofMinutes(5)).maximumSize(500));
         return manager;
     }

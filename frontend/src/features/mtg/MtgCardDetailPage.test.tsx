@@ -30,20 +30,25 @@ describe("MtgCardDetailPage", () => {
   it("renders the card once loaded", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        jsonResponse(200, {
-          id: "card-1",
-          name: "Lightning Bolt",
-          manaCost: "{R}",
-          typeLine: "Instant",
-          oracleText: "Lightning Bolt deals 3 damage to any target.",
-          colors: ["R"],
-          setName: "Alpha",
-          rarity: "common",
-          imageUrl: "https://img/bolt.jpg",
-          artCropUrl: null,
-        }),
-      ),
+      vi.fn((path: string) => {
+        if (path.startsWith("/api/mtg/combos")) {
+          return Promise.resolve(jsonResponse(200, []));
+        }
+        return Promise.resolve(
+          jsonResponse(200, {
+            id: "card-1",
+            name: "Lightning Bolt",
+            manaCost: "{R}",
+            typeLine: "Instant",
+            oracleText: "Lightning Bolt deals 3 damage to any target.",
+            colors: ["R"],
+            setName: "Alpha",
+            rarity: "common",
+            imageUrl: "https://img/bolt.jpg",
+            artCropUrl: null,
+          }),
+        );
+      }),
     );
 
     renderAt("/mtg/card-1");
@@ -85,6 +90,9 @@ describe("MtgCardDetailPage", () => {
               },
             ]),
           );
+        }
+        if (path.startsWith("/api/mtg/combos")) {
+          return Promise.resolve(jsonResponse(200, []));
         }
         return Promise.resolve(
           jsonResponse(200, {

@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import dev.adriankluge.hobbyhub.mtg.client.ScryfallClient;
+import dev.adriankluge.hobbyhub.mtg.combo.client.CommanderSpellbookClient;
+import dev.adriankluge.hobbyhub.mtg.combo.dto.ComboResponse;
 import dev.adriankluge.hobbyhub.mtg.dto.Card;
 import dev.adriankluge.hobbyhub.mtg.dto.CardSearchResponse;
 import java.util.List;
@@ -28,6 +30,9 @@ class MtgControllerTest {
 
     @MockBean
     private ScryfallClient scryfallClient;
+
+    @MockBean
+    private CommanderSpellbookClient commanderSpellbookClient;
 
     @Test
     void rejectsBlankQuery() throws Exception {
@@ -83,5 +88,19 @@ class MtgControllerTest {
         when(scryfallClient.getCardByName("Not A Real Card")).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/mtg/cards/by-name").param("name", "Not A Real Card")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void returnsCombosForACard() throws Exception {
+        ComboResponse combo = new ComboResponse(
+                List.of("Firemind's Foresight"), 2, 206, List.of("Infinite damage"),
+                "https://commanderspellbook.com/combo/x/");
+        when(commanderSpellbookClient.findCombos("Lightning Bolt")).thenReturn(List.of(combo));
+
+        mockMvc.perform(get("/api/mtg/combos").param("cardName", "Lightning Bolt"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].otherCards[0]").value("Firemind's Foresight"))
+                .andExpect(jsonPath("$[0].cardCount").value(2))
+                .andExpect(jsonPath("$[0].numDecks").value(206));
     }
 }
