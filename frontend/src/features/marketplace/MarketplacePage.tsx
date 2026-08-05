@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
+import { FadeIn } from "../../components/FadeIn";
 import { useAuth } from "../auth/AuthContext";
 import { listListings, type ListingCategory } from "./api";
 import { categoryLabels } from "./categoryLabels";
@@ -95,7 +96,10 @@ export function MarketplacePage() {
         )}
 
         {data && data.content.length > 0 && (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+          <FadeIn
+            key={`${category}-${minPrice}-${maxPrice}-${sort}`}
+            className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4"
+          >
             {data.content.map((listing) => (
               <Link
                 key={listing.id}
@@ -120,7 +124,7 @@ export function MarketplacePage() {
                 </div>
               </Link>
             ))}
-          </div>
+          </FadeIn>
         )}
       </div>
     </div>

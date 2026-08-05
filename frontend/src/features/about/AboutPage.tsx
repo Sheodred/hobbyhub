@@ -1,17 +1,19 @@
-import { DraftContentNotice } from "../../components/DraftContentNotice";
+import { FadeIn } from "../../components/FadeIn";
+
+// DiceBear (MIT-licensed, open-source, https://www.dicebear.com) - a
+// generated illustrated avatar, not a photo. Deterministic per seed, and
+// explicitly designed to be hotlinked from its public API.
+const AVATAR_URL = "https://api.dicebear.com/9.x/notionists/svg?seed=Adrian&backgroundColor=1e293b";
 
 export function AboutPage() {
   return (
     <div className="mx-auto max-w-2xl">
-      <DraftContentNotice message="Placeholder bio - personalize the text and swap in a real photo before sharing this widely." />
-
-      <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
-        <div
-          aria-hidden="true"
-          className="flex h-32 w-32 shrink-0 items-center justify-center rounded-full border border-dashed border-slate-700 bg-slate-900 text-xs text-slate-500"
-        >
-          [ photo ]
-        </div>
+      <FadeIn className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+        <img
+          src={AVATAR_URL}
+          alt="Illustrated avatar"
+          className="h-32 w-32 shrink-0 rounded-full border border-slate-700 bg-slate-900"
+        />
 
         <div>
           <h1 className="text-3xl font-semibold text-slate-100">About Me</h1>
@@ -40,7 +42,7 @@ export function AboutPage() {
             </li>
           </ul>
         </div>
-      </div>
+      </FadeIn>
     </div>
   );
 }

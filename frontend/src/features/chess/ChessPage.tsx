@@ -1,6 +1,7 @@
 import type { Chess, Square } from "chess.js";
 import { useEffect, useRef, useState } from "react";
 
+import { FadeIn } from "../../components/FadeIn";
 import { ChessBoard } from "./ChessBoard";
 import { DIFFICULTY_DEPTH, DIFFICULTY_LABELS, type Difficulty } from "./difficulty";
 import { createStockfishEngine, type StockfishEngine } from "./stockfishEngine";
@@ -76,7 +77,7 @@ export function ChessPage() {
   const gameOver = chess.isGameOver();
 
   return (
-    <div>
+    <FadeIn>
       <h1 className="text-3xl font-semibold text-slate-100">Chess vs. AI</h1>
       <p className="mt-2 text-slate-400">
         You play White. The engine (Stockfish, running fully in your browser) plays Black.
@@ -113,6 +114,6 @@ export function ChessPage() {
       <div className="mt-4">
         <ChessBoard chess={chess} disabled={gameOver || thinking || chess.turn() !== "w"} onMove={handlePlayerMove} />
       </div>
-    </div>
+    </FadeIn>
   );
 }

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { FadeIn } from "../../components/FadeIn";
 import { useAuth } from "../auth/AuthContext";
 import { ApiError } from "../../lib/apiClient";
 import { deleteListing, getListing } from "./api";
@@ -55,7 +56,7 @@ export function ListingDetailPage() {
   const isOwner = user?.id === listing.sellerId;
 
   return (
-    <div>
+    <FadeIn key={listing.id}>
       <Link to="/marketplace" className="text-sm text-indigo-400 hover:underline">
         &larr; Back to marketplace
       </Link>
@@ -110,6 +111,6 @@ export function ListingDetailPage() {
           )}
         </div>
       </div>
-    </div>
+    </FadeIn>
   );
 }

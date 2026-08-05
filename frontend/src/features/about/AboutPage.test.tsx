@@ -9,5 +9,6 @@ describe("AboutPage", () => {
 
     expect(screen.getByRole("heading", { name: "About Me" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /github/i })).toHaveAttribute("href", "https://github.com/Sheodred");
+    expect(screen.getByRole("img", { name: /avatar/i })).toBeInTheDocument();
   });
 });

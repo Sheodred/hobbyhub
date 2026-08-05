@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
+import { FadeIn } from "../../components/FadeIn";
 import { ApiError } from "../../lib/apiClient";
 import { searchCards } from "./api";
 
@@ -91,7 +92,7 @@ export function MtgPage() {
         )}
 
         {data && data.cards.length > 0 && (
-          <>
+          <FadeIn key={`${submittedQuery}-${page}`}>
             <p className="mb-3 text-sm text-slate-500">{data.totalCards} card(s) found</p>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
               {data.cards.map((card) => (
@@ -136,7 +137,7 @@ export function MtgPage() {
                 Next
               </button>
             </div>
-          </>
+          </FadeIn>
         )}
       </div>
     </div>
