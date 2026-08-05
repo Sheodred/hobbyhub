@@ -32,6 +32,9 @@ app:
     scryfall-base-url: ${SCRYFALL_BASE_URL:https://api.scryfall.com}
     # Scryfall asks every client to identify itself (see their API guidelines).
     user-agent: HobbyHub/0.1 (+https://github.com/Sheodred/hobbyhub)
+    edhrec-json-base-url: ${EDHREC_JSON_BASE_URL:https://json.edhrec.com}
+    mtggoldfish-standard-url: ${MTGGOLDFISH_STANDARD_URL:https://www.mtggoldfish.com/metagame/standard}
+    mtggoldfish-commander-url: ${MTGGOLDFISH_COMMANDER_URL:https://www.mtggoldfish.com/metagame/commander}
   news:
     tagesschau-base-url: ${TAGESSCHAU_BASE_URL:https://www.tagesschau.de}
     wotc-news-url: ${WOTC_NEWS_URL:https://magic.wizards.com/en/news}

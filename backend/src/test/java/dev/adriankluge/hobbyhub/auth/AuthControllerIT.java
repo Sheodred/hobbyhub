@@ -35,9 +35,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("dev")
 @Testcontainers
-// Otherwise NewsRefreshService would fire a real outbound call to Tagesschau
-// during this test - slow and dependent on an external service being up.
-@TestPropertySource(properties = "app.news.scheduling-enabled=false")
+// Otherwise NewsRefreshService/MtgMetaRefreshService would fire real
+// outbound calls during this test - slow and dependent on external services.
+@TestPropertySource(properties = {"app.news.scheduling-enabled=false", "app.mtg.meta-scheduling-enabled=false"})
 class AuthControllerIT {
 
     @Container

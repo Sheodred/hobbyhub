@@ -15,8 +15,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-// This context has no news_items table (no Flyway/Postgres here) - see NewsRefreshService.
-@TestPropertySource(properties = "app.news.scheduling-enabled=false")
+// This context has no news_items/mtg_meta_entries tables (no Flyway/Postgres
+// here) - see NewsRefreshService / MtgMetaRefreshService.
+@TestPropertySource(properties = {"app.news.scheduling-enabled=false", "app.mtg.meta-scheduling-enabled=false"})
 class HealthControllerTest {
 
     @Autowired

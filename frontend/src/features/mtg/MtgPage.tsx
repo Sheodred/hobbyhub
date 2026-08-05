@@ -53,6 +53,9 @@ export function MtgPage() {
             </a>
             .
           </p>
+          <Link to="/mtg/meta" className="mt-3 inline-block text-sm text-white underline hover:text-indigo-300">
+            Meta &amp; Stats &rarr;
+          </Link>
         </div>
       </div>
 
