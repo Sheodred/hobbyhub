@@ -219,19 +219,19 @@ Work through this top to bottom. Each phase links back to the section above with
 
 ### Phase 4 — Homepage
 - [x] Hero section + highlight cards linking to MTG, marketplace, chess.
-- [ ] News panel 1 — Tagesschau.
-- [ ] News panel 2 — WotC news.
-- [ ] News panel 3 — Weather.
-- [ ] Loading skeleton / empty / error states + fade-in for the three panels above.
+- [x] News panel 1 — Tagesschau. Backend `NewsRefreshService` (every 20 min, Postgres-cached) + frontend `TagesschauPanel`.
+- [x] News panel 2 — WotC news. Scraping-based (no official API/RSS anymore, robots.txt allows it) with a hardcoded manual fallback list per the brief's "may break" caveat.
+- [x] News panel 3 — Weather. Browser geolocation → direct Open-Meteo call (not proxied through the backend) — also disclosed in the Privacy Policy.
+- [x] Loading skeleton / empty / error states + fade-in for all three panels (shared `InfoPanelCard`/`NewsListPanel`).
 
 ### Phase 5 — About Me & legal pages
 - [x] About Me static page.
 - [x] Impressum, Privacy Policy/Datenschutzerklärung, Terms of Service/AGB, cookie consent component (built, not yet mounted — no non-essential cookies/analytics exist to consent to). Draft content, explicitly flagged (dev-only banner + `docs/adr/0006`) for human legal review before go-live.
 
 ### Phase 6 — Magic: The Gathering
-- [x] Card Browser: Scryfall search/browse/detail view.
-- [ ] Related combos panel on the card detail view (Commander Spellbook API). **Not started.**
-- [ ] Meta & Stats page (EDHREC integration, Moxfield as link-out, manually curated Standard/Commander tier lists). **Not started.**
+- [x] Card Browser: Scryfall search/browse/detail view. Also added: a Scryfall hover-preview on card/commander names (not in the original brief, added on explicit request) and a "Meta & Stats" CTA to the new page below.
+- [x] Related combos panel on the card detail view (Commander Spellbook API) - up to 3 combos, styled as a right-hand panel per the brief, with card-name hover previews.
+- [x] Meta & Stats page (`/mtg/meta`) - EDHREC for most-played cards + popular Commander decks; Moxfield as a manual link-out (no public deck API, as the brief predicted). **Deviates from the brief on purpose:** Standard/Commander tier lists are scraped live from MTGGoldfish (their robots.txt explicitly allows crawling/reference use) rather than hand-curated, since a real "may break gracefully" data source beat manual maintenance - see `docs/deploy-checklist.md`-adjacent reasoning in the PR history (PR #22).
 
 ### Phase 7 — Marketplace
 - [x] Listing page: image, title, price, condition, description, filter/sort by category and price.
