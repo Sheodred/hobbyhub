@@ -4,12 +4,22 @@ Original brief as given, with the Master Task Checklist (section 8)
 annotated against actual verified repo/CI state as of 2026-08-05 -
 `[x]` done, `[~]` partially done / done differently than specced (see
 note), `[ ]` not started. Everything above section 8 is the unmodified
-original spec, kept for reference.
+original spec, kept for reference - including every original checkbox
+in section 8 itself, preserved verbatim rather than condensed, so each
+one can be checked individually against real repo state.
+
+*(Correction, 2026-08-05: section 0 and section 8 briefly held a
+paraphrased/condensed version of the original text rather than the
+brief as actually given - caught and fixed on request, since fidelity
+is the whole point of this document. Sections 1-7 were never affected.)*
 
 **Status notes that apply throughout, not repeated per line:**
-- Graphify (section 0) was explicitly declined - not installed, per an
+- Graphify (section 0.1) was explicitly declined - not installed, per an
   explicit user decision (unverified third-party pip package). Codebase
   navigation instead uses this session's own Grep/Glob/Explore-agent tools.
+- MarkItDown (section 0.2) is applied as a *global* CLAUDE.md rule for the
+  operator (not committed to this repo), but was never actually exercised
+  during this build - no PDF was read at any point.
 - The `architecture`/`system-design`/`testing-strategy`/`code-review`/
   `documentation`/`deploy-checklist` skills named in section 0 don't exist
   in this Claude Code environment - general engineering practice was used
@@ -30,15 +40,42 @@ original spec, kept for reference.
 
 ---
 
-## 0. Setup: use Graphify for codebase understanding
+## 0. Setup: Claude Code environment (Graphify + PDF handling)
 
-Before starting, install and initialize **Graphify**, an open-source knowledge-graph skill for AI coding assistants (MIT license, works with Claude Code out of the box):
+### 0.1 Graphify — codebase knowledge graph
+
+Install and initialize **Graphify**, an open-source (MIT) knowledge-graph skill for AI coding assistants, and wire in its full Claude Code integration in one go:
 
 ```bash
-pip install graphifyy && graphify install
+pip install graphifyy
+graphify install
+graphify claude install   # run from inside the project root
 ```
 
-Once the repo has some structure, run `/graphify ./` after major milestones (e.g., after scaffolding, after backend is up, after frontend is up) to rebuild the knowledge graph. Use `/graphify query`, `/graphify path`, and `/graphify explain` to navigate the codebase instead of re-reading everything from scratch as the project grows. This keeps context cheap and traceable across the whole build.
+`graphify claude install` sets up the always-on integration automatically — no manual CLAUDE.md editing needed:
+- Adds a **CLAUDE.md** section telling Claude to read `graphify-out/GRAPH_REPORT.md` before answering architecture questions.
+- Installs a **PreToolUse hook** (in `.claude/settings.json`) that fires before every `Glob`/`Grep` call, nudging Claude toward the graph (god nodes, communities, surprising connections) instead of blindly grepping raw files.
+
+Keep the graph fresh as the project grows: `graphify hook install` adds git post-commit/post-checkout hooks that rebuild it automatically, or run `/graphify ./raw --watch` in a background terminal for live rebuilds while coding. For precise lookups, use `/graphify query`, `/graphify path`, and `/graphify explain` directly instead of re-reading files from scratch.
+
+### 0.2 PDF handling — use MarkItDown instead of raw PDF reads
+
+Claude Code's `Read` tool renders PDF pages as images by default, which burns far more tokens than plain text for text-heavy PDFs (legal templates, rules references, etc. — relevant here for the Impressum/legal drafting and any MTG rules-text sources for the lore corpus). Install MarkItDown:
+
+```bash
+pip install 'markitdown[pdf]'
+```
+
+Add this rule to the project's `CLAUDE.md`:
+
+```
+## PDF Handling
+Never Read .pdf files directly. First run:
+  markitdown "<path>" -o "<path>.md"
+via Bash, then Read the resulting .md file instead.
+```
+
+For a hard guarantee instead of a followed instruction, also add a `PreToolUse` hook matched to the `Read` tool that blocks any `.pdf` path (exit code 2) and points Claude at the `markitdown` command in its place, mirroring how Graphify's own `PreToolUse` hook works above.
 
 Also use these built-in engineering skills at the right moments:
 - **architecture** — before locking in the stack/auth/library choices below, write a short ADR.
@@ -206,69 +243,77 @@ A chat feature on the main web app that answers questions about Magic: The Gathe
 Work through this top to bottom. Each phase links back to the section above with the full detail — treat this as the execution list, and the sections above as the spec to consult while doing each item.
 
 ### Phase 0 — Setup
-- [ ] Install and initialize Graphify (`pip install graphifyy && graphify install`), section 0. **Declined** (unverified third-party package) — Grep/Glob/Explore-agent used instead.
-- [ ] Know when to reach for the `architecture`, `system-design`, `testing-strategy`, `code-review`, `documentation`, and `deploy-checklist` skills. **N/A** — none of these skills exist in this Claude Code environment.
-- [x] Scaffold the monorepo: frontend (React + TS + Vite) and backend (Spring Boot 3) projects, Docker Compose (frontend, backend, Postgres), GitHub Actions CI skeleton (lint, test, build). *(Postgres does not have `pgvector` enabled yet — deferred with the lore chatbot, section 6/Phase 11.)*
-- [ ] Run `/graphify ./`. **N/A** — tool not installed.
+- [ ] Install Graphify and run `graphify claude install` to wire up the CLAUDE.md directive + PreToolUse hook automatically (section 0.1). **Declined** — unverified third-party pip package, explicit user decision. Grep/Glob/Explore-agent used instead for the whole build; no CLAUDE.md section or PreToolUse hook for Graphify was ever installed in this repo.
+- [~] Install MarkItDown and add the PDF-handling CLAUDE.md rule (and optionally the blocking hook) so PDFs are never read raw (section 0.2). **Partially confirmed**: the "never Read .pdf directly, run markitdown first" rule is present in the operator's *global* CLAUDE.md (applies across all their projects, not committed to this repo). Whether the `markitdown[pdf]` pip package is actually installed, or whether the optional PreToolUse blocking hook exists, isn't verifiable from this project's own history — no PDF was ever read during this build, so the rule was never actually exercised here.
+- [ ] Know when to reach for the `architecture`, `system-design`, `testing-strategy`, `code-review`, `documentation`, and `deploy-checklist` skills (section 0) — use them at the point each is relevant below, not all up front. **N/A** — none of these skills exist in this Claude Code environment; general engineering practice substituted at each relevant point instead (ADRs in `docs/adr/` for `architecture`, manual review for `code-review`, `docs/deploy-checklist.md` written by hand for `deploy-checklist`, etc).
+- [x] Scaffold the monorepo: frontend (React + TS + Vite) and backend (Spring Boot 3) projects, Docker Compose (frontend, backend, Postgres with `pgvector` enabled), GitHub Actions CI skeleton (lint, test, build). *(`pgvector` was never actually enabled on Postgres — deferred with the lore chatbot, Phase 11, which stayed a roadmap item. Postgres and Spring Boot themselves were later replaced entirely by MySQL/PHP - see the migration note at the top of this document.)*
+- [ ] Run `/graphify ./` once there's real structure, to baseline the knowledge graph. **N/A** — tool not installed (Graphify declined above).
 
-### Phase 1 — Visual direction
-- [~] Produce 2–3 quick visual directions and commit to one before building components. A distinct dark, asymmetric visual identity was applied consistently from the homepage onward, but not via an explicit separate "3 mockups, pick one" exercise.
-- [x] Confirm the direction avoids the generic AI-SaaS look. Dark theme, asymmetric highlight cards, real accent-color gradients per section — not a centered purple/blue blob template.
+### Phase 1 — Visual direction (before any real styling)
+- [x] No dedicated "design review" skill is installed for this project — don't skip this step expecting a skill to catch a generic look; follow section 3.1 directly. Confirmed: no such skill exists; section 3.1 was followed directly.
+- [~] Produce 2–3 quick visual directions (typeface, color palette, layout approach) and commit to one before building components, per section 3.1. A distinct dark, asymmetric visual identity was applied consistently from the homepage onward, but not via an explicit separate "3 mockups, pick one" exercise up front — the direction emerged through the early build rather than being decided before Phase 2 started.
+- [x] Confirm the direction explicitly avoids the generic AI-SaaS look (centered hero, purple/blue gradient blob, default rounded-card-with-shadow grid). Dark theme, asymmetric highlight cards, real per-section accent-color gradients - not a centered purple/blue blob template.
 
 ### Phase 2 — App shell
-- [x] Banner/header: logo, nav, login/account menu.
-- [x] Resizable, collapsible sidebar with drag handle, persisted width/collapsed state, mobile drawer behavior (drawer now also has Escape-to-close, focus trap, and focus restoration).
-- [x] Routing, base Tailwind setup, Framer Motion wired in for route transitions and micro-interactions, `prefers-reduced-motion` respected throughout.
+- [x] Banner/header: logo, nav, login/account menu (section 3). *(The account menu itself was present as specced at the time this phase completed; all of auth was later removed - see the migration note at the top of this document.)*
+- [x] Resizable, collapsible sidebar with drag handle, persisted width/collapsed state, mobile drawer behavior (section 3). Drawer additionally got Escape-to-close, a focus trap, and focus restoration - beyond what was specced.
+- [x] Routing, base Tailwind setup, Framer Motion wired in for route transitions and micro-interactions, `prefers-reduced-motion` respected.
 
 ### Phase 3 — Auth
-- [x] Backend: Spring Security + JWT, BCrypt password hashing, signup/login/logout/password-reset endpoints (password-reset **email delivery** itself is dev-only — see `docs/adr/0007` and the deploy checklist).
+- [x] Backend: Spring Security + JWT, BCrypt password hashing, signup/login/logout/password-reset endpoints (section 4.2). Password-reset **email delivery** itself was dev-only (see the now-Superseded `docs/adr/0007`).
 - [x] Frontend: signup/login/logout flows, protected routes, basic profile page.
+- **Superseded (2026-08-05): all of Phase 3 was later removed entirely and extracted to a separate project** ([kluge-boards-and-cards](https://github.com/Sheodred/kluge-boards-and-cards)) as part of the PHP/MySQL migration - see the note at the top of this document and `docs/adr/0009`. HobbyHub itself has no accounts anymore.
 
 ### Phase 4 — Homepage
-- [x] Hero section + highlight cards linking to MTG, marketplace, chess.
-- [x] News panel 1 — Tagesschau. Backend `NewsRefreshService` (every 20 min, Postgres-cached) + frontend `TagesschauPanel`.
-- [x] News panel 2 — WotC news. Scraping-based (no official API/RSS anymore, robots.txt allows it) with a hardcoded manual fallback list per the brief's "may break" caveat.
-- [x] News panel 3 — Weather. Browser geolocation → direct Open-Meteo call (not proxied through the backend) — also disclosed in the Privacy Policy.
-- [x] Loading skeleton / empty / error states + fade-in for all three panels (shared `InfoPanelCard`/`NewsListPanel`).
+- [x] Hero section + highlight cards linking to MTG, marketplace, chess (section 4.1). *(Marketplace was later extracted along with auth; the highlight cards now link to MTG and chess only.)*
+- [x] News panel 1 — Tagesschau: backend job polling `tagesschau.de/api2u/homepage/` on a schedule (≤60 req/hour, cache in Postgres), frontend card showing 3–5 headlines + teaser + link. A real bug was found and fixed here during the build: the API 308-redirects the trailing-slash path, and an unfollowed redirect silently looked like zero headlines rather than an error - fixed by dropping the trailing slash and adding explicit redirect-following (see `docs/project-history.md`). The cache backend itself later moved from Postgres to MySQL with the migration.
+- [x] News panel 2 — WotC news: backend scheduled job parsing `magic.wizards.com/en/news` for the 3 latest headline/date/link (robots.txt checked); admin-editable manual fallback list built for when the scraper breaks.
+- [x] News panel 3 — Weather: browser geolocation prompt → Open-Meteo forecast call → display current conditions; graceful fallback if permission is denied. No backend involvement at all - a gap the GDPR review (Phase 12-adjacent work) later caught and disclosed explicitly in the Privacy Policy.
+- [x] All three panels: loading skeleton, empty/error states, fade/slide-in animation.
 
 ### Phase 5 — About Me & legal pages
-- [x] About Me static page.
-- [x] Impressum, Privacy Policy/Datenschutzerklärung, Terms of Service/AGB, cookie consent component (built, not yet mounted — no non-essential cookies/analytics exist to consent to). Draft content, explicitly flagged (dev-only banner + `docs/adr/0006`) for human legal review before go-live.
+- [x] About Me static page (section 4.3).
+- [x] Impressum, Privacy Policy/Datenschutzerklärung, Terms of Service/AGB, cookie consent banner if needed (section 4.9). Built as a component; never mounted anywhere, since the site sets no non-essential cookies/analytics to consent to. Draft content throughout, explicitly flagged (dev-only banner + `docs/adr/0006`) for human legal review before go-live - still true today.
 
 ### Phase 6 — Magic: The Gathering
-- [x] Card Browser: Scryfall search/browse/detail view. Also added: a Scryfall hover-preview on card/commander names (not in the original brief, added on explicit request) and a "Meta & Stats" CTA to the new page below.
-- [x] Related combos panel on the card detail view (Commander Spellbook API) - up to 3 combos, styled as a right-hand panel per the brief, with card-name hover previews.
-- [x] Meta & Stats page (`/mtg/meta`) - EDHREC for most-played cards + popular Commander decks; Moxfield as a manual link-out (no public deck API, as the brief predicted). **Deviates from the brief on purpose:** Standard/Commander tier lists are scraped live from MTGGoldfish (their robots.txt explicitly allows crawling/reference use) rather than hand-curated, since a real "may break gracefully" data source beat manual maintenance - see `docs/deploy-checklist.md`-adjacent reasoning in the PR history (PR #22).
+- [x] Card Browser: Scryfall search/browse/detail view (section 4.4). Also added, not in the original spec: a Scryfall hover-preview on card/commander names (explicit follow-up request) and a "Meta & Stats" CTA to the page below.
+- [x] Related combos panel on the card detail view: up to 3 combos via the Commander Spellbook API, styled like `edhrec.com/combos/lightning-bolt` (section 4.4), with card-name hover previews.
+- [~] Meta & Stats page: EDHREC (`json.edhrec.com`) integration for top commanders/most-played cards - done as specced. Moxfield treated as manual link-out only (no public deck API) - done as specced, this brief predicted correctly that no such API exists. Standard/Commander "strongest decks" was specced as **manual curation** pending a real data source (section 4.5); **built differently on purpose** - scraped live from MTGGoldfish instead (their robots.txt explicitly allows crawling/reference use), since a real "may break gracefully" data source beat hand-maintained content long-term (see PR #22). Cache all of it server-side - done, first via Postgres, later via MySQL cache tables with the migration.
 
 ### Phase 7 — Marketplace
-- [x] Listing page: image, title, price, condition, description, filter/sort by category and price.
-- [ ] Card listings storing a Scryfall reference with server-side-resolved fallback images. **Not implemented as specced** — `docs/adr/0005` deliberately simplified v1 to a plain external-URL image field (no upload pipeline, no automatic Scryfall resolution); seed data pastes real Scryfall image URLs directly instead. Revisit if/when this is worth building.
-- [x] No live payments in v1 — inquiry-only.
+- [x] Listing page: image, title, price, condition, description, filter/sort by category and price (section 4.6).
+- [ ] Card listings store a Scryfall card reference; if no seller photo is uploaded, resolve and cache the Scryfall image as the fallback. Board game listings fall back to a generic placeholder instead. **Not implemented as specced** - `docs/adr/0005` (now Superseded) deliberately simplified v1 to a plain external-URL image field (no upload pipeline, no automatic server-side Scryfall resolution); seed data pasted real Scryfall image URLs directly instead.
+- [x] No live payments in v1 — inquiry-only; Stripe noted as the future path if that changes.
+- **Superseded (2026-08-05): the entire Marketplace feature was later extracted to a separate project** and put on *that* project's roadmap ("im Zweifel erstmal nur als Roadmap, um Zeit zu sparen") - not rebuilt there or here yet. See the migration note at the top of this document.
 
 ### Phase 8 — Chess vs. AI
-- [x] Custom click-to-move board (not `react-chessboard` — hand-built with real `<button>` grid cells, ARIA labels, and a "coin" piece design for guaranteed contrast; see `docs/adr/*` and PR #9). Functionally equivalent (keyboard-accessible click-to-move as primary interaction) but no drag-and-drop, since the board wasn't built on `react-chessboard`.
+- [~] `react-chessboard` + `chess.js` integration, classic/Staunton-style default piece set (section 4.7). **Built differently on purpose**: a custom click-to-move board - hand-built with real `<button>` grid cells, ARIA labels, and a "coin" piece design for guaranteed contrast - instead of `react-chessboard` (see PR #9).
+- [~] Drag-and-drop as primary interaction, click-to-move as fallback. **Inverted, on purpose**: click-to-move is the primary (and only) interaction - no drag-and-drop, since the board wasn't built on `react-chessboard`. Functionally equivalent for keyboard/mobile/accessibility use, but doesn't match this line literally.
 - [x] Client-side Stockfish (WASM) opponent with difficulty selector, move history, result detection.
 
 ### Phase 9 — Fan-game link page (main repo)
-- [ ] Placeholder-friendly page: description, link out, screenshots/GIFs once available. **Not started.**
+- [ ] Placeholder-friendly page: description, link out, screenshots/GIFs once available (section 4.8). **Not started.**
 
-### Phase 10 — MTG Fan Game (separate repo)
-- [x] Second repo created (`Sheodred/mtg-planeswalk`) with the Fan Content Policy disclaimer in its README.
-- [x] Lore corpus: `overview.md` plus four planes (Dominaria, Ravnica, Innistrad, Zendikar), original wording, general-knowledge grounding rather than any single copied source.
-- [x] Game concept decided: 2D top-down exploration, Phaser proposed, four planes as the initial scope (`CONCEPT.md`) — concept-only, no game code yet, per explicit scope decision.
-- [ ] Wired into the main site's fan-game page — blocked on Phase 9 above not existing yet.
+### Phase 10 — MTG Fan Game (separate repo, own track — not blocking the main app)
+- [x] Create the second repo; add the required Fan Content Policy disclaimer up front (free/non-commercial, no WotC logos/trademarks) — section 5. Done: `Sheodred/mtg-planeswalk`, disclaimer in its README.
+- [x] Collect and summarize the lore corpus into `/lore` Markdown files, in your own words, attributing any wiki sources per their license. Done: `overview.md` plus four planes (Dominaria, Ravnica, Innistrad, Zendikar), original wording, general-knowledge grounding rather than any single copied source.
+- [x] Decide the concrete game format (default assumption: 2D exploration via Phaser or PixiJS) once enough lore is organized to know what's worth building. Done: 2D top-down exploration, Phaser proposed, four planes as initial scope (`CONCEPT.md`) - concept-only, no game code, per an explicit scope decision ("ein Konzept reicht da erst mal").
+- [ ] Wire the lore corpus into both the game content and the main site's fan-game page (Phase 9). **Not done** - blocked on Phase 9 (the main-site link page) not existing yet.
 
-### Phase 11 — Lore chatbot
-- [x] Infrastructure concept decided and written up: `docs/adr/0008-lore-chatbot-elasticsearch.md` - a dedicated Elasticsearch instance in hobbyhub's own `docker-compose.yml` (separate network/volume/port from hybrid-search-api's, isolated by Docker Compose's per-project scoping), `lore_chunks` index with a `dense_vector` field for kNN in place of the brief's pgvector plan. Reference service YAML and index mapping are in the ADR, not yet applied to the real `docker-compose.yml`.
-- [ ] **Building the actual chatbot is on the roadmap, not being worked on now** - explicit instruction (2026-08-05). Nothing below this line is started: enabling the Elasticsearch service for real, picking an embeddings API (fixes the `dims` value), ingestion job, RAG endpoint, chat panel.
+### Phase 11 — Lore chatbot (depends on Phase 10 having lore content)
+- [ ] Enable `pgvector` on the existing Postgres instance; create the `lore_chunks` table (section 6). **Not done, and now moot** - the infrastructure decision changed from Postgres/pgvector to a dedicated Elasticsearch instance (`docs/adr/0008-lore-chatbot-elasticsearch.md`, `lore_chunks` index with a `dense_vector` field for kNN), and Postgres itself was later replaced by MySQL entirely (see the migration note above). Reference Elasticsearch service YAML and index mapping exist in the ADR but were never applied to a real `docker-compose.yml`.
+- [ ] Build the ingestion script: chunk `/lore` files, embed via a hosted embeddings API, store vectors. **Not started.**
+- [ ] Backend RAG endpoint: embed question → similarity search → build prompt with retrieved context → call a hosted LLM API server-side → stream response via SSE. **Not started.**
+- [ ] Frontend chat panel on the fan-game page and/or card browser, gated behind login, with per-user rate limiting and the Fan Content Policy disclaimer visible. **Not started** - and "gated behind login" is now moot regardless, since HobbyHub has no accounts anymore (see migration note above); this would need a different guardrail if ever built.
+- **Explicit decision (2026-08-05): building the actual chatbot is on the roadmap, not being worked on now.** Only the infrastructure concept above is decided.
 
 ### Phase 12 — Polish & ship
-- [x] Animation pass across all pages.
-- [~] Responsive QA down to mobile — code-level review only (breakpoint classes, no fixed widths found); real narrow-viewport verification blocked by a confirmed environment limitation (`resize_window` reports success but the viewport stays desktop-sized), documented as a manual TODO in the README.
-- [x] Accessibility pass: keyboard nav, ARIA, contrast (MobileDrawer modal behavior, focus rings, WCAG AA contrast fixes — see PR #13).
-- [~] Automated tests covering auth, marketplace CRUD, chess move validation — all three areas are well covered; broader hardening across the rest of the backend is ongoing, not exhaustive.
+- [x] Animation pass across all pages, responsive QA down to mobile, accessibility pass (keyboard nav, ARIA, contrast). *(Split out below - responsive QA and accessibility landed at different confidence levels, see the next two lines.)*
+- [~] Responsive QA down to mobile - code-level review only (breakpoint classes, no fixed widths found); real narrow-viewport verification blocked by a confirmed environment limitation (`resize_window` reports success but the viewport stays desktop-sized), documented as a manual TODO in the README.
+- [x] Accessibility pass: keyboard nav, ARIA, contrast (MobileDrawer modal behavior, focus rings, WCAG AA contrast fixes - see PR #13).
+- [~] Automated tests: JUnit (backend), Vitest + React Testing Library (frontend) — cover auth, marketplace CRUD, chess move validation, RAG endpoint at minimum. Auth, marketplace CRUD, and chess move validation were well covered while those features existed; the RAG endpoint was never built, so it was never tested. **All 60+ backend JUnit tests were later deleted along with Spring Boot during the PHP migration, with no PHP equivalent added** (see migration note above and `docs/adr/0009`'s Consequences) - this line's original coverage no longer exists in the current codebase at all, named explicitly rather than silently dropped.
 - [x] README with setup instructions (Docker Compose one-liner).
-- [ ] Run the `deploy-checklist` skill. **N/A** — skill doesn't exist; `docs/deploy-checklist.md` was written by hand as the functional equivalent instead.
+- [ ] Run the `deploy-checklist` skill before the first production deploy. **N/A** — skill doesn't exist; `docs/deploy-checklist.md` was written by hand as the functional equivalent instead, and has since been rewritten twice more (once for the original Spring Boot hosting plan, once for the IONOS/PHP migration).
 
 ---
 
