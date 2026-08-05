@@ -69,7 +69,7 @@ export function ListingDetailPage() {
             className="w-full max-w-sm rounded-lg border border-slate-800 object-cover"
           />
         ) : (
-          <div className="flex w-full max-w-sm items-center justify-center rounded-lg border border-slate-800 bg-slate-900 p-12 text-slate-500">
+          <div className="flex w-full max-w-sm items-center justify-center rounded-lg border border-slate-800 bg-slate-900 p-12 text-slate-400">
             No image
           </div>
         )}
@@ -85,7 +85,7 @@ export function ListingDetailPage() {
           )}
           {listing.description && <p className="mt-4 whitespace-pre-line text-slate-300">{listing.description}</p>}
 
-          <p className="mt-4 text-sm text-slate-500">Listed by {listing.sellerDisplayName}</p>
+          <p className="mt-4 text-sm text-slate-400">Listed by {listing.sellerDisplayName}</p>
 
           {isOwner && (
             <div className="mt-6 flex gap-2">

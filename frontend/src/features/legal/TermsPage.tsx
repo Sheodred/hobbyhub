@@ -6,7 +6,7 @@ export function TermsPage() {
       <DraftContentNotice message="Template only - fill in the bracketed placeholders and have this reviewed before this goes live (see docs/adr/0006). Not legal advice." />
 
       <h1 className="text-3xl font-semibold text-slate-100">Terms of Service</h1>
-      <p className="mt-2 text-sm text-slate-500">Last updated: [Date]</p>
+      <p className="mt-2 text-sm text-slate-400">Last updated: [Date]</p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">1. Scope</h2>
       <p className="mt-2">

@@ -6,7 +6,7 @@ export function PrivacyPolicyPage() {
       <DraftContentNotice message="Template only - fill in the bracketed placeholders and confirm the hosting details before this goes live (see docs/adr/0006). Not legal advice." />
 
       <h1 className="text-3xl font-semibold text-slate-100">Privacy Policy</h1>
-      <p className="mt-2 text-sm text-slate-500">Information pursuant to Article 13 GDPR.</p>
+      <p className="mt-2 text-sm text-slate-400">Information pursuant to Article 13 GDPR.</p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Controller</h2>
       <p className="mt-2">

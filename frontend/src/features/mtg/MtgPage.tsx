@@ -66,7 +66,7 @@ export function MtgPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for a card, e.g. Lightning Bolt"
-          className="w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none"
+          className="w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
         />
         <button
           type="submit"
@@ -93,7 +93,7 @@ export function MtgPage() {
 
         {data && data.cards.length > 0 && (
           <FadeIn key={`${submittedQuery}-${page}`}>
-            <p className="mb-3 text-sm text-slate-500">{data.totalCards} card(s) found</p>
+            <p className="mb-3 text-sm text-slate-400">{data.totalCards} card(s) found</p>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
               {data.cards.map((card) => (
                 <Link
@@ -112,7 +112,7 @@ export function MtgPage() {
                     <p className="truncate text-sm font-medium text-slate-100 group-hover:text-indigo-400">
                       {card.name}
                     </p>
-                    <p className="truncate text-xs text-slate-500">{card.setName}</p>
+                    <p className="truncate text-xs text-slate-400">{card.setName}</p>
                   </div>
                 </Link>
               ))}

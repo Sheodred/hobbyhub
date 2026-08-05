@@ -6,7 +6,7 @@ export function ImpressumPage() {
       <DraftContentNotice message="Template only - fill in the bracketed placeholders with real details before this goes live (see docs/adr/0006). Not legal advice." />
 
       <h1 className="text-3xl font-semibold text-slate-100">Impressum</h1>
-      <p className="mt-2 text-sm text-slate-500">Legal notice pursuant to Section 5 TMG and Section 18(2) MStV.</p>
+      <p className="mt-2 text-sm text-slate-400">Legal notice pursuant to Section 5 TMG and Section 18(2) MStV.</p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Service provider</h2>
       <p className="mt-2">
