@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
@@ -22,6 +23,47 @@ const drawerLinkClass = ({ isActive }: { isActive: boolean }) =>
 export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
   const reduceMotion = usePrefersReducedMotion();
   const transition = reduceMotion ? { duration: 0 } : { type: "tween" as const, duration: 0.25 };
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  // Standard modal-dialog keyboard behavior: move focus in on open, trap Tab
+  // within the dialog while it's open, close on Escape, and restore focus to
+  // whatever triggered the drawer (the header's hamburger button) on close.
+  useEffect(() => {
+    if (!open) return;
+
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab" || !dialogRef.current) return;
+
+      const focusable = dialogRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled])');
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocusedRef.current?.focus();
+    };
+  }, [open, onClose]);
 
   return (
     <AnimatePresence>
@@ -37,6 +79,7 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             aria-hidden="true"
           />
           <motion.div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-label="Navigation menu"
@@ -49,6 +92,7 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             <div className="flex items-center justify-between">
               <span className="text-lg font-semibold text-white">HobbyHub</span>
               <button
+                ref={closeButtonRef}
                 type="button"
                 onClick={onClose}
                 className="rounded-md p-2 text-slate-400 hover:bg-slate-800 hover:text-white"

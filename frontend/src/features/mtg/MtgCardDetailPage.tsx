@@ -68,13 +68,13 @@ export function MtgCardDetailPage() {
           <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
             {card.setName && (
               <>
-                <dt className="text-slate-500">Set</dt>
+                <dt className="text-slate-400">Set</dt>
                 <dd className="text-slate-300">{card.setName}</dd>
               </>
             )}
             {card.rarity && (
               <>
-                <dt className="text-slate-500">Rarity</dt>
+                <dt className="text-slate-400">Rarity</dt>
                 <dd className="capitalize text-slate-300">{card.rarity}</dd>
               </>
             )}

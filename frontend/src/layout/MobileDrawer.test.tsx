@@ -42,4 +42,27 @@ describe("MobileDrawer", () => {
     await user.click(screen.getByRole("link", { name: "Home" }));
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it("moves focus to the close button when opened", () => {
+    render(
+      <MemoryRouter>
+        <MobileDrawer open onClose={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("button", { name: "Close navigation menu" })).toHaveFocus();
+  });
+
+  it("calls onClose when Escape is pressed", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(
+      <MemoryRouter>
+        <MobileDrawer open onClose={onClose} />
+      </MemoryRouter>,
+    );
+
+    await user.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledOnce();
+  });
 });
