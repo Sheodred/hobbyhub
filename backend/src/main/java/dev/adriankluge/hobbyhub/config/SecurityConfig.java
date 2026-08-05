@@ -34,7 +34,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/health", "/api/auth/**", "/api/mtg/**")
+                        .requestMatchers("/api/health", "/api/auth/**", "/api/mtg/**", "/api/news/**")
                         .permitAll()
                         // Browsing listings is public; creating/editing/deleting one
                         // isn't - those fall through to .anyRequest().authenticated().
