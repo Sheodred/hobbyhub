@@ -1,0 +1,20 @@
+RewriteEngine On
+
+# Never allow direct web access to config/lib/cron/sql - they're either
+# included by an endpoint or run via WebCron, never requested directly.
+RewriteRule ^(config|config\.local|lib/.*|cron/.*|sql/.*)$ - [F,L]
+
+# Static routes - extensionless URL -> the matching .php file. Order
+# matters: the more specific /mtg/cards/by-name rule must come before the
+# generic /mtg/cards/{id} catch-all below it.
+RewriteRule ^mtg/search/?$ mtg/search.php [QSA,L]
+RewriteRule ^mtg/printings/?$ mtg/printings.php [QSA,L]
+RewriteRule ^mtg/cards/by-name/?$ mtg/cards/by-name.php [QSA,L]
+RewriteRule ^mtg/combos/?$ mtg/combos.php [QSA,L]
+RewriteRule ^mtg/meta/?$ mtg/meta.php [QSA,L]
+RewriteRule ^news/tagesschau/?$ news/tagesschau.php [QSA,L]
+RewriteRule ^news/wotc/?$ news/wotc.php [QSA,L]
+RewriteRule ^health/?$ health.php [QSA,L]
+
+# Dynamic route: /mtg/cards/{id} - anything not already matched above.
+RewriteRule ^mtg/cards/([^/]+)/?$ mtg/cards/get.php?id=$1 [QSA,L]

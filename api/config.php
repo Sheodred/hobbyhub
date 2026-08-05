@@ -1,0 +1,34 @@
+<?php
+// Local dev (docker-compose) reads these from container environment
+// variables. Production (IONOS shared hosting has no env-var UI) instead
+// defines a gitignored config.local.php with real values - see
+// config.example.php. Whichever source runs first "wins" via the
+// already-defined() check below, so config.local.php (if present) always
+// takes priority over an environment variable of the same name.
+if (file_exists(__DIR__ . '/config.local.php')) {
+    require_once __DIR__ . '/config.local.php';
+}
+
+function env_or(string $constant, string $default): void
+{
+    if (defined($constant)) {
+        return;
+    }
+    $value = getenv($constant);
+    define($constant, $value !== false ? $value : $default);
+}
+
+env_or('DB_HOST', 'mariadb');
+env_or('DB_NAME', 'hobbyhub');
+env_or('DB_USER', 'hobbyhub');
+env_or('DB_PASSWORD', 'hobbyhub');
+
+env_or('SCRYFALL_BASE_URL', 'https://api.scryfall.com');
+// Scryfall asks every client to identify itself (see their API guidelines).
+define('SCRYFALL_USER_AGENT', 'HobbyHub/0.1 (+https://github.com/Sheodred/hobbyhub)');
+env_or('COMMANDER_SPELLBOOK_BASE_URL', 'https://backend.commanderspellbook.com');
+env_or('TAGESSCHAU_BASE_URL', 'https://www.tagesschau.de');
+env_or('WOTC_NEWS_URL', 'https://magic.wizards.com/en/news');
+env_or('EDHREC_JSON_BASE_URL', 'https://json.edhrec.com');
+env_or('MTGGOLDFISH_STANDARD_URL', 'https://www.mtggoldfish.com/metagame/standard');
+env_or('MTGGOLDFISH_COMMANDER_URL', 'https://www.mtggoldfish.com/metagame/commander');
