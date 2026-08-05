@@ -116,11 +116,16 @@ cd frontend && npm install && npm test
   [mtg-planeswalk](https://github.com/Sheodred/mtg-planeswalk) repo exists
   with a concept doc and an initial lore corpus, but nothing here links to
   it yet.
-- **The lore chatbot is on hold**, pending a decision on where its vector
-  store actually runs (a dedicated Elasticsearch instance, kept separate
-  from the one behind [hybrid-search-api](https://github.com/Sheodred/hybrid-search-api),
+- **The lore chatbot is on the roadmap, not being built yet** (explicit
+  decision, 2026-08-05). The infrastructure question is answered though:
+  a dedicated Elasticsearch instance in hobbyhub's own `docker-compose.yml`,
+  kept fully separate from the one behind
+  [hybrid-search-api](https://github.com/Sheodred/hybrid-search-api),
   rather than this project's own Postgres via pgvector as originally
-  sketched) - see `docs/project-brief.md` section 11.
+  sketched — see [`docs/adr/0008`](docs/adr/0008-lore-chatbot-elasticsearch.md)
+  for the concept (reference service definition, index mapping, what's
+  still an open parameter) and `docs/project-brief.md` section 11 for
+  status.
 
 ## Roadmap
 
@@ -144,7 +149,7 @@ sidebar library, chess/marketplace/legal-page/password-reset scope for v1).
 - [x] MTG Meta & Stats page (EDHREC + MTGGoldfish)
 - [x] MTG related-combos panel (Commander Spellbook) + Scryfall hover previews
 - [ ] MTG fan-game link page (separate repo exists, not linked from this site yet)
-- [ ] MTG lore chatbot (on hold - see Known issues)
+- [ ] MTG lore chatbot (infra concept decided, `docs/adr/0008` - build itself on the roadmap, see Known issues)
 
 ## License
 
