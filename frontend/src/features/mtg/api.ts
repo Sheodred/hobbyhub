@@ -38,6 +38,19 @@ export function getCardByName(name: string): Promise<Card> {
   return apiFetch<Card>(`/api/mtg/cards/by-name?${params.toString()}`);
 }
 
+export interface Combo {
+  otherCards: string[];
+  cardCount: number;
+  numDecks: number | null;
+  produces: string[];
+  url: string;
+}
+
+export function getCombos(cardName: string): Promise<Combo[]> {
+  const params = new URLSearchParams({ cardName });
+  return apiFetch<Combo[]>(`/api/mtg/combos?${params.toString()}`);
+}
+
 export interface MetaEntry {
   name: string;
   url: string;

@@ -1,6 +1,8 @@
 package dev.adriankluge.hobbyhub.mtg.controller;
 
 import dev.adriankluge.hobbyhub.mtg.client.ScryfallClient;
+import dev.adriankluge.hobbyhub.mtg.combo.client.CommanderSpellbookClient;
+import dev.adriankluge.hobbyhub.mtg.combo.dto.ComboResponse;
 import dev.adriankluge.hobbyhub.mtg.dto.Card;
 import dev.adriankluge.hobbyhub.mtg.dto.CardSearchResponse;
 import jakarta.validation.constraints.NotBlank;
@@ -22,9 +24,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class MtgController {
 
     private final ScryfallClient scryfallClient;
+    private final CommanderSpellbookClient commanderSpellbookClient;
 
-    public MtgController(ScryfallClient scryfallClient) {
+    public MtgController(ScryfallClient scryfallClient, CommanderSpellbookClient commanderSpellbookClient) {
         this.scryfallClient = scryfallClient;
+        this.commanderSpellbookClient = commanderSpellbookClient;
     }
 
     @GetMapping("/search")
@@ -53,5 +57,10 @@ public class MtgController {
         return scryfallClient
                 .getCardByName(name)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Card not found"));
+    }
+
+    @GetMapping("/combos")
+    public List<ComboResponse> combos(@RequestParam @NotBlank String cardName) {
+        return commanderSpellbookClient.findCombos(cardName);
     }
 }
