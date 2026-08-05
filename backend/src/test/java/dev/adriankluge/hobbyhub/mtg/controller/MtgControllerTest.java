@@ -65,4 +65,23 @@ class MtgControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].setName").value("Alpha"));
     }
+
+    @Test
+    void returnsACardByExactName() throws Exception {
+        Card card = new Card(
+                "id-1", "Sol Ring", "{1}", "Artifact", "Tap: add 2 colorless.", List.of(), "Alpha", "uncommon",
+                "https://img/sol-ring.jpg", "https://img/sol-ring-art.jpg");
+        when(scryfallClient.getCardByName("Sol Ring")).thenReturn(Optional.of(card));
+
+        mockMvc.perform(get("/api/mtg/cards/by-name").param("name", "Sol Ring"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imageUrl").value("https://img/sol-ring.jpg"));
+    }
+
+    @Test
+    void returns404WhenNoExactNameMatch() throws Exception {
+        when(scryfallClient.getCardByName("Not A Real Card")).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/mtg/cards/by-name").param("name", "Not A Real Card")).andExpect(status().isNotFound());
+    }
 }
