@@ -14,6 +14,7 @@ import { ListingDetailPage } from "../features/marketplace/ListingDetailPage";
 import { ListingFormPage } from "../features/marketplace/ListingFormPage";
 import { MarketplacePage } from "../features/marketplace/MarketplacePage";
 import { MtgCardDetailPage } from "../features/mtg/MtgCardDetailPage";
+import { MtgMetaPage } from "../features/mtg/MtgMetaPage";
 import { MtgPage } from "../features/mtg/MtgPage";
 import { AppShell } from "../layout/AppShell";
 
@@ -24,6 +25,7 @@ export const routes: RouteObject[] = [
       { path: "/", element: <HomePage /> },
       { path: "/about", element: <AboutPage /> },
       { path: "/mtg", element: <MtgPage /> },
+      { path: "/mtg/meta", element: <MtgMetaPage /> },
       { path: "/mtg/:id", element: <MtgCardDetailPage /> },
       { path: "/marketplace", element: <MarketplacePage /> },
       {

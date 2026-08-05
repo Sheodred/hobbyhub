@@ -32,3 +32,20 @@ export function getPrintings(name: string): Promise<Card[]> {
   const params = new URLSearchParams({ name });
   return apiFetch<Card[]>(`/api/mtg/printings?${params.toString()}`);
 }
+
+export interface MetaEntry {
+  name: string;
+  url: string;
+  numDecks: number | null;
+}
+
+export interface MtgMetaResponse {
+  mostPlayedCards: MetaEntry[];
+  popularCommanderDecks: MetaEntry[];
+  standardDecks: MetaEntry[];
+  commanderDecks: MetaEntry[];
+}
+
+export function getMtgMeta(): Promise<MtgMetaResponse> {
+  return apiFetch<MtgMetaResponse>("/api/mtg/meta");
+}
