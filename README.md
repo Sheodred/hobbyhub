@@ -17,8 +17,21 @@ browse/filter/sort, owner-only listing CRUD, see `docs/adr/0005`), and
 chess vs. AI (Stockfish running fully client-side, see `docs/adr/0004`)
 are live. Entrance animation, a keyboard-nav/contrast pass, and a
 production frontend build (nginx serving the static bundle, not Vite's
-dev server) are done too. See [ROADMAP](#roadmap) below and `docs/adr/`
-for the technical decisions already locked in.
+dev server) are done too.
+
+Also live: the homepage's three scheduled/cached info panels (Tagesschau
+headlines, Wizards of the Coast news, local weather), an MTG Meta & Stats
+page (most-played cards and popular Commander decks via EDHREC, Standard/
+Commander tier lists via MTGGoldfish), a related-combos panel on MTG card
+detail pages (Commander Spellbook), and a Scryfall hover-preview on card/
+commander names. See
+[`docs/project-brief.md`](docs/project-brief.md) for the full spec this
+was built against, phase by phase, annotated with what's actually done.
+The separate MTG fan-game project
+([Sheodred/mtg-planeswalk](https://github.com/Sheodred/mtg-planeswalk))
+is at the concept/lore stage - not yet linked from a page on this site,
+see Known issues below. See [ROADMAP](#roadmap) below and `docs/adr/` for
+the technical decisions already locked in.
 
 ## Architecture
 
@@ -92,6 +105,22 @@ cd frontend && npm install && npm test
 - **Test coverage could go further.** Auth, marketplace CRUD, and chess
   move validation are well covered; broader hardening across the rest of
   the backend is an ongoing, not one-and-done, item.
+- **The WotC news panel and the MTGGoldfish-sourced tier lists are
+  scraping-based, explicitly "may break" integrations** - both have no
+  official API, so they depend on those sites' current HTML structure.
+  Each falls back gracefully (an empty/manual state, not a crash or a
+  visible error) if the selector stops matching - see
+  `news.client.WotcNewsClient` and `mtg.meta.client.MtgGoldfishClient`.
+- **The MTG fan-game link page (site section, not the game itself) isn't
+  built yet.** The separate
+  [mtg-planeswalk](https://github.com/Sheodred/mtg-planeswalk) repo exists
+  with a concept doc and an initial lore corpus, but nothing here links to
+  it yet.
+- **The lore chatbot is on hold**, pending a decision on where its vector
+  store actually runs (a dedicated Elasticsearch instance, kept separate
+  from the one behind [hybrid-search-api](https://github.com/Sheodred/hybrid-search-api),
+  rather than this project's own Postgres via pgvector as originally
+  sketched) - see `docs/project-brief.md` section 11.
 
 ## Roadmap
 
@@ -111,6 +140,11 @@ sidebar library, chess/marketplace/legal-page/password-reset scope for v1).
 - [x] Chess vs. AI
 - [x] Animation/responsive/accessibility polish (real-device mobile check still manual - see Known issues)
 - [ ] Test coverage hardening, deploy checklist, and a hosting decision (checklist and production build done - see Known issues)
+- [x] Homepage info panels (Tagesschau, WotC news, weather)
+- [x] MTG Meta & Stats page (EDHREC + MTGGoldfish)
+- [x] MTG related-combos panel (Commander Spellbook) + Scryfall hover previews
+- [ ] MTG fan-game link page (separate repo exists, not linked from this site yet)
+- [ ] MTG lore chatbot (on hold - see Known issues)
 
 ## License
 
