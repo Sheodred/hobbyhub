@@ -114,6 +114,29 @@ class ScryfallClientTest {
     }
 
     @Test
+    void getCardByNameUsesScryfallsExactNameLookup() {
+        server.expect(requestTo("https://api.scryfall.com/cards/named?exact=Sol%20Ring"))
+                .andRespond(withSuccess(
+                        """
+                        {"id": "sol-ring-id", "name": "Sol Ring", "image_uris": {"normal": "https://img/sol-ring.jpg"}}
+                        """,
+                        MediaType.APPLICATION_JSON));
+
+        Optional<Card> result = client.getCardByName("Sol Ring");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().imageUrl()).isEqualTo("https://img/sol-ring.jpg");
+    }
+
+    @Test
+    void getCardByNameReturnsEmptyOptionalWhenNoExactMatch() {
+        server.expect(requestTo("https://api.scryfall.com/cards/named?exact=Not%20A%20Real%20Card"))
+                .andRespond(withStatus(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON).body("{}"));
+
+        assertThat(client.getCardByName("Not A Real Card")).isEmpty();
+    }
+
+    @Test
     void getPrintingsReturnsEveryPrintingNewestFirst() {
         server.expect(requestTo(allOf(containsString("unique=prints"), containsString("order=released"))))
                 .andRespond(withSuccess(

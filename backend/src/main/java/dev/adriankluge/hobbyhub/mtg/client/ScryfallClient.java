@@ -82,6 +82,20 @@ public class ScryfallClient {
         }
     }
 
+    // Exact-name lookup - used for card-name hover previews (e.g. on the MTG
+    // Meta & Stats page), where only one image is needed, not every printing.
+    @Cacheable(cacheNames = "scryfallCard", key = "'name:' + #name")
+    public Optional<Card> getCardByName(String name) {
+        throttle();
+        try {
+            ScryfallCardDto dto =
+                    restClient.get().uri("/cards/named?exact={name}", name).retrieve().body(ScryfallCardDto.class);
+            return Optional.ofNullable(dto).map(ScryfallMapper::toCard);
+        } catch (HttpClientErrorException.NotFound e) {
+            return Optional.empty();
+        }
+    }
+
     @Cacheable(cacheNames = "scryfallCard", key = "#scryfallId")
     public Optional<Card> getCard(String scryfallId) {
         throttle();

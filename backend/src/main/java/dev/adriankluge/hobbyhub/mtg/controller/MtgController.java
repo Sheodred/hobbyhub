@@ -44,4 +44,14 @@ public class MtgController {
     public List<Card> printings(@RequestParam @NotBlank String name) {
         return scryfallClient.getPrintings(name);
     }
+
+    // Exact-name lookup for card-name hover previews (e.g. on the MTG Meta &
+    // Stats page) - a lighter call than /printings, which fetches every
+    // printing just to show one image.
+    @GetMapping("/cards/by-name")
+    public Card getCardByName(@RequestParam @NotBlank String name) {
+        return scryfallClient
+                .getCardByName(name)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Card not found"));
+    }
 }

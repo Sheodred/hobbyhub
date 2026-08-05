@@ -1,5 +1,6 @@
 import { FadeIn } from "../../components/FadeIn";
 import type { MetaEntry } from "./api";
+import { CardHoverPreview } from "./CardHoverPreview";
 
 interface MetaWidgetProps {
   title: string;
@@ -7,9 +8,11 @@ interface MetaWidgetProps {
   entries: MetaEntry[] | undefined;
   isLoading: boolean;
   isError: boolean;
+  /** Entries are actual card/commander names (not deck archetype names) - enables the Scryfall hover preview. */
+  cardNames?: boolean;
 }
 
-export function MetaWidget({ title, source, entries, isLoading, isError }: MetaWidgetProps) {
+export function MetaWidget({ title, source, entries, isLoading, isError, cardNames = false }: MetaWidgetProps) {
   return (
     <FadeIn className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
       <h3 className="text-sm font-medium text-slate-100">{title}</h3>
@@ -34,14 +37,27 @@ export function MetaWidget({ title, source, entries, isLoading, isError }: MetaW
           {entries.map((entry, index) => (
             <li key={entry.url} className="flex items-baseline gap-2">
               <span className="text-xs text-slate-500">{index + 1}.</span>
-              <a
-                href={entry.url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-slate-200 hover:text-indigo-400 hover:underline"
-              >
-                {entry.name}
-              </a>
+              {cardNames ? (
+                <CardHoverPreview name={entry.name}>
+                  <a
+                    href={entry.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-slate-200 hover:text-indigo-400 hover:underline"
+                  >
+                    {entry.name}
+                  </a>
+                </CardHoverPreview>
+              ) : (
+                <a
+                  href={entry.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-sm text-slate-200 hover:text-indigo-400 hover:underline"
+                >
+                  {entry.name}
+                </a>
+              )}
               {entry.numDecks != null && (
                 <span className="ml-auto shrink-0 text-xs text-slate-500">{entry.numDecks.toLocaleString()} decks</span>
               )}

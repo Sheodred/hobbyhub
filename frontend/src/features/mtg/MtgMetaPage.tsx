@@ -28,6 +28,7 @@ export function MtgMetaPage() {
           entries={data?.mostPlayedCards}
           isLoading={isLoading}
           isError={isError}
+          cardNames
         />
         <MetaWidget
           title="Most popular Commander decks"
@@ -35,6 +36,7 @@ export function MtgMetaPage() {
           entries={data?.popularCommanderDecks}
           isLoading={isLoading}
           isError={isError}
+          cardNames
         />
         <MetaWidget
           title="Strongest Standard decks"

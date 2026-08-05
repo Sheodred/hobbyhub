@@ -33,6 +33,11 @@ export function getPrintings(name: string): Promise<Card[]> {
   return apiFetch<Card[]>(`/api/mtg/printings?${params.toString()}`);
 }
 
+export function getCardByName(name: string): Promise<Card> {
+  const params = new URLSearchParams({ name });
+  return apiFetch<Card>(`/api/mtg/cards/by-name?${params.toString()}`);
+}
+
 export interface MetaEntry {
   name: string;
   url: string;
