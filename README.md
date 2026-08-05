@@ -5,19 +5,19 @@
 
 A personal hobby web app: a fancy homepage, an About Me page, a Magic: The
 Gathering card browser (Scryfall), a chess-vs-AI page (client-side
-Stockfish), a non-transactional board-games/cards listing page, member
-accounts, and the required legal pages for a Germany-based operator.
+Stockfish), and the required legal pages for a Germany-based operator. No
+accounts, nothing to sign up for — member accounts and a marketplace
+listing feature were split out to a separate project (see Architecture
+below).
 
-**Status:** app shell, JWT auth (signup/login/logout/password reset), the
-homepage, the About Me page, the legal pages (Impressum/Privacy
-Policy/Terms — draft template content, see `docs/adr/0006`), the
-Magic: The Gathering card search/browse subpage (live Scryfall data via a
-backend proxy, see `docs/adr/0003`), the marketplace (public
-browse/filter/sort, owner-only listing CRUD, see `docs/adr/0005`), and
-chess vs. AI (Stockfish running fully client-side, see `docs/adr/0004`)
-are live. Entrance animation, a keyboard-nav/contrast pass, and a
-production frontend build (nginx serving the static bundle, not Vite's
-dev server) are done too.
+**Status:** app shell, the homepage, the About Me page, the legal pages
+(Impressum/Privacy Policy/Terms — draft template content, see
+`docs/adr/0006`), the Magic: The Gathering card search/browse subpage (live
+Scryfall data via a PHP backend proxy, see `docs/adr/0003`), and chess vs.
+AI (Stockfish running fully client-side, see `docs/adr/0004`) are live.
+Entrance animation and a keyboard-nav/contrast pass are done too. The
+backend runs on PHP/MySQL instead of the original Spring Boot/PostgreSQL
+stack — see `docs/adr/0009` for why and what changed.
 
 Also live: the homepage's three scheduled/cached info panels (Tagesschau
 headlines, Wizards of the Coast news, local weather), an MTG Meta & Stats
@@ -43,23 +43,28 @@ in more depth.
 ## Why this project
 
 A second full-stack portfolio piece alongside
-[hybrid-search-api](https://github.com/Sheodred/hybrid-search-api), this
-time Java/Spring Boot on the backend — directly relevant to ongoing
-Fullstack Java job applications — paired with a React/TypeScript frontend
-with real animation, a resizable app shell, JWT auth done properly
-(httpOnly refresh cookies, not naive localStorage), and a third-party API
-integration (Scryfall) done within its rate-limit/terms constraints.
+[hybrid-search-api](https://github.com/Sheodred/hybrid-search-api), paired
+with a React/TypeScript frontend with real animation, a resizable app
+shell, and third-party API integrations (Scryfall, Commander Spellbook,
+EDHREC, MTGGoldfish, Tagesschau) done within their rate-limit/terms
+constraints. The backend originally ran Java/Spring Boot (relevant to
+Fullstack Java job applications at the time); it was later migrated to
+PHP/MySQL to run on IONOS shared hosting — see `docs/adr/0009`.
 
 ## Tech stack
 
 **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Framer Motion,
 react-resizable-panels, React Router, TanStack Query.
-**Backend:** Java 21, Spring Boot 3 (Web, Security, Data JPA), PostgreSQL,
-Flyway, JWT (jjwt).
+**Backend:** PHP 8.3, MySQL/MariaDB 10 (cache-aside + WebCron-refreshed
+tables, no ORM/framework — see `docs/adr/0009`).
 **Chess:** chess.js + stockfish.js (WASM, client-side, Web Worker).
-**MTG data:** [Scryfall REST API](https://scryfall.com/docs/api), proxied
-through the backend (see `docs/adr/0003-scryfall-proxy.md`).
-**Infra:** Docker Compose (local dev), GitHub Actions CI.
+**MTG data:** [Scryfall REST API](https://scryfall.com/docs/api) and
+[Commander Spellbook](https://commanderspellbook.com/), proxied through the
+backend (see `docs/adr/0003-scryfall-proxy.md`); EDHREC and MTGGoldfish for
+the Meta & Stats page.
+**Infra:** Docker Compose (local dev: MariaDB + `php:8.3-apache` +
+Vite dev server), GitHub Actions CI, IONOS Webhosting Plus + WebCron
+(production).
 
 ## Setup
 
@@ -67,21 +72,27 @@ through the backend (see `docs/adr/0003-scryfall-proxy.md`).
 git clone https://github.com/Sheodred/hobbyhub.git
 cd hobbyhub
 cp .env.example .env
+cp api/config.example.php api/config.local.php   # only needed for real prod values; local docker-compose works without it
 
 docker compose up --build
 ```
 
-- Backend: http://localhost:8080 (health check: `/api/health`)
-- Frontend: http://localhost:5173
+- API: http://localhost:8081 (health check: `/api/health`)
+- Frontend: http://localhost:5173 (proxies `/api` to the API service)
+
+The two WebCron-equivalent scripts don't run on a schedule locally — seed
+the news/meta tables once after startup:
+
+```bash
+docker compose exec php php /var/www/html/api/cron/refresh_news.php
+docker compose exec php php /var/www/html/api/cron/refresh_mtg_meta.php
+```
 
 ## Tests
 
 ```bash
-# backend - unit tests only
-cd backend && mvn test
-
-# backend - unit + Testcontainers integration tests (needs Docker running)
-cd backend && mvn verify
+# api - syntax check only, no test suite (see docs/adr/0009's Consequences)
+docker run --rm -v "$(pwd)/api:/api" php:8.3-cli sh -c "find /api -name '*.php' -exec php -l {} \;"
 
 # frontend
 cd frontend && npm install && npm test
@@ -95,22 +106,21 @@ cd frontend && npm install && npm test
   success on resizing but the viewport stays desktop-sized, a confirmed
   environment limitation rather than an app bug. Still a manual TODO: a
   pass on a real phone/resized window.
-- **No hosting decision made yet** (Milestone 9). The frontend now runs a
-  real production build (multi-stage Dockerfile, nginx serving the static
-  bundle instead of Vite's dev server), and
+- **Production deploy workflow not wired up yet.** The hosting decision
+  itself is made (IONOS Webhosting Plus, `docs/adr/0009`) and
   [`docs/deploy-checklist.md`](docs/deploy-checklist.md) has the concrete
-  pre-launch checklist (required env vars, the two real launch blockers,
-  and a proposed hosting target) - actually picking and standing up that
-  target is still open.
-- **Test coverage could go further.** Auth, marketplace CRUD, and chess
-  move validation are well covered; broader hardening across the rest of
-  the backend is an ongoing, not one-and-done, item.
+  pre-launch checklist; the actual `.github/workflows/deploy.yml` SFTP
+  workflow is still open.
+- **No PHP test suite** - the migration to PHP/MySQL (`docs/adr/0009`)
+  dropped the 60+ backend JUnit tests with no equivalent added; CI only
+  runs a `php -l` syntax check. Named explicitly as a trade-off, not an
+  oversight.
 - **The WotC news panel and the MTGGoldfish-sourced tier lists are
   scraping-based, explicitly "may break" integrations** - both have no
   official API, so they depend on those sites' current HTML structure.
   Each falls back gracefully (an empty/manual state, not a crash or a
   visible error) if the selector stops matching - see
-  `news.client.WotcNewsClient` and `mtg.meta.client.MtgGoldfishClient`.
+  `api/lib/WotcNewsClient.php` and `api/lib/MtgGoldfishClient.php`.
 - **The MTG fan-game link page (site section, not the game itself) isn't
   built yet.** The separate
   [mtg-planeswalk](https://github.com/Sheodred/mtg-planeswalk) repo exists
@@ -132,24 +142,26 @@ cd frontend && npm install && npm test
 Full phased build order, data model, API surface, and the reasoning behind
 every non-obvious technical decision live in `docs/` — see
 [`docs/architecture.md`](docs/architecture.md) for the system overview and
-`docs/adr/` for individual decisions (JWT storage, Scryfall access pattern,
-sidebar library, chess/marketplace/legal-page/password-reset scope for v1).
+`docs/adr/` for individual decisions (Scryfall access pattern, sidebar
+library, chess/legal-page scope, the PHP/MySQL/IONOS migration - some
+older ADRs on JWT/marketplace are marked Superseded now that those
+features live in a separate project).
 
 - [x] Milestone 0 — scaffold, Docker Compose, CI, ADRs
 - [x] App shell (nav, resizable/collapsible sidebar, route transitions)
-- [x] Auth (signup/login/logout/password reset, JWT)
 - [x] Homepage
 - [x] About Me + legal pages
 - [x] Magic: The Gathering subpage
-- [x] Marketplace (listing/inquiry, no live checkout)
 - [x] Chess vs. AI
 - [x] Animation/responsive/accessibility polish (real-device mobile check still manual - see Known issues)
-- [ ] Test coverage hardening, deploy checklist, and a hosting decision (checklist and production build done - see Known issues)
 - [x] Homepage info panels (Tagesschau, WotC news, weather)
 - [x] MTG Meta & Stats page (EDHREC + MTGGoldfish)
 - [x] MTG related-combos panel (Commander Spellbook) + Scryfall hover previews
+- [x] Migrate backend from Spring Boot/PostgreSQL to PHP/MySQL for IONOS hosting; extract auth/marketplace to a separate project (`docs/adr/0009`)
+- [ ] Production deploy workflow (GitHub Actions → IONOS SFTP) - see Known issues
 - [ ] MTG fan-game link page (separate repo exists, not linked from this site yet)
 - [ ] MTG lore chatbot (infra concept decided, `docs/adr/0008` - build itself on the roadmap, see Known issues)
+- [ ] Marketplace - moved to [kluge-boards-and-cards](https://github.com/Sheodred/kluge-boards-and-cards)'s roadmap, not this repo's
 
 ## License
 

@@ -1,7 +1,11 @@
 # ADR-0003: Scryfall access via backend proxy
 
 ## Status
-Accepted
+Accepted. Implementation note (2026-08-05): the proxy moved from Spring
+Boot to PHP as part of the migration to IONOS shared hosting
+(`docs/adr/0009`) — the decision and reasoning below are unchanged, only
+`ScryfallClient` changed language (Java → PHP) and cache backend (Caffeine
+in-memory → a `scryfall_cache` MySQL table with the same 5-minute TTL).
 
 ## Context
 Scryfall's API terms cap sustained traffic at ~10 req/sec (they ask for a

@@ -3,8 +3,6 @@
 # api (PHP) - production credentials, never committed (see api/config.example.php)
 api/config.local.php
 
-# backend
-backend/target/
 
 # frontend
 frontend/node_modules/
