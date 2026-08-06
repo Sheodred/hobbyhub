@@ -14,9 +14,16 @@ brief as actually given - caught and fixed on request, since fidelity
 is the whole point of this document. Sections 1-7 were never affected.)*
 
 **Status notes that apply throughout, not repeated per line:**
-- Graphify (section 0.1) was explicitly declined - not installed, per an
-  explicit user decision (unverified third-party pip package). Codebase
-  navigation instead uses this session's own Grep/Glob/Explore-agent tools.
+- Graphify (section 0.1) was explicitly declined for the entire original
+  build - not installed, per an explicit user decision (unverified
+  third-party pip package). Codebase navigation instead used this
+  session's own Grep/Glob/Explore-agent tools throughout. **Update
+  (2026-08-06): installed after all**, on separate explicit request well
+  after the original build was done - `graphify claude install` wired up
+  the CLAUDE.md directive and a PreToolUse hook (`.claude/settings.json`),
+  and `graphify update .` built the initial graph (`graphify-out/`,
+  gitignored, regenerable). Doesn't retroactively change how any of the
+  work described below was actually done.
 - MarkItDown (section 0.2) is applied as a *global* CLAUDE.md rule for the
   operator (not committed to this repo), but was never actually exercised
   during this build - no PDF was read at any point.
@@ -243,11 +250,11 @@ A chat feature on the main web app that answers questions about Magic: The Gathe
 Work through this top to bottom. Each phase links back to the section above with the full detail — treat this as the execution list, and the sections above as the spec to consult while doing each item.
 
 ### Phase 0 — Setup
-- [ ] Install Graphify and run `graphify claude install` to wire up the CLAUDE.md directive + PreToolUse hook automatically (section 0.1). **Declined** — unverified third-party pip package, explicit user decision. Grep/Glob/Explore-agent used instead for the whole build; no CLAUDE.md section or PreToolUse hook for Graphify was ever installed in this repo.
+- [~] Install Graphify and run `graphify claude install` to wire up the CLAUDE.md directive + PreToolUse hook automatically (section 0.1). **Declined for the entire original build** — unverified third-party pip package, explicit user decision; Grep/Glob/Explore-agent used instead throughout. **Installed later (2026-08-06)** on separate explicit request, well after the fact - doesn't change how the work below was actually done.
 - [~] Install MarkItDown and add the PDF-handling CLAUDE.md rule (and optionally the blocking hook) so PDFs are never read raw (section 0.2). **Partially confirmed**: the "never Read .pdf directly, run markitdown first" rule is present in the operator's *global* CLAUDE.md (applies across all their projects, not committed to this repo). Whether the `markitdown[pdf]` pip package is actually installed, or whether the optional PreToolUse blocking hook exists, isn't verifiable from this project's own history — no PDF was ever read during this build, so the rule was never actually exercised here.
 - [ ] Know when to reach for the `architecture`, `system-design`, `testing-strategy`, `code-review`, `documentation`, and `deploy-checklist` skills (section 0) — use them at the point each is relevant below, not all up front. **N/A** — none of these skills exist in this Claude Code environment; general engineering practice substituted at each relevant point instead (ADRs in `docs/adr/` for `architecture`, manual review for `code-review`, `docs/deploy-checklist.md` written by hand for `deploy-checklist`, etc).
 - [x] Scaffold the monorepo: frontend (React + TS + Vite) and backend (Spring Boot 3) projects, Docker Compose (frontend, backend, Postgres with `pgvector` enabled), GitHub Actions CI skeleton (lint, test, build). *(`pgvector` was never actually enabled on Postgres — deferred with the lore chatbot, Phase 11, which stayed a roadmap item. Postgres and Spring Boot themselves were later replaced entirely by MySQL/PHP - see the migration note at the top of this document.)*
-- [ ] Run `/graphify ./` once there's real structure, to baseline the knowledge graph. **N/A** — tool not installed (Graphify declined above).
+- [~] Run `/graphify ./` once there's real structure, to baseline the knowledge graph. **N/A during the original build** (Graphify declined). Done later (2026-08-06) via `graphify update .` once the tool was installed after all - 535 nodes, 696 edges, 49 communities as of that run.
 
 ### Phase 1 — Visual direction (before any real styling)
 - [x] No dedicated "design review" skill is installed for this project — don't skip this step expecting a skill to catch a generic look; follow section 3.1 directly. Confirmed: no such skill exists; section 3.1 was followed directly.

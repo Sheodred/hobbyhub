@@ -16,3 +16,11 @@ frontend/public/stockfish/
 # IDE
 .idea/
 .vscode/
+/db/
+
+# Claude Code - settings.json (shared hook config) is committed,
+# settings.local.json (personal permissions) is not.
+.claude/settings.local.json
+
+# graphify - regenerable knowledge graph, not source.
+graphify-out/
