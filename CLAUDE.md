@@ -17,3 +17,19 @@ Rules:
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+
+## Starting a new session
+
+Handoff documents (`/mattpocock-skills:handoff`) are written to the OS
+temp directory (e.g. `C:\Users\<user>\AppData\Local\Temp\<name>-handoff.md`),
+never into this repo - there's no auto-loading, a fresh session only
+picks one up once told to read it.
+
+At the start of a new session in this repo, especially one continuing
+from a previous session:
+1. Run `/graphify` (query the knowledge graph) to orient in the codebase.
+2. Run `/setup-matt-pocock-skills` to confirm/refresh the issue-tracker
+   and domain-docs config.
+3. If a handoff doc exists in the OS temp directory, read/print its full
+   content so both the agent and the human have it in view before
+   continuing.
