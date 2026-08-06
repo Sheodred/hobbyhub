@@ -19,9 +19,11 @@ export function AppShell() {
   // does. The breakpoint check below picks a layout, not a duplicate.
   const mainContent = (
     <main className="min-h-[calc(100vh-4rem)] overflow-y-auto p-6">
-      <PageTransition>
-        <Outlet />
-      </PageTransition>
+      <div className="mx-auto w-full max-w-7xl">
+        <PageTransition>
+          <Outlet />
+        </PageTransition>
+      </div>
     </main>
   );
 
