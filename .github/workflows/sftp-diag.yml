@@ -1,0 +1,20 @@
+name: SFTP Diagnostic (temporary)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
+      - name: Test SFTP connection
+        run: |
+          set -x
+          lftp -u "$IONOS_SFTP_USER,$IONOS_SFTP_PASSWORD" -p 22 sftp://$IONOS_SFTP_HOST -e "set sftp:auto-confirm yes; pwd; ls -la; bye" || echo "LFTP_EXIT_CODE=$?"
+        env:
+          IONOS_SFTP_HOST: ${{ secrets.IONOS_SFTP_HOST }}
+          IONOS_SFTP_USER: ${{ secrets.IONOS_SFTP_USER }}
+          IONOS_SFTP_PASSWORD: ${{ secrets.IONOS_SFTP_PASSWORD }}
