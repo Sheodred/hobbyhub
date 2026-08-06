@@ -1,4 +1,5 @@
 import { FadeIn } from "../../components/FadeIn";
+import { QueryState } from "../../components/QueryState";
 import type { MetaEntry } from "./api";
 import { CardHoverPreview } from "./CardHoverPreview";
 
@@ -18,23 +19,22 @@ export function MetaWidget({ title, source, entries, isLoading, isError, cardNam
       <h3 className="text-sm font-medium text-slate-100">{title}</h3>
       <p className="text-xs text-slate-500">{source}</p>
 
-      {isError && <p className="mt-3 text-sm text-slate-400">Couldn&apos;t load this right now.</p>}
-
-      {!isError && isLoading && (
-        <div className="mt-3 animate-pulse space-y-2" aria-hidden="true">
-          <div className="h-4 w-full rounded bg-slate-800" />
-          <div className="h-4 w-5/6 rounded bg-slate-800" />
-          <div className="h-4 w-3/4 rounded bg-slate-800" />
-        </div>
-      )}
-
-      {!isError && !isLoading && (!entries || entries.length === 0) && (
-        <p className="mt-3 text-sm text-slate-400">No data available right now.</p>
-      )}
-
-      {!isError && !isLoading && entries && entries.length > 0 && (
+      <QueryState
+        isLoading={isLoading}
+        isError={isError}
+        isEmpty={!entries || entries.length === 0}
+        loadingFallback={
+          <div className="mt-3 animate-pulse space-y-2" aria-hidden="true">
+            <div className="h-4 w-full rounded bg-slate-800" />
+            <div className="h-4 w-5/6 rounded bg-slate-800" />
+            <div className="h-4 w-3/4 rounded bg-slate-800" />
+          </div>
+        }
+        errorFallback={<p className="mt-3 text-sm text-slate-400">Couldn&apos;t load this right now.</p>}
+        emptyFallback={<p className="mt-3 text-sm text-slate-400">No data available right now.</p>}
+      >
         <ol className="mt-3 flex flex-col gap-2">
-          {entries.map((entry, index) => (
+          {(entries ?? []).map((entry, index) => (
             <li key={entry.url} className="flex items-baseline gap-2">
               <span className="text-xs text-slate-500">{index + 1}.</span>
               {cardNames ? (
@@ -64,7 +64,7 @@ export function MetaWidget({ title, source, entries, isLoading, isError, cardNam
             </li>
           ))}
         </ol>
-      )}
+      </QueryState>
     </FadeIn>
   );
 }
