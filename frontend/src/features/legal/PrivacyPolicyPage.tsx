@@ -3,7 +3,7 @@ import { DraftContentNotice } from "../../components/DraftContentNotice";
 export function PrivacyPolicyPage() {
   return (
     <div className="mx-auto max-w-2xl text-slate-300">
-      <DraftContentNotice message="Template only - operated as a private, non-commercial project (no postal address shown accordingly, see docs/adr/0006) - fill in the remaining bracketed placeholders and confirm the hosting details before this goes live. Not legal advice." />
+      <DraftContentNotice message="Operated as a private, non-commercial project (no postal address shown accordingly, see docs/adr/0006). Not legal advice." />
 
       <h1 className="text-3xl font-semibold text-slate-100">Privacy Policy</h1>
       <p className="mt-2 text-sm text-slate-400">Information pursuant to Article 13 GDPR.</p>
@@ -16,9 +16,7 @@ export function PrivacyPolicyPage() {
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Data protection officer</h2>
-      <p className="mt-2">
-        [Not applicable - sole operator, no DPO required under Art. 37 GDPR. Update if this changes.]
-      </p>
+      <p className="mt-2">Not applicable — sole operator; no DPO is required under Art. 37 GDPR.</p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">What we collect and why</h2>
       <p className="mt-2 text-slate-400">
@@ -62,10 +60,11 @@ export function PrivacyPolicyPage() {
         handle that data. The homepage news panels and the MTG Meta &amp; Stats page are populated by a scheduled
         backend job that reads public content from tagesschau.de, magic.wizards.com, edhrec.com, and
         mtggoldfish.com - none of your data is sent to those sources, they are read-only content feeds. No other
-        data is shared with third parties. [Confirm whether Scryfall, Open-Meteo, or any of the read-only content
-        sources involve a transfer outside the EU/EEA once their current infrastructure locations are confirmed,
-        and update this section accordingly - e.g. via an Art. 46 GDPR safeguard (such as Standard Contractual
-        Clauses) if a non-adequate third country is involved.]
+        data is shared with third parties. Scryfall runs on Heroku behind Cloudflare, and Open-Meteo serves
+        requests from servers in Europe and North America via GeoDNS - both may route a given request through
+        infrastructure outside the EU/EEA, including the United States. Where that happens, it relies on the
+        respective provider&apos;s own applicable safeguard (such as the EU-US Data Privacy Framework or Standard
+        Contractual Clauses under Art. 46 GDPR) - see each provider&apos;s own privacy policy for specifics.
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Retention</h2>

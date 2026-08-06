@@ -43,8 +43,8 @@ jobs:
           password: ${{ secrets.IONOS_SFTP_PASSWORD }}
           port: 22
           uploads: |
-            frontend/dist/ => ./
-            api/ => ./api/
+            frontend/dist/ => ./public/
+            api/ => ./public/api/
           # PHPUnit and its dev-only vendor/ directory never run in
           # production - no reason to ship them to the live webspace.
           ignore: |

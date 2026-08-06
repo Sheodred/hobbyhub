@@ -36,3 +36,17 @@ be required. The operator chose to proceed on the private classification
 regardless. This is exactly the kind of judgment call this ADR's
 draft-banner exists to catch before go-live - not resolved by this commit,
 only recorded.
+
+**Update (2026-08-06):** operator confirmed the private/non-commercial
+classification as final. All remaining bracketed placeholders in
+Impressum, Privacy Policy, and Terms of Service filled in accordingly
+(no phone number shown, commercial-register and DPO sections stated as
+not applicable, ToS operator name/date filled in). The Privacy Policy's
+international-transfer clause was resolved with actual research rather
+than left as a placeholder: Scryfall runs on Heroku behind Cloudflare,
+and Open-Meteo serves requests from Europe and North America via
+GeoDNS - both may route through non-EU/EEA infrastructure, so the
+clause discloses this instead of asserting an unverified EU-only claim.
+No professional legal review has taken place; the draft banners remain
+in place (dev-only, per the original decision above) as a reminder of
+that until one does.

@@ -3,7 +3,7 @@ import { DraftContentNotice } from "../../components/DraftContentNotice";
 export function ImpressumPage() {
   return (
     <div className="mx-auto max-w-2xl text-slate-300">
-      <DraftContentNotice message="Template only - operated as a private, non-commercial project (no postal address shown accordingly, see docs/adr/0006) - fill in the remaining bracketed placeholders before this goes live. Not legal advice: have this reviewed, especially the private/non-commercial classification itself, before relying on it." />
+      <DraftContentNotice message="Operated as a private, non-commercial project (no postal address shown accordingly, see docs/adr/0006). Not legal advice: have this reviewed, especially the private/non-commercial classification itself, before relying on it." />
 
       <h1 className="text-3xl font-semibold text-slate-100">Impressum</h1>
       <p className="mt-2 text-sm text-slate-400">Legal notice pursuant to Section 5 TMG and Section 18(2) MStV.</p>
@@ -16,16 +16,12 @@ export function ImpressumPage() {
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Contact</h2>
-      <p className="mt-2">
-        Email: kluge@sheoforge.de
-        <br />
-        Phone: [Phone number - optional]
-      </p>
+      <p className="mt-2">Email: kluge@sheoforge.de</p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Commercial register</h2>
       <p className="mt-2">
-        [Not applicable - private, non-commercial hobby project. If this changes: register court, registration
-        number, and VAT ID (Section 27a UStG) go here.]
+        Not applicable — private, non-commercial hobby project; no register court, registration number, or VAT ID
+        (Section 27a UStG) exists for it.
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Responsible for content (Section 18(2) MStV)</h2>

@@ -3,16 +3,16 @@ import { DraftContentNotice } from "../../components/DraftContentNotice";
 export function TermsPage() {
   return (
     <div className="mx-auto max-w-2xl text-slate-300">
-      <DraftContentNotice message="Template only - fill in the bracketed placeholders and have this reviewed before this goes live (see docs/adr/0006). Not legal advice." />
+      <DraftContentNotice message="Have this reviewed before this goes live (see docs/adr/0006). Not legal advice." />
 
       <h1 className="text-3xl font-semibold text-slate-100">Terms of Service</h1>
-      <p className="mt-2 text-sm text-slate-400">Last updated: [Date]</p>
+      <p className="mt-2 text-sm text-slate-400">Last updated: August 6, 2026</p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">1. Scope</h2>
       <p className="mt-2">
-        These terms govern your use of HobbyHub (&quot;the site&quot;), operated by [Your Full Legal Name] (see
-        the Impressum for contact details). By using the site, you agree to these terms. There are no user
-        accounts and nothing to sign up for.
+        These terms govern your use of HobbyHub (&quot;the site&quot;), operated by Sheodred as a private,
+        non-commercial hobby project (see the Impressum for contact details). By using the site, you agree to
+        these terms. There are no user accounts and nothing to sign up for.
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">2. Acceptable use</h2>
@@ -39,7 +39,7 @@ export function TermsPage() {
       <h2 className="mt-6 text-lg font-semibold text-slate-100">5. Liability</h2>
       <p className="mt-2">
         Liability is limited to intent and gross negligence, except where mandatory statutory liability applies
-        (e.g. injury to life, body, or health). [Have this reviewed against applicable law before relying on it.]
+        (e.g. injury to life, body, or health). This clause has not been reviewed by a lawyer.
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">6. Changes to these terms</h2>

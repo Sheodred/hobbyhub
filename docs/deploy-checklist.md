@@ -7,19 +7,22 @@ hosting decision and migration reasoning behind this list.
 
 ## Blockers (must be done before any real launch)
 
-- [ ] **Legal pages are still placeholder content.** Impressum, Privacy
-      Policy, and Terms of Service (see `docs/adr/0006`) use loud bracketed
-      placeholders and a dev-only draft-content banner. Have the real text
-      reviewed before removing the draft banner and going live.
-- [ ] **`api/config.local.php` must exist on the server with real values**
-      (copy from `api/config.example.php`) - IONOS has no PHP env-var UI,
-      so this gitignored file is the only way `DB_HOST`/`DB_NAME`/
-      `DB_USER`/`DB_PASSWORD` get set in production. Without it, `api/`
-      falls back to the docker-compose dev defaults (`mariadb`/`hobbyhub`/
-      `hobbyhub`/`hobbyhub`), which won't resolve on the real host.
-- [ ] **`api/sql/schema.sql` must be applied manually once** via
-      phpMyAdmin or the IONOS MySQL CLI - it only auto-applies in local
-      docker-compose (`/docker-entrypoint-initdb.d`).
+- [ ] **Legal pages have real content now, but no professional legal
+      review yet.** Impressum, Privacy Policy, and Terms of Service (see
+      `docs/adr/0006`, updated 2026-08-06) no longer have bracketed
+      placeholders - operator confirmed the private/non-commercial
+      classification as final. Have a lawyer review the text (especially
+      that classification and the liability clause) before removing the
+      dev-only draft banner and going live.
+- [x] **`api/config.local.php` exists on the server with real values**
+      (2026-08-06, via SFTP) - `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASSWORD`
+      set to the real IONOS-provisioned database (`dbs15977419`).
+- [x] **`api/sql/schema.sql` applied manually once** (2026-08-06, via
+      phpMyAdmin's SQL tab, database `dbs15977419` selected first) - all 6
+      tables created, `wotc_news_fallback` seed row inserted. Direct
+      external DB connections (mysql CLI, ODBC from a local machine) are
+      firewalled off by IONOS - phpMyAdmin works because it runs inside
+      their own infrastructure, not from outside it.
 
 ## GitHub repo secrets (for `.github/workflows/deploy.yml`)
 
@@ -46,12 +49,12 @@ up, since shared-hosting WebCron products vary here).
 
 ## Database
 
-- [ ] `api/sql/schema.sql` applied once (see Blockers above) - no
+- [x] `api/sql/schema.sql` applied once (see Blockers above) - no
       migration tool, this project's size doesn't need one; future schema
       changes get applied by hand the same way.
-- [ ] Confirm the MySQL/MariaDB database IONOS provisions matches what
-      `api/config.local.php` points at (IONOS assigns a `dbXXXXXXXX`-style
-      name/user, not `hobbyhub`).
+- [x] Confirmed the MySQL/MariaDB database IONOS provisions matches what
+      `api/config.local.php` points at (`dbs15977419` / `dbu2649442` /
+      `db5021097409.hosting-data.io`, not `hobbyhub`).
 
 ## Frontend
 
@@ -69,6 +72,12 @@ Decided: **IONOS Webhosting Plus** (sheoforge.de, already paid for) via a
 single GitHub Actions SFTP workflow uploading both the built SPA and
 `api/` into the same webspace. See `docs/adr/0009` for why IONOS Deploy Now
 was considered and rejected. Nothing further to decide here.
+
+**Domain root is `/public`, not the SFTP/webspace root** (confirmed
+2026-08-06 via IONOS panel "Webspace verbinden" - absolute path
+`/home/www/public`). `deploy.yml` uploads to `./public/` and
+`./public/api/` accordingly - `api/config.local.php` must live at
+`/home/www/public/api/config.local.php` for the app to find it.
 
 ## After going live
 
