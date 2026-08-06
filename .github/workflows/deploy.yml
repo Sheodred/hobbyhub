@@ -56,3 +56,22 @@ jobs:
           IONOS_SFTP_HOST: ${{ secrets.IONOS_SFTP_HOST }}
           IONOS_SFTP_USER: ${{ secrets.IONOS_SFTP_USER }}
           IONOS_SFTP_PASSWORD: ${{ secrets.IONOS_SFTP_PASSWORD }}
+
+      # A green SFTP step isn't proof anything actually landed (see the
+      # commit that replaced Dylan700/sftp-upload-action - it stayed green
+      # while silently uploading nothing). Fail the job if the live site
+      # doesn't actually respond correctly after the upload.
+      - name: Smoke-test live deployment
+        run: |
+          set -e
+          status=$(curl -s -o /dev/null -w "%{http_code}" https://sheoforge.de/)
+          if [ "$status" != "200" ]; then
+            echo "Frontend check failed: https://sheoforge.de/ returned $status"
+            exit 1
+          fi
+          health=$(curl -s https://sheoforge.de/api/health)
+          if [ "$health" != '{"status":"ok"}' ]; then
+            echo "API health check failed: got '$health'"
+            exit 1
+          fi
+          echo "Smoke test passed: frontend 200, API health ok"
