@@ -23,14 +23,16 @@ function statusText(chess: Chess): string {
   return `${chess.turn() === "w" ? "White" : "Black"} to move.`;
 }
 
-// Player is always White; the engine (Black) responds automatically
-// whenever it becomes its turn, including right after restoring a saved
-// mid-game position (see docs/adr/0004).
+// The engine responds automatically whenever it becomes its turn - either
+// player color - including right after restoring a saved mid-game position
+// (see docs/adr/0004).
 export function ChessPage() {
-  const { chess, fen, difficulty, setDifficulty, applyMove, undo, newGame } = useChessGame();
+  const { chess, fen, difficulty, setDifficulty, playerColor, applyMove, undo, newGame } = useChessGame();
   const engineRef = useRef<StockfishEngine | null>(null);
   const [thinking, setThinking] = useState(false);
   const [orientation, setOrientation] = useState<"white" | "black">("white");
+  const playerTurn = playerColor === "white" ? "w" : "b";
+  const engineTurn = playerColor === "white" ? "b" : "w";
 
   useEffect(() => {
     engineRef.current = createStockfishEngine();
@@ -38,7 +40,7 @@ export function ChessPage() {
   }, []);
 
   useEffect(() => {
-    if (chess.isGameOver() || chess.turn() !== "b") {
+    if (chess.isGameOver() || chess.turn() !== engineTurn) {
       return;
     }
 
@@ -67,7 +69,7 @@ export function ChessPage() {
     // fen captures the full game state this effect needs to react to;
     // chess/applyMove are stable across renders (see useChessGame).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fen, difficulty]);
+  }, [fen, difficulty, engineTurn]);
 
   // Undoes a full exchange (engine's reply, then the player's move), not
   // just one ply - a single undo would leave it Black's turn, and the
@@ -85,13 +87,19 @@ export function ChessPage() {
     applyMove({ from, to, promotion: "q" });
   }
 
+  function handlePlayAs(color: "white" | "black") {
+    newGame(color);
+    setOrientation(color);
+  }
+
   const gameOver = chess.isGameOver();
 
   return (
     <FadeIn>
       <h1 className="text-3xl font-semibold text-slate-100">Chess vs. AI</h1>
       <p className="mt-2 text-slate-400">
-        You play White. The engine (Stockfish, running fully in your browser) plays Black.
+        You play {playerColor === "white" ? "White" : "Black"}. The engine (Stockfish, running fully in your
+        browser) plays {playerColor === "white" ? "Black" : "White"}.
       </p>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -118,7 +126,7 @@ export function ChessPage() {
         </button>
         <button
           type="button"
-          onClick={newGame}
+          onClick={() => newGame()}
           className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
         >
           New game
@@ -130,6 +138,20 @@ export function ChessPage() {
         >
           Flip board
         </button>
+        <button
+          type="button"
+          onClick={() => handlePlayAs("white")}
+          className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
+        >
+          Play as White
+        </button>
+        <button
+          type="button"
+          onClick={() => handlePlayAs("black")}
+          className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
+        >
+          Play as Black
+        </button>
       </div>
 
       <p role="status" className="mt-4 text-sm font-medium text-slate-300">
@@ -139,7 +161,7 @@ export function ChessPage() {
       <div className="mt-4">
         <ChessBoard
           chess={chess}
-          disabled={gameOver || thinking || chess.turn() !== "w"}
+          disabled={gameOver || thinking || chess.turn() !== playerTurn}
           onMove={handlePlayerMove}
           orientation={orientation}
         />

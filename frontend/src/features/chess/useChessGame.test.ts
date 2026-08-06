@@ -73,6 +73,24 @@ describe("useChessGame", () => {
     expect(result.current.fen).toBe("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   });
 
+  it("defaults playerColor to white", () => {
+    const { result } = renderHook(() => useChessGame());
+
+    expect(result.current.playerColor).toBe("white");
+  });
+
+  it("newGame can set the player's color, and it persists", () => {
+    const { result: first } = renderHook(() => useChessGame());
+
+    act(() => {
+      first.current.newGame("black");
+    });
+    expect(first.current.playerColor).toBe("black");
+
+    const { result: second } = renderHook(() => useChessGame());
+    expect(second.current.playerColor).toBe("black");
+  });
+
   it("persists the selected difficulty too", () => {
     const { result: first } = renderHook(() => useChessGame());
     act(() => {

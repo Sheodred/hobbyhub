@@ -67,6 +67,18 @@ describe("ChessPage", () => {
     expect(getBestMove).toHaveBeenCalledWith(expect.any(String), 15);
   });
 
+  it("playing as Black has the engine move first automatically", async () => {
+    const user = userEvent.setup();
+    getBestMove.mockResolvedValue("e2e4");
+    renderChessPage();
+
+    await user.click(screen.getByRole("button", { name: /play as black/i }));
+
+    expect(getBestMove).toHaveBeenCalledWith(expect.stringContaining(" w "), 8); // medium depth by default
+    expect(await screen.findByRole("gridcell", { name: "e4, white p" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Black to move."));
+  });
+
   it("starting a new game resets the board", async () => {
     const user = userEvent.setup();
     getBestMove.mockResolvedValue("e7e5");
