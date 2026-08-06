@@ -1,8 +1,17 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ChessPage } from "./ChessPage";
+
+function renderChessPage() {
+  return render(
+    <MemoryRouter>
+      <ChessPage />
+    </MemoryRouter>,
+  );
+}
 
 const getBestMove = vi.fn();
 const terminate = vi.fn();
@@ -23,7 +32,7 @@ describe("ChessPage", () => {
   });
 
   it("renders a fresh board with White to move", () => {
-    render(<ChessPage />);
+    renderChessPage();
 
     expect(screen.getByRole("status")).toHaveTextContent("White to move.");
     expect(screen.getByRole("gridcell", { name: "e2, white p" })).toBeInTheDocument();
@@ -32,7 +41,7 @@ describe("ChessPage", () => {
   it("sends the player's move to the engine and applies its reply", async () => {
     const user = userEvent.setup();
     getBestMove.mockResolvedValue("e7e5");
-    render(<ChessPage />);
+    renderChessPage();
 
     await user.click(screen.getByRole("gridcell", { name: "e2, white p" }));
     await user.click(screen.getByRole("gridcell", { name: "e4" }));
@@ -49,7 +58,7 @@ describe("ChessPage", () => {
   it("uses the depth for the selected difficulty", async () => {
     const user = userEvent.setup();
     getBestMove.mockResolvedValue("e7e5");
-    render(<ChessPage />);
+    renderChessPage();
 
     await user.selectOptions(screen.getByLabelText("Difficulty"), "hard");
     await user.click(screen.getByRole("gridcell", { name: "e2, white p" }));
@@ -61,7 +70,7 @@ describe("ChessPage", () => {
   it("starting a new game resets the board", async () => {
     const user = userEvent.setup();
     getBestMove.mockResolvedValue("e7e5");
-    render(<ChessPage />);
+    renderChessPage();
 
     await user.click(screen.getByRole("gridcell", { name: "e2, white p" }));
     await user.click(screen.getByRole("gridcell", { name: "e4" }));

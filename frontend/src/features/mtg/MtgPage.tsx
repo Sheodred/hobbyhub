@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 import { FadeIn } from "../../components/FadeIn";
 import { ApiError } from "../../lib/apiClient";
-import { searchCards } from "./api";
+import { getMtgMeta, searchCards } from "./api";
 
 const FEATURED_ART = "https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg";
 
@@ -19,10 +19,24 @@ export function MtgPage() {
     enabled: submittedQuery.length > 0,
   });
 
+  // EDHREC's "most played, past week" list - reused here (already fetched
+  // for the Meta & Stats page) as inspiration for people who land on search
+  // with no idea what to look for yet, not as a new data source.
+  const { data: metaData } = useQuery({ queryKey: ["mtg-meta"], queryFn: getMtgMeta, enabled: submittedQuery.length === 0 });
+
+  function runSearch(q: string) {
+    setPage(1);
+    setSubmittedQuery(q);
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setPage(1);
-    setSubmittedQuery(query.trim());
+    runSearch(query.trim());
+  }
+
+  function handleSuggestionClick(name: string) {
+    setQuery(name);
+    runSearch(name);
   }
 
   return (
@@ -83,7 +97,25 @@ export function MtgPage() {
       </form>
 
       <div className="mt-6">
-        {submittedQuery.length === 0 && <p className="text-slate-400">Enter a card name above to start browsing.</p>}
+        {submittedQuery.length === 0 && (
+          <div>
+            <p className="text-slate-400">Not sure what to search for? Popular this week, via EDHREC:</p>
+            {metaData?.mostPlayedCards && metaData.mostPlayedCards.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {metaData.mostPlayedCards.map((card) => (
+                  <button
+                    key={card.name}
+                    type="button"
+                    onClick={() => handleSuggestionClick(card.name)}
+                    className="rounded-full border border-slate-700 bg-slate-900 px-4 py-1.5 text-sm text-slate-200 hover:border-indigo-500 hover:text-indigo-400"
+                  >
+                    {card.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {isFetching && <p className="text-slate-400">Searching…</p>}
 

@@ -1,0 +1,6 @@
+# Never bake production credentials into a locally-built dev image - this
+# file (real production DB host/user/password) would otherwise take
+# priority over the docker-compose mariadb service's env vars in
+# config.php's env_or() logic, silently pointing local dev/cron testing at
+# the live production database instead of the local mariadb container.
+config.local.php

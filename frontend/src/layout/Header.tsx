@@ -19,7 +19,7 @@ export function Header({ onOpenMobileNav }: HeaderProps) {
           </svg>
         </button>
         <NavLink to="/" className="text-lg font-semibold text-white">
-          HobbyHub
+          Sheodred's Forge
         </NavLink>
       </div>
 

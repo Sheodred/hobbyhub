@@ -27,9 +27,60 @@ describe("MtgPage", () => {
   });
 
   it("shows a hint before any search is submitted", () => {
-    vi.stubGlobal("fetch", vi.fn());
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(200, { mostPlayedCards: [], popularCommanderDecks: [], standardDecks: [], commanderDecks: [] }),
+      ),
+    );
     renderPage();
-    expect(screen.getByText(/enter a card name/i)).toBeInTheDocument();
+    expect(screen.getByText(/not sure what to search for/i)).toBeInTheDocument();
+  });
+
+  it("shows EDHREC suggestions before any search, and clicking one searches for it", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/api/mtg/meta")) {
+          return Promise.resolve(
+            jsonResponse(200, {
+              mostPlayedCards: [{ name: "Sol Ring", url: "https://edhrec.com/sol-ring", numDecks: 100 }],
+              popularCommanderDecks: [],
+              standardDecks: [],
+              commanderDecks: [],
+            }),
+          );
+        }
+        return Promise.resolve(
+          jsonResponse(200, {
+            cards: [
+              {
+                id: "sol-ring-1",
+                name: "Sol Ring",
+                manaCost: "{1}",
+                typeLine: "Artifact",
+                oracleText: "Add {C}{C}.",
+                colors: [],
+                setName: "Alpha",
+                rarity: "uncommon",
+                imageUrl: null,
+                artCropUrl: null,
+              },
+            ],
+            hasMore: false,
+            totalCards: 1,
+          }),
+        );
+      }),
+    );
+
+    renderPage();
+    const suggestion = await screen.findByRole("button", { name: "Sol Ring" });
+    await user.click(suggestion);
+
+    expect(await screen.findByText("Sol Ring", { selector: "p" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/search cards/i)).toHaveValue("Sol Ring");
   });
 
   it("searches and renders results", async () => {

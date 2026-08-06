@@ -38,6 +38,16 @@ describe("ChessBoard", () => {
     expect(onMove).not.toHaveBeenCalled();
   });
 
+  it("flips the square order when orientation is black", () => {
+    render(<ChessBoard chess={new Chess()} disabled={false} onMove={vi.fn()} orientation="black" />);
+
+    const cells = screen.getAllByRole("gridcell");
+    // White's view (default) starts at a8, ends at h1. Black's view mirrors
+    // that: the board is rotated 180°, so it starts at h1 and ends at a8.
+    expect(cells[0]).toHaveAccessibleName("h1, white r");
+    expect(cells[cells.length - 1]).toHaveAccessibleName("a8, black r");
+  });
+
   it("ignores clicks entirely when disabled", async () => {
     const user = userEvent.setup();
     const onMove = vi.fn();

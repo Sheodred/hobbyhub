@@ -90,7 +90,7 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             transition={transition}
           >
             <div className="flex items-center justify-between">
-              <span className="text-lg font-semibold text-white">HobbyHub</span>
+              <span className="text-lg font-semibold text-white">Sheodred's Forge</span>
               <button
                 ref={closeButtonRef}
                 type="button"

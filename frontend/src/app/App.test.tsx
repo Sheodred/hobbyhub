@@ -26,9 +26,9 @@ function renderAt(path: string) {
 }
 
 describe("App routing", () => {
-  it("renders the app shell with the HobbyHub logo", () => {
+  it("renders the app shell with the Sheodred's Forge logo", () => {
     renderAt("/");
-    expect(screen.getByRole("link", { name: "HobbyHub" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sheodred's Forge" })).toBeInTheDocument();
   });
 
   it("opening the mobile nav reveals the primary links", async () => {

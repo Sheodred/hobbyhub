@@ -58,6 +58,21 @@ describe("useChessGame", () => {
     expect(second.current.fen).toBe(first.current.fen);
   });
 
+  it("undo reverts the last move", () => {
+    const { result } = renderHook(() => useChessGame());
+
+    act(() => {
+      result.current.applyMove({ from: "e2", to: "e4" });
+    });
+    expect(result.current.fen).toContain(" b "); // black to move next
+
+    act(() => {
+      result.current.undo();
+    });
+
+    expect(result.current.fen).toBe("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+  });
+
   it("persists the selected difficulty too", () => {
     const { result: first } = renderHook(() => useChessGame());
     act(() => {

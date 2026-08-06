@@ -294,9 +294,12 @@ Work through this top to bottom. Each phase links back to the section above with
 - **Superseded (2026-08-05): the entire Marketplace feature was later extracted to a separate project** and put on *that* project's roadmap ("im Zweifel erstmal nur als Roadmap, um Zeit zu sparen") - not rebuilt there or here yet. See the migration note at the top of this document.
 
 ### Phase 8 — Chess vs. AI
-- [~] `react-chessboard` + `chess.js` integration, classic/Staunton-style default piece set (section 4.7). **Built differently on purpose**: a custom click-to-move board - hand-built with real `<button>` grid cells, ARIA labels, and a "coin" piece design for guaranteed contrast - instead of `react-chessboard` (see PR #9).
+- [~] `react-chessboard` + `chess.js` integration, classic/Staunton-style default piece set (section 4.7). **Built differently on purpose**: a custom click-to-move board - hand-built with real `<button>` grid cells and ARIA labels - instead of `react-chessboard` (see PR #9). Piece rendering changed 2026-08-06: the original gradient "coin" design was replaced with flat SVG piece icons on a warm chess.com-style palette (`pieceIcons.tsx`) - Unicode chess glyphs were tried in between and dropped, font/emoji rendering of those codepoints was unreliable across browsers.
 - [~] Drag-and-drop as primary interaction, click-to-move as fallback. **Inverted, on purpose**: click-to-move is the primary (and only) interaction - no drag-and-drop, since the board wasn't built on `react-chessboard`. Functionally equivalent for keyboard/mobile/accessibility use, but doesn't match this line literally.
 - [x] Client-side Stockfish (WASM) opponent with difficulty selector, move history, result detection.
+- [x] Undo/back button and board-flip toggle (2026-08-06).
+- [ ] Further board polish - the flat SVG piece set (above) is a clear improvement, but the knight icon is a rough geometric approximation, not immediately recognizable as a horse the way the other five pieces are. Not started.
+- [ ] Let the player start as Black (engine plays White and moves first). Currently hardcoded - "Player is always White" (`ChessPage.tsx`). Not started.
 
 ### Phase 9 — Fan-game link page (main repo)
 - [ ] Placeholder-friendly page: description, link out, screenshots/GIFs once available (section 4.8). **Not started.**

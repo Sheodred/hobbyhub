@@ -10,7 +10,7 @@ require_once __DIR__ . '/http_client.php';
 // empty, so the panel never just goes blank.
 class WotcNewsClient
 {
-    private const MAX_ITEMS = 3;
+    private const MAX_ITEMS = 5;
 
     public function fetchLatest(): array
     {
@@ -41,7 +41,7 @@ class WotcNewsClient
                 }
                 $href = $link->getAttribute('href');
                 $url = str_starts_with($href, 'http') ? $href : 'https://magic.wizards.com' . $href;
-                $items[$url] = ['headline' => $headline, 'teaser' => null, 'url' => $url, 'publishedAt' => null];
+                $items[$url] = ['headline' => $headline, 'teaser' => $this->fetchTeaser($url), 'url' => $url, 'publishedAt' => null];
                 if (count($items) >= self::MAX_ITEMS) {
                     break;
                 }
@@ -50,6 +50,35 @@ class WotcNewsClient
         } catch (Throwable $e) {
             error_log('WotC news scrape failed: ' . $e->getMessage());
             return [];
+        }
+    }
+
+    // The listing page has no summary text, only title + link - each
+    // article page carries one in its <meta name="description"> tag
+    // (verified: a single human-written sentence, same length/shape as
+    // Tagesschau's firstSentence teaser). A per-article failure here must
+    // not drop the headline/link the caller already has, so it's caught
+    // and degrades to null rather than propagating.
+    private function fetchTeaser(string $articleUrl): ?string
+    {
+        try {
+            $html = http_get_html($articleUrl);
+            if ($html === null) {
+                return null;
+            }
+
+            $doc = new DOMDocument();
+            libxml_use_internal_errors(true);
+            $doc->loadHTML($html);
+            libxml_use_internal_errors(false);
+
+            $xpath = new DOMXPath($doc);
+            $node = $xpath->query('//meta[@name="description"]/@content')->item(0);
+            $teaser = $node !== null ? trim($node->textContent) : '';
+            return $teaser !== '' ? $teaser : null;
+        } catch (Throwable $e) {
+            error_log("WotC article teaser fetch failed for $articleUrl: " . $e->getMessage());
+            return null;
         }
     }
 }

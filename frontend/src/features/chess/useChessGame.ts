@@ -56,6 +56,17 @@ export function useChessGame() {
     return true;
   }
 
+  function undo(): boolean {
+    const move = chessRef.current!.undo();
+    if (!move) {
+      return false;
+    }
+    const nextFen = chessRef.current!.fen();
+    setFen(nextFen);
+    persist(nextFen, difficulty);
+    return true;
+  }
+
   function newGame() {
     chessRef.current = new Chess();
     const nextFen = chessRef.current.fen();
@@ -68,5 +79,5 @@ export function useChessGame() {
     persist(fen, next);
   }
 
-  return { chess: chessRef.current, fen, difficulty, setDifficulty, applyMove, newGame };
+  return { chess: chessRef.current, fen, difficulty, setDifficulty, applyMove, undo, newGame };
 }

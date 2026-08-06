@@ -27,9 +27,10 @@ function statusText(chess: Chess): string {
 // whenever it becomes its turn, including right after restoring a saved
 // mid-game position (see docs/adr/0004).
 export function ChessPage() {
-  const { chess, fen, difficulty, setDifficulty, applyMove, newGame } = useChessGame();
+  const { chess, fen, difficulty, setDifficulty, applyMove, undo, newGame } = useChessGame();
   const engineRef = useRef<StockfishEngine | null>(null);
   const [thinking, setThinking] = useState(false);
+  const [orientation, setOrientation] = useState<"white" | "black">("white");
 
   useEffect(() => {
     engineRef.current = createStockfishEngine();
@@ -68,6 +69,16 @@ export function ChessPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fen, difficulty]);
 
+  // Undoes a full exchange (engine's reply, then the player's move), not
+  // just one ply - a single undo would leave it Black's turn, and the
+  // auto-response effect above would just have the engine move again
+  // instantly. undo() is a safe no-op with no history left, so calling it
+  // twice is fine even right at the start of a game.
+  function handleUndo() {
+    undo();
+    undo();
+  }
+
   function handlePlayerMove(from: Square, to: Square) {
     // No promotion picker in v1 - always promote to a queen. chess.js
     // ignores this field for non-promoting moves.
@@ -100,10 +111,24 @@ export function ChessPage() {
         </label>
         <button
           type="button"
+          onClick={handleUndo}
+          className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
+        >
+          Back
+        </button>
+        <button
+          type="button"
           onClick={newGame}
           className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
         >
           New game
+        </button>
+        <button
+          type="button"
+          onClick={() => setOrientation((o) => (o === "white" ? "black" : "white"))}
+          className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
+        >
+          Flip board
         </button>
       </div>
 
@@ -112,7 +137,12 @@ export function ChessPage() {
       </p>
 
       <div className="mt-4">
-        <ChessBoard chess={chess} disabled={gameOver || thinking || chess.turn() !== "w"} onMove={handlePlayerMove} />
+        <ChessBoard
+          chess={chess}
+          disabled={gameOver || thinking || chess.turn() !== "w"}
+          onMove={handlePlayerMove}
+          orientation={orientation}
+        />
       </div>
     </FadeIn>
   );
