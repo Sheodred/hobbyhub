@@ -41,46 +41,76 @@ export function ChessBoard({ chess, disabled, onMove, orientation = "white" }: C
   }
 
   return (
-    <div
-      role="grid"
-      aria-label="Chess board"
-      className="grid aspect-square w-full max-w-xl grid-cols-8 overflow-hidden border border-[#7a5230]"
-    >
-      {ranks.map((rank) =>
-        files.map((file) => {
-          const square = `${file}${rank}` as Square;
-          const piece = chess.get(square);
-          const isDark = (FILES.indexOf(file) + RANKS.indexOf(rank)) % 2 === 1;
-          const isSelected = selected === square;
-          const isTarget = legalTargets.has(square);
+    <div className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] sm:p-2">
+      <div
+        role="grid"
+        aria-label="Chess board"
+        className="grid aspect-square grid-cols-8 overflow-hidden rounded-[calc(2rem-0.5rem)] ring-1 ring-inset ring-white/10"
+      >
+        {ranks.map((rank) =>
+          files.map((file) => {
+            const square = `${file}${rank}` as Square;
+            const piece = chess.get(square);
+            const isDark = (FILES.indexOf(file) + RANKS.indexOf(rank)) % 2 === 1;
+            const isSelected = selected === square;
+            const isTarget = legalTargets.has(square);
+            const isEdgeFile = file === files[0];
+            const isEdgeRank = rank === ranks[ranks.length - 1];
 
-          return (
-            <button
-              key={square}
-              type="button"
-              role="gridcell"
-              aria-label={piece ? `${square}, ${piece.color === "w" ? "white" : "black"} ${piece.type}` : square}
-              onClick={() => handleSquareClick(square)}
-              disabled={disabled}
-              className={`relative flex aspect-square items-center justify-center transition-colors ${
-                isDark ? "bg-[#b58863]" : "bg-[#f0d9b5]"
-              } ${isSelected ? "ring-4 ring-inset ring-sky-500" : ""} ${disabled ? "cursor-default" : "cursor-pointer hover:brightness-105"}`}
-            >
-              {isTarget && !piece && <span className="absolute h-3 w-3 rounded-full bg-sky-600/70" aria-hidden="true" />}
-              {isTarget && piece && <span className="absolute inset-0 ring-4 ring-inset ring-sky-600/70" aria-hidden="true" />}
-              {piece && (
-                <PieceIcon
-                  type={piece.type as "k" | "q" | "r" | "b" | "n" | "p"}
-                  aria-hidden="true"
-                  className={`h-[70%] w-[70%] drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)] ${
-                    piece.color === "w" ? "text-white" : "text-[#2b1810]"
-                  }`}
-                />
-              )}
-            </button>
-          );
-        }),
-      )}
+            return (
+              <button
+                key={square}
+                type="button"
+                role="gridcell"
+                aria-label={piece ? `${square}, ${piece.color === "w" ? "white" : "black"} ${piece.type}` : square}
+                onClick={() => handleSquareClick(square)}
+                disabled={disabled}
+                className={`relative flex aspect-square items-center justify-center transition-colors duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                  isDark ? "bg-[#1c1633]" : "bg-[#332a5c]"
+                } ${isSelected ? "ring-2 ring-inset ring-amber-400 shadow-[inset_0_0_20px_rgba(251,191,36,0.35)]" : ""} ${
+                  disabled ? "cursor-default" : "cursor-pointer hover:brightness-125"
+                }`}
+              >
+                {isEdgeRank && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute bottom-0.5 right-1 text-[9px] font-medium tracking-wide text-white/25"
+                  >
+                    {file}
+                  </span>
+                )}
+                {isEdgeFile && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute left-1 top-0.5 text-[9px] font-medium tracking-wide text-white/25"
+                  >
+                    {rank}
+                  </span>
+                )}
+                {isTarget && !piece && (
+                  <span className="absolute h-3 w-3 rounded-full bg-amber-400/80 shadow-[0_0_8px_rgba(251,191,36,0.6)]" aria-hidden="true" />
+                )}
+                {isTarget && piece && <span className="absolute inset-0 ring-4 ring-inset ring-amber-400/70" aria-hidden="true" />}
+                {piece && (
+                  <span
+                    aria-hidden="true"
+                    className={`flex h-[78%] w-[78%] items-center justify-center rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.45)] ${
+                      piece.color === "w"
+                        ? "bg-gradient-to-b from-amber-50 to-amber-100 ring-1 ring-black/5"
+                        : "bg-gradient-to-b from-[#241a3f] to-[#150f28] ring-1 ring-white/15"
+                    }`}
+                  >
+                    <PieceIcon
+                      type={piece.type as "k" | "q" | "r" | "b" | "n" | "p"}
+                      className={`h-[62%] w-[62%] ${piece.color === "w" ? "text-indigo-950" : "text-indigo-100"}`}
+                    />
+                  </span>
+                )}
+              </button>
+            );
+          }),
+        )}
+      </div>
     </div>
   );
 }
