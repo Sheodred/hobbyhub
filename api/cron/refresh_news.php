@@ -8,6 +8,9 @@ require_once __DIR__ . '/../lib/NewsRefresh.php';
 require_once __DIR__ . '/../lib/TagesschauClient.php';
 require_once __DIR__ . '/../lib/WotcNewsClient.php';
 require_once __DIR__ . '/../lib/RadioNineOneTwoClient.php';
+require_once __DIR__ . '/../lib/KinderflohmarktComClient.php';
+require_once __DIR__ . '/../lib/KinderbasarOnlineClient.php';
+require_once __DIR__ . '/../lib/FleaMarketRefresh.php';
 
 $pdo = db();
 
@@ -38,6 +41,14 @@ try {
     replace_news($pdo, 'DORTMUND', $items);
 } catch (Throwable $e) {
     error_log('radio912 Dortmund news refresh failed - keeping the existing cache: ' . $e->getMessage());
+}
+
+try {
+    $kinderflohmarkt = (new KinderflohmarktComClient())->fetchLatest();
+    $kinderbasar = (new KinderbasarOnlineClient())->fetchLatest();
+    refresh_flea_market_events($pdo, $kinderflohmarkt, $kinderbasar);
+} catch (Throwable $e) {
+    error_log('Flea market refresh failed - keeping the existing cache: ' . $e->getMessage());
 }
 
 echo "done\n";

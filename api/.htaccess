@@ -21,6 +21,7 @@ RewriteRule ^mtg/meta/?$ mtg/meta.php [QSA,END]
 RewriteRule ^news/tagesschau/?$ news/tagesschau.php [QSA,END]
 RewriteRule ^news/wotc/?$ news/wotc.php [QSA,END]
 RewriteRule ^news/dortmund/?$ news/dortmund.php [QSA,END]
+RewriteRule ^news/fleamarket/?$ news/fleamarket.php [QSA,END]
 RewriteRule ^health/?$ health.php [QSA,END]
 
 # Dynamic route: /mtg/cards/{id} - anything not already matched above.

@@ -18,3 +18,14 @@ export function getWotcNews(): Promise<NewsItem[]> {
 export function getDortmundNews(): Promise<NewsItem[]> {
   return apiFetch<NewsItem[]>("/api/news/dortmund");
 }
+
+export interface FleaMarketEvent {
+  name: string;
+  location: string | null;
+  url: string;
+  date: string;
+}
+
+export function getFleaMarketEvents(): Promise<FleaMarketEvent[]> {
+  return apiFetch<FleaMarketEvent[]>("/api/news/fleamarket");
+}
