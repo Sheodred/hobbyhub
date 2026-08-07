@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/http_client.php';
+require_once __DIR__ . '/Cache.php';
 
 // Live proxy to Scryfall (docs/adr/0003 in the pre-migration history) -
 // keeps Scryfall's full search query syntax (colors, types, operators)
@@ -93,24 +94,7 @@ class ScryfallClient
 
     private function cached(string $key, callable $fetch)
     {
-        $pdo = db();
-
-        $stmt = $pdo->prepare('SELECT response_json FROM scryfall_cache WHERE cache_key = ? AND expires_at > NOW()');
-        $stmt->execute([$key]);
-        $row = $stmt->fetch();
-        if ($row) {
-            return json_decode($row['response_json'], true);
-        }
-
-        $result = $fetch();
-
-        $stmt = $pdo->prepare(
-            'REPLACE INTO scryfall_cache (cache_key, response_json, expires_at) ' .
-            'VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? SECOND))'
-        );
-        $stmt->execute([$key, json_encode($result), self::CACHE_TTL_SECONDS]);
-
-        return $result;
+        return cache_aside('scryfall_cache', 'cache_key', $key, self::CACHE_TTL_SECONDS, $fetch);
     }
 
     private function request(string $path): ?array

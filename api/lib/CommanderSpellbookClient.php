@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/http_client.php';
+require_once __DIR__ . '/Cache.php';
 
 // Commander Spellbook (backend.commanderspellbook.com) - the actual combo
 // database behind EDHREC's own combo pages, open, no key required. Cached
@@ -15,33 +16,19 @@ class CommanderSpellbookClient
 
     public function findCombos(string $cardName): array
     {
-        $pdo = db();
+        return cache_aside('commander_spellbook_cache', 'card_name', $cardName, self::CACHE_TTL_SECONDS, function () use ($cardName) {
+            $query = 'card:"' . $cardName . '"';
+            $json = http_get_json(COMMANDER_SPELLBOOK_BASE_URL . '/variants/?' . http_build_query([
+                'q' => $query,
+                'limit' => self::MAX_COMBOS,
+            ]));
 
-        $stmt = $pdo->prepare('SELECT response_json FROM commander_spellbook_cache WHERE card_name = ? AND expires_at > NOW()');
-        $stmt->execute([$cardName]);
-        $row = $stmt->fetch();
-        if ($row) {
-            return json_decode($row['response_json'], true);
-        }
-
-        $query = 'card:"' . $cardName . '"';
-        $json = http_get_json(COMMANDER_SPELLBOOK_BASE_URL . '/variants/?' . http_build_query([
-            'q' => $query,
-            'limit' => self::MAX_COMBOS,
-        ]));
-
-        $combos = [];
-        foreach (($json['results'] ?? []) as $variant) {
-            $combos[] = $this->toCombo($variant, $cardName);
-        }
-
-        $stmt = $pdo->prepare(
-            'REPLACE INTO commander_spellbook_cache (card_name, response_json, expires_at) ' .
-            'VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? SECOND))'
-        );
-        $stmt->execute([$cardName, json_encode($combos), self::CACHE_TTL_SECONDS]);
-
-        return $combos;
+            $combos = [];
+            foreach (($json['results'] ?? []) as $variant) {
+                $combos[] = $this->toCombo($variant, $cardName);
+            }
+            return $combos;
+        });
     }
 
     private function toCombo(array $variant, string $searchedCardName): array
