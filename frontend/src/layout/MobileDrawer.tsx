@@ -83,7 +83,7 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
           role="dialog"
           aria-modal="true"
           aria-label="Navigation menu"
-          className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-black/70 p-6 backdrop-blur-3xl"
+          className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-black/35 p-6 backdrop-blur-3xl"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
