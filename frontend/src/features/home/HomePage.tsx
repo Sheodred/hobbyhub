@@ -5,7 +5,7 @@ import { InfoPanels } from "./panels/InfoPanels";
 
 export function HomePage() {
   return (
-    <div className="flex flex-col gap-12">
+    <div className="mx-auto flex w-3/4 flex-col gap-12">
       <Hero />
 
       <section aria-labelledby="highlights-heading">

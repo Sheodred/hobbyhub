@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
+import { MusicPanel } from "./panels/MusicPanel";
 
 export function Hero() {
   const reduceMotion = usePrefersReducedMotion();
@@ -58,6 +59,15 @@ export function Hero() {
         >
           Play chess
         </Link>
+      </motion.div>
+
+      <motion.div
+        initial={reduceMotion ? undefined : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.3 }}
+        className="mx-auto mt-10 max-w-md text-left"
+      >
+        <MusicPanel />
       </motion.div>
     </section>
   );
