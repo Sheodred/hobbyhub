@@ -1,5 +1,5 @@
+import { DortmundNewsPanel } from "./DortmundNewsPanel";
 import { FleaMarketPanel } from "./FleaMarketPanel";
-import { MusicPanel } from "./MusicPanel";
 import { TagesschauPanel } from "./TagesschauPanel";
 import { WeatherPanel } from "./WeatherPanel";
 import { WotcNewsPanel } from "./WotcNewsPanel";
@@ -11,7 +11,7 @@ export function InfoPanels() {
       <WotcNewsPanel />
       <WeatherPanel />
       <FleaMarketPanel />
-      <MusicPanel />
+      <DortmundNewsPanel />
     </div>
   );
 }

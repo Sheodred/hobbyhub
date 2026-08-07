@@ -32,3 +32,4 @@ env_or('WOTC_NEWS_URL', 'https://magic.wizards.com/en/news');
 env_or('EDHREC_JSON_BASE_URL', 'https://json.edhrec.com');
 env_or('MTGGOLDFISH_STANDARD_URL', 'https://www.mtggoldfish.com/metagame/standard');
 env_or('MTGGOLDFISH_COMMANDER_URL', 'https://www.mtggoldfish.com/metagame/commander');
+env_or('RADIO912_NEWS_URL', 'https://www.radio912.de/nachrichten/dortmund');

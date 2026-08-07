@@ -7,6 +7,7 @@ require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/NewsRefresh.php';
 require_once __DIR__ . '/../lib/TagesschauClient.php';
 require_once __DIR__ . '/../lib/WotcNewsClient.php';
+require_once __DIR__ . '/../lib/RadioNineOneTwoClient.php';
 
 $pdo = db();
 
@@ -30,6 +31,13 @@ try {
     replace_news($pdo, 'WOTC', $items);
 } catch (Throwable $e) {
     error_log('WotC news refresh failed - keeping the existing cache: ' . $e->getMessage());
+}
+
+try {
+    $items = (new RadioNineOneTwoClient())->fetchLatest();
+    replace_news($pdo, 'DORTMUND', $items);
+} catch (Throwable $e) {
+    error_log('radio912 Dortmund news refresh failed - keeping the existing cache: ' . $e->getMessage());
 }
 
 echo "done\n";

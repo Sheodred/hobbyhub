@@ -14,3 +14,7 @@ export function getTagesschauNews(): Promise<NewsItem[]> {
 export function getWotcNews(): Promise<NewsItem[]> {
   return apiFetch<NewsItem[]>("/api/news/wotc");
 }
+
+export function getDortmundNews(): Promise<NewsItem[]> {
+  return apiFetch<NewsItem[]>("/api/news/dortmund");
+}
