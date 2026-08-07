@@ -41,38 +41,51 @@ export function MtgPage() {
 
   return (
     <div>
-      <div className="relative overflow-hidden rounded-xl border border-slate-800">
-        <img
-          src={FEATURED_ART}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full scale-105 object-cover opacity-50"
-        />
-        {/* Two layers: a vertical dark fade for text legibility, and a
-            diagonal color sweep on top for a livelier, less flat look. */}
-        <div
-          className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/55 to-transparent"
-          aria-hidden="true"
-        />
-        <div
-          className="absolute inset-0 bg-gradient-to-tr from-fuchsia-600/30 via-transparent to-blue-600/30"
-          aria-hidden="true"
-        />
-        <div className="relative px-6 py-10">
-          <h1 className="text-3xl font-semibold text-white drop-shadow-sm">Magic: The Gathering</h1>
-          <p className="mt-2 max-w-xl text-slate-200 drop-shadow-sm">
-            Search the full card catalog, powered by{" "}
-            <a href="https://scryfall.com" target="_blank" rel="noreferrer" className="underline hover:text-white">
-              Scryfall
-            </a>
-            .
-          </p>
-          <Link
-            to="/mtg/meta"
-            className="mt-4 inline-flex items-center gap-2 rounded-md border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/20"
-          >
-            Meta &amp; Stats &rarr;
-          </Link>
+      <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5">
+        <div className="relative overflow-hidden rounded-[calc(2rem-0.375rem)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]">
+          <img
+            src={FEATURED_ART}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-105 object-cover opacity-50"
+          />
+          {/* Two layers: a vertical dark fade for text legibility, and a
+              diagonal color sweep on top for a livelier, less flat look. */}
+          <div
+            className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/55 to-transparent"
+            aria-hidden="true"
+          />
+          <div
+            className="absolute inset-0 bg-gradient-to-tr from-fuchsia-600/30 via-transparent to-blue-600/30"
+            aria-hidden="true"
+          />
+          <div className="relative px-6 py-10 sm:px-10 sm:py-14">
+            <h1 className="text-3xl font-semibold text-white drop-shadow-sm sm:text-4xl">Magic: The Gathering</h1>
+            <p className="mt-2 max-w-xl text-slate-200 drop-shadow-sm">
+              Search the full card catalog, powered by{" "}
+              <a href="https://scryfall.com" target="_blank" rel="noreferrer" className="underline hover:text-white">
+                Scryfall
+              </a>
+              , or see what&apos;s trending in competitive and casual play.
+            </p>
+            <Link
+              to="/mtg/meta"
+              className="group relative mt-6 inline-flex items-center gap-3 rounded-full bg-indigo-500 py-3 pl-6 pr-3 text-base font-medium text-white transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-indigo-400 active:scale-[0.98]"
+            >
+              Best of Meta &amp; Stats
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-[1px] group-hover:translate-x-1 group-hover:scale-105">
+                <svg width="16" height="16" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path
+                    d="M4 10 10 4M10 4H5M10 4v5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+            </Link>
+          </div>
         </div>
       </div>
 

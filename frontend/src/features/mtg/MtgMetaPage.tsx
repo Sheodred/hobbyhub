@@ -14,7 +14,9 @@ export function MtgMetaPage() {
         <Link to="/mtg" className="text-sm text-indigo-400 hover:underline">
           &larr; Back to card browser
         </Link>
-        <h1 className="mt-4 text-3xl font-semibold text-slate-100">Magic: The Gathering &mdash; Meta &amp; Stats</h1>
+        <h1 className="mt-4 text-3xl font-semibold text-slate-100">
+          Magic: The Gathering &mdash; Best of Meta &amp; Stats
+        </h1>
         <p className="mt-2 max-w-2xl text-slate-400">
           What&apos;s actually being played right now - popularity from EDHREC, competitive tier lists from
           MTGGoldfish. Refreshed every few hours, not fetched live.
