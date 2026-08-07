@@ -6,9 +6,18 @@ const LYRIC_LINES = WORTH_THE_FIGHT_LYRICS.split("\n");
 export function MusicPanel() {
   return (
     <InfoPanelCard title="Worth the Fight">
-      <audio controls className="w-full" src="/music/worth-the-fight.mp3">
-        Your browser doesn&apos;t support the audio element.
-      </audio>
+      <div className="overflow-hidden rounded-[calc(1.5rem-0.75rem)] border border-white/10 bg-black shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]">
+        <video
+          controls
+          preload="metadata"
+          poster="/music/worth-the-fight-poster.jpg"
+          className="aspect-video w-full"
+          src="/music/worth_the_fight_storyboard_preview.mp4"
+        >
+          Your browser doesn&apos;t support the video element.
+        </video>
+      </div>
+      <p className="mt-2 text-xs text-slate-500">Vocals start at 0:11.</p>
       {/* No timing/transcription data exists for this track, so the lyrics
           can't be synced to playback without drifting - shown as plain,
           on-demand text instead of a karaoke-style highlight. */}
