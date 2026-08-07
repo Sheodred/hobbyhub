@@ -6,7 +6,7 @@ import { WeatherPanel } from "./panels/WeatherPanel";
 
 export function HomePage() {
   return (
-    <div className="mx-auto flex w-3/4 flex-col gap-12">
+    <div className="mx-auto flex w-full flex-col gap-12 lg:w-3/4">
       <Hero />
 
       <section aria-labelledby="highlights-heading">
