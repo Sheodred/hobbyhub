@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/http_client.php';
+require_once __DIR__ . '/ScrapeHtml.php';
 
 // WotC discontinued their news RSS feed and there's no public news API, so
 // this scrapes magic.wizards.com/en/news for article title + link only.
@@ -14,18 +15,7 @@ class WotcNewsClient
 
     public function fetchLatest(): array
     {
-        try {
-            $html = http_get_html(WOTC_NEWS_URL);
-            if ($html === null) {
-                return [];
-            }
-
-            $doc = new DOMDocument();
-            libxml_use_internal_errors(true); // real-world HTML trips DOMDocument's stricter parser otherwise
-            $doc->loadHTML($html);
-            libxml_use_internal_errors(false);
-
-            $xpath = new DOMXPath($doc);
+        return scrape_html(WOTC_NEWS_URL, 'http_get_html', function (DOMXPath $xpath) {
             // Article title links carry data-link-type="forced-server" and an
             // href starting with /en/news/ with a further path segment; the
             // category links (e.g. "Announcements") lack that attribute
@@ -47,10 +37,7 @@ class WotcNewsClient
                 }
             }
             return array_values($items);
-        } catch (Throwable $e) {
-            error_log('WotC news scrape failed: ' . $e->getMessage());
-            return [];
-        }
+        }, [], 'WotC news');
     }
 
     // The listing page has no summary text, only title + link - each
@@ -61,24 +48,10 @@ class WotcNewsClient
     // and degrades to null rather than propagating.
     private function fetchTeaser(string $articleUrl): ?string
     {
-        try {
-            $html = http_get_html($articleUrl);
-            if ($html === null) {
-                return null;
-            }
-
-            $doc = new DOMDocument();
-            libxml_use_internal_errors(true);
-            $doc->loadHTML($html);
-            libxml_use_internal_errors(false);
-
-            $xpath = new DOMXPath($doc);
+        return scrape_html($articleUrl, 'http_get_html', function (DOMXPath $xpath) {
             $node = $xpath->query('//meta[@name="description"]/@content')->item(0);
             $teaser = $node !== null ? trim($node->textContent) : '';
             return $teaser !== '' ? $teaser : null;
-        } catch (Throwable $e) {
-            error_log("WotC article teaser fetch failed for $articleUrl: " . $e->getMessage());
-            return null;
-        }
+        }, null, 'WotC article teaser');
     }
 }

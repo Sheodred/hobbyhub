@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/http_client.php';
+require_once __DIR__ . '/ScrapeHtml.php';
 
 // MTGGoldfish has no official metagame API - explicitly a "may break"
 // integration, same spirit as WotcNewsClient. Their robots.txt (checked
@@ -24,18 +25,7 @@ class MtgGoldfishClient
 
     private function scrape(string $url): array
     {
-        try {
-            $html = http_get_html($url);
-            if ($html === null) {
-                return [];
-            }
-
-            $doc = new DOMDocument();
-            libxml_use_internal_errors(true);
-            $doc->loadHTML($html);
-            libxml_use_internal_errors(false);
-
-            $xpath = new DOMXPath($doc);
+        return scrape_html($url, 'http_get_html', function (DOMXPath $xpath) {
             // Each archetype tile links twice (#online and #paper anchors on
             // the same /archetype/{slug} path) - keeping only #paper avoids
             // double-counting while picking the more universally recognized
@@ -56,9 +46,6 @@ class MtgGoldfishClient
                 }
             }
             return array_values($items);
-        } catch (Throwable $e) {
-            error_log("MTGGoldfish scrape failed for $url: " . $e->getMessage());
-            return [];
-        }
+        }, [], 'MTGGoldfish');
     }
 }
