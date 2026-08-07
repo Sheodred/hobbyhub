@@ -41,9 +41,9 @@ export function NewsListPanel({ title, items, isLoading, isError }: NewsListPane
 
   return (
     <InfoPanelCard title={title}>
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col divide-y divide-white/5">
         {items.map((item) => (
-          <li key={item.url}>
+          <li key={item.url} className="py-3 first:pt-0 last:pb-0">
             <a
               href={item.url}
               target="_blank"
@@ -52,7 +52,7 @@ export function NewsListPanel({ title, items, isLoading, isError }: NewsListPane
             >
               {item.headline}
             </a>
-            {item.teaser && <p className="mt-0.5 text-xs text-slate-400">{item.teaser}</p>}
+            {item.teaser && <p className="mt-1 text-xs text-slate-400">{item.teaser}</p>}
           </li>
         ))}
       </ul>
