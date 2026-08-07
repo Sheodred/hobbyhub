@@ -43,7 +43,7 @@ describe("App routing", () => {
 
   it("renders the home page content at /", () => {
     renderAt("/");
-    expect(screen.getByRole("heading", { name: /things I actually enjoy/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /hyperfixations/i })).toBeInTheDocument();
   });
 
   it("renders the MTG page content at /mtg", () => {
