@@ -15,7 +15,7 @@ export const highlights: Highlight[] = [
     to: "/mtg",
     title: "Magic: The Gathering",
     description: "Search and browse the full card catalog, powered by Scryfall.",
-    accent: "from-fuchsia-600/70 via-violet-600/40 to-blue-600/10",
+    accent: "from-indigo-600/75 via-indigo-500/35 to-slate-950/10",
     // Omnath, Locus of Creation - art by Chris Rahn, via Scryfall.
     imageUrl: "https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg",
   },
@@ -23,6 +23,6 @@ export const highlights: Highlight[] = [
     to: "/chess",
     title: "Chess vs. AI",
     description: "Play against a client-side Stockfish engine at whatever difficulty you can handle.",
-    accent: "from-emerald-500/60 via-teal-500/30 to-cyan-500/10",
+    accent: "from-indigo-500/60 via-indigo-400/25 to-slate-950/10",
   },
 ];

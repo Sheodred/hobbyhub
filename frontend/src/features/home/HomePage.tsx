@@ -2,6 +2,7 @@ import { Hero } from "./Hero";
 import { HighlightCard } from "./HighlightCard";
 import { highlights } from "./highlights";
 import { InfoPanels } from "./panels/InfoPanels";
+import { WeatherPanel } from "./panels/WeatherPanel";
 
 export function HomePage() {
   return (
@@ -12,11 +13,20 @@ export function HomePage() {
         <h2 id="highlights-heading" className="sr-only">
           Explore
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
           {highlights.map((highlight, index) => (
-            <HighlightCard key={highlight.to} highlight={highlight} index={index} />
+            <div key={highlight.to} className={index === 0 ? "sm:col-span-3" : "sm:col-span-2"}>
+              <HighlightCard highlight={highlight} index={index} />
+            </div>
           ))}
         </div>
+      </section>
+
+      <section aria-labelledby="weather-heading">
+        <h2 id="weather-heading" className="sr-only">
+          Weather
+        </h2>
+        <WeatherPanel />
       </section>
 
       <section aria-labelledby="info-heading">

@@ -5,8 +5,8 @@ import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from
 import { legalNavLinks, primaryNavLinks } from "./navigation";
 
 const sidebarLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `block rounded-md px-3 py-2 text-sm transition-colors ${
-    isActive ? "bg-slate-800 text-white" : "text-slate-400 hover:bg-slate-800/60 hover:text-white"
+  `block rounded-full px-3 py-2 text-sm transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+    isActive ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"
   }`;
 
 interface SidebarProps {
@@ -45,13 +45,13 @@ export function Sidebar({ children }: SidebarProps) {
         collapsedSize={4}
         onCollapse={() => setCollapsed(true)}
         onExpand={() => setCollapsed(false)}
-        className="border-r border-slate-800 bg-slate-900/60"
+        className="border-r border-white/10 bg-white/[0.03] backdrop-blur-2xl"
       >
         <div className="flex h-full flex-col overflow-y-auto p-3">
           <button
             type="button"
             onClick={toggleCollapsed}
-            className="mb-3 self-end rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+            className="mb-3 self-end rounded-full p-1.5 text-slate-400 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 hover:text-white"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <svg
@@ -60,7 +60,7 @@ export function Sidebar({ children }: SidebarProps) {
               viewBox="0 0 16 16"
               fill="none"
               aria-hidden="true"
-              className={`transition-transform ${collapsed ? "rotate-180" : ""}`}
+              className={`transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${collapsed ? "rotate-180" : ""}`}
             >
               <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -73,7 +73,7 @@ export function Sidebar({ children }: SidebarProps) {
                   {link.label}
                 </NavLink>
               ))}
-              <hr className="my-2 border-slate-800" />
+              <hr className="my-2 border-white/10" />
               {legalNavLinks.map((link) => (
                 <NavLink key={link.to} to={link.to} className={sidebarLinkClass}>
                   {link.label}
@@ -84,7 +84,7 @@ export function Sidebar({ children }: SidebarProps) {
         </div>
       </Panel>
 
-      <PanelResizeHandle className="w-1 bg-slate-800 transition-colors hover:bg-indigo-500 data-[resize-handle-state=drag]:bg-indigo-500" />
+      <PanelResizeHandle className="w-1 bg-white/10 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-indigo-500 data-[resize-handle-state=drag]:bg-indigo-500" />
 
       <Panel id="main" order={2} minSize={50}>
         {children}

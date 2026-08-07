@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
+/* Fixed, pointer-events-none grain layer - applied once at the viewport
+   level (never to scrolling containers) so it costs one paint, not one
+   per scroll frame. Pure CSS, no image asset. */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
 /* Tactile press feedback on every button - confirms the interface heard the
    click. Transform-only (GPU-friendly), scale/duration within the ranges
    from emilkowalski/skills' emil-design-eng skill. Skipped entirely under
