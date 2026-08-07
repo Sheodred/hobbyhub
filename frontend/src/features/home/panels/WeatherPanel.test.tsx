@@ -27,22 +27,35 @@ describe("WeatherPanel", () => {
     delete window.navigator.geolocation;
   });
 
-  it("shows the temperature and conditions once geolocation and the forecast both resolve", async () => {
+  it("shows the temperature, conditions, rain chance, time, and place once everything resolves", async () => {
     stubGeolocation((success) => {
       success({ coords: { latitude: 52.52, longitude: 13.4 } } as GeolocationPosition);
     });
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ current: { temperature_2m: 18.4, weather_code: 2, is_day: 1 } }),
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("bigdatacloud")) {
+          return Promise.resolve({ ok: true, json: async () => ({ city: "Berlin" }) });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            current: { time: "2026-08-07T14:32", temperature_2m: 18.4, weather_code: 2, is_day: 1 },
+            hourly: {
+              time: ["2026-08-07T13:00", "2026-08-07T14:00", "2026-08-07T15:00"],
+              precipitation_probability: [10, 20, 30],
+            },
+          }),
+        });
       }),
     );
 
     renderPanel();
 
     expect(await screen.findByText("18°C")).toBeInTheDocument();
-    expect(screen.getByText("Partly cloudy · Day")).toBeInTheDocument();
+    expect(screen.getByText(/Partly cloudy · Day · 20% rain/)).toBeInTheDocument();
+    expect(screen.getByText("14:32")).toBeInTheDocument();
+    expect(screen.getByText("Berlin")).toBeInTheDocument();
   });
 
   it("shows a graceful message when the user declines the location prompt", async () => {
