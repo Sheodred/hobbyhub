@@ -40,10 +40,13 @@ weather).
 
 `api/lib/` holds the shared HTTP client helpers (`http_client.php`), the DB
 singleton (`db.php`), the JSON response helpers (`http.php`), one
-`*Client.php` per third-party integration, and the two cron scripts'
+`*Client.php` per third-party integration, the two cron scripts'
 extracted, unit-tested transaction helpers (`NewsRefresh.php`,
-`MetaRefresh.php`) - the PHP equivalent of the old `common/`/`config/`
-cross-cutting packages.
+`MetaRefresh.php`), and the shared, unit-tested modules those and the
+`*Client.php` files are built on: `Cache.php` (cache-aside read-through),
+`ReplaceRows.php` (delete-then-bulk-insert-in-a-transaction), and
+`ScrapeHtml.php` (fetch+parse+extract with a fallback default) - the PHP
+equivalent of the old `common/`/`config/` cross-cutting packages.
 
 ## Request flow: MTG search (public, no auth)
 

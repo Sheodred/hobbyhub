@@ -3,6 +3,8 @@ require_once __DIR__ . '/db.php';
 
 // Cache-aside: read-through on a keyed table shaped (keyColumn, response_json,
 // expires_at), matching scryfall_cache and commander_spellbook_cache.
+// $table/$keyColumn are interpolated into SQL directly - only ever call this
+// with hardcoded literals, never with user input.
 function cache_aside(string $table, string $keyColumn, string $key, int $ttlSeconds, callable $fetch)
 {
     $pdo = db();

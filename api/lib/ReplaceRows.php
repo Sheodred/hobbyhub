@@ -5,6 +5,8 @@ require_once __DIR__ . '/db.php';
 // $whereColumn = $whereValue with a fresh batch. $toValues maps each row to
 // the positional params for $columns, in order; fetched_at is always the
 // last column, set to NOW().
+// $table/$whereColumn/$columns are interpolated into SQL directly - only
+// ever call this with hardcoded literals, never with user input.
 function replace_rows(
     PDO $pdo,
     string $table,
