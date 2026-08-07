@@ -61,7 +61,7 @@ function formatLocalTime(isoTime: string): string {
 
 const TILE_CLASS = "rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5";
 const TILE_INNER_CLASS =
-  "rounded-[calc(2rem-0.375rem)] bg-slate-900/60 px-6 py-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] sm:px-10";
+  "rounded-[calc(2rem-0.375rem)] bg-[#1b1533]/60 px-6 py-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] sm:px-10";
 
 // Called directly from the browser (no backend involvement) - Open-Meteo is
 // free, keyless, and CORS-friendly, and there's no rate-limit concern worth

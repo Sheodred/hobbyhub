@@ -22,7 +22,7 @@ export function HighlightCard({ highlight, index }: HighlightCardProps) {
     >
       <Link
         to={highlight.to}
-        className="group relative block h-full min-h-[16rem] overflow-hidden rounded-[calc(2rem-0.375rem)] bg-slate-900/80 p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.99]"
+        className="group relative block h-full min-h-[16rem] overflow-hidden rounded-[calc(2rem-0.375rem)] bg-[#1b1533]/80 p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.99]"
       >
         {highlight.imageUrl && (
           <img
