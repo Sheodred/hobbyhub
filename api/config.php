@@ -35,3 +35,4 @@ env_or('MTGGOLDFISH_COMMANDER_URL', 'https://www.mtggoldfish.com/metagame/comman
 env_or('RADIO912_NEWS_URL', 'https://www.radio912.de/nachrichten/dortmund');
 env_or('KINDERFLOHMARKT_COM_URL', 'https://kinderflohmarkt.com/de/dortmund/');
 env_or('KINDERBASAR_ONLINE_URL', 'https://www.kinderbasar-online.de/Kinderbasar/Termine/Liste/l-Dortmund/r-50');
+env_or('NOMINATIM_BASE_URL', 'https://nominatim.openstreetmap.org');

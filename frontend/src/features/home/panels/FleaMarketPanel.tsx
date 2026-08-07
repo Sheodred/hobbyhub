@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { useGeolocation } from "../../../hooks/useGeolocation";
 import { InfoPanelCard } from "./InfoPanelCard";
 import { getFleaMarketEvents } from "./newsApi";
 
@@ -13,8 +14,27 @@ function formatEventDate(iso: string): string {
   });
 }
 
+const EARTH_RADIUS_KM = 6371;
+
+// Haversine great-circle distance - fine at this scale (all listings are
+// within ~50km of Dortmund), no need for a more precise ellipsoidal model.
+function distanceKm(from: { latitude: number; longitude: number }, to: { latitude: number; longitude: number }): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(to.latitude - from.latitude);
+  const dLon = toRad(to.longitude - from.longitude);
+  const a =
+    Math.sin(dLat / 2) ** 2 + Math.cos(toRad(from.latitude)) * Math.cos(toRad(to.latitude)) * Math.sin(dLon / 2) ** 2;
+  return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDistance(km: number): string {
+  return km < 10 ? `${km.toFixed(1)} km away` : `${Math.round(km)} km away`;
+}
+
 export function FleaMarketPanel() {
   const { data, isLoading, isError } = useQuery({ queryKey: ["flea-market"], queryFn: getFleaMarketEvents });
+  const geolocation = useGeolocation();
+  const userLocation = geolocation.status === "success" ? geolocation : null;
 
   if (isError) {
     return (
@@ -47,9 +67,9 @@ export function FleaMarketPanel() {
 
   return (
     <InfoPanelCard title="Flea Market">
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col divide-y divide-white/5">
         {data.map((event) => (
-          <li key={event.url} className="text-sm text-slate-300">
+          <li key={event.url} className="py-3 text-sm text-slate-300 first:pt-0 last:pb-0">
             <a
               href={event.url}
               target="_blank"
@@ -58,11 +78,13 @@ export function FleaMarketPanel() {
             >
               {event.name}
             </a>
-            <br />
-            <span className="text-slate-400">
+            <p className="mt-1 text-slate-400">
               {formatEventDate(event.date)}
               {event.location && ` · ${event.location}`}
-            </span>
+              {userLocation && event.latitude !== null && event.longitude !== null && (
+                <> · {formatDistance(distanceKm(userLocation, { latitude: event.latitude, longitude: event.longitude }))}</>
+              )}
+            </p>
           </li>
         ))}
       </ul>

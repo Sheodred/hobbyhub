@@ -26,7 +26,8 @@ final class FleaMarketRefreshTest extends TestCase
             [
                 // Same event as the first one above (same date + venue), different name text.
                 ['name' => 'Kinderflohmarkt Dortmund EKS Scharnhorst', 'startDate' => '2026-08-08T09:00:00', 'location' => 'EKS Scharnhorst', 'url' => 'https://www.kinderbasar-online.de/x'],
-            ]
+            ],
+            fn(string $location) => null, // fake geocoder - no network calls in tests
         );
 
         $rows = $pdo->prepare('SELECT headline, teaser, published_at FROM news_items WHERE source = ? ORDER BY sort_order ASC');
@@ -37,5 +38,24 @@ final class FleaMarketRefreshTest extends TestCase
         $this->assertSame('Kinderflohmarkt EKS Scharnhorst, EKS Scharnhorst', $rows[0]['headline']);
         $this->assertSame('EKS Scharnhorst', $rows[0]['teaser']);
         $this->assertSame('Trödel rund ums Kind', $rows[1]['headline'], 'must be sorted by date, earliest first');
+    }
+
+    public function testStoresGeocodedCoordinatesPerVenue(): void
+    {
+        $pdo = db();
+
+        refresh_flea_market_events(
+            $pdo,
+            [['name' => 'Kinderflohmarkt EKS Scharnhorst', 'startDate' => '2026-08-08T09:00:00+02:00', 'location' => 'EKS Scharnhorst', 'url' => 'https://kinderflohmarkt.com/a']],
+            [],
+            fn(string $location) => $location === 'EKS Scharnhorst' ? ['latitude' => 51.5511, 'longitude' => 7.5386] : null,
+        );
+
+        $rows = $pdo->prepare('SELECT latitude, longitude FROM news_items WHERE source = ?');
+        $rows->execute([self::SOURCE]);
+        $row = $rows->fetch();
+
+        $this->assertEqualsWithDelta(51.5511, (float) $row['latitude'], 0.0001);
+        $this->assertEqualsWithDelta(7.5386, (float) $row['longitude'], 0.0001);
     }
 }

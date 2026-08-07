@@ -24,6 +24,8 @@ export interface FleaMarketEvent {
   location: string | null;
   url: string;
   date: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export function getFleaMarketEvents(): Promise<FleaMarketEvent[]> {

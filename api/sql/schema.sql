@@ -10,9 +10,24 @@ CREATE TABLE news_items (
     teaser TEXT,
     url TEXT NOT NULL,
     published_at DATETIME NULL,
+    -- Only populated for FLEAMARKET rows (geocoded venue location), NULL for
+    -- every other source. See geocode_cache below.
+    latitude DECIMAL(9, 6) NULL,
+    longitude DECIMAL(9, 6) NULL,
     fetched_at DATETIME NOT NULL,
     sort_order INT NOT NULL,
     INDEX idx_news_items_source (source, sort_order)
+);
+
+-- Cache-aside table for NominatimGeocodeClient, shaped like scryfall_cache
+-- (see Cache.php's cache_aside()). Keyed by the lowercased venue location
+-- text scraped from the flea market sources - those repeat week over week,
+-- so a long TTL avoids re-geocoding the same handful of Dortmund venues on
+-- every cron run and keeps well within Nominatim's usage policy.
+CREATE TABLE geocode_cache (
+    location_key VARCHAR(255) PRIMARY KEY,
+    response_json LONGTEXT NOT NULL,
+    expires_at DATETIME NOT NULL
 );
 
 -- Manual fallback for the WotC news panel when the scraper finds nothing -

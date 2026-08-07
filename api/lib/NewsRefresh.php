@@ -10,11 +10,11 @@ function replace_news(PDO $pdo, string $source, array $items): void
         'news_items',
         'source',
         $source,
-        ['source', 'headline', 'teaser', 'url', 'published_at', 'sort_order'],
+        ['source', 'headline', 'teaser', 'url', 'published_at', 'latitude', 'longitude', 'sort_order'],
         $items,
         function (array $item, int $i) use ($source) {
             $publishedAt = $item['publishedAt'] ? date('Y-m-d H:i:s', strtotime($item['publishedAt'])) : null;
-            return [$source, $item['headline'], $item['teaser'], $item['url'], $publishedAt, $i];
+            return [$source, $item['headline'], $item['teaser'], $item['url'], $publishedAt, $item['latitude'] ?? null, $item['longitude'] ?? null, $i];
         }
     );
 }
