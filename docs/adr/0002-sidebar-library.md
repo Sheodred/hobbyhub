@@ -1,7 +1,7 @@
 # ADR-0002: Resizable sidebar library
 
 ## Status
-Accepted
+Superseded by [ADR-0010](0010-header-nav-replaces-sidebar.md)
 
 ## Context
 The spec allows either `react-resizable-panels` or `allotment` for the

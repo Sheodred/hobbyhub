@@ -25,10 +25,10 @@ const linkReveal = {
 };
 
 /**
- * Full-screen nav overlay for < md screens - the resizable Sidebar panel is
- * hidden there entirely, this replaces it. Respects prefers-reduced-motion
- * by swapping the fade transition for an instant show/hide and skipping the
- * staggered link entrance.
+ * Full-screen nav overlay, triggered by the header's hamburger at every
+ * breakpoint (there is no persistent sidebar - see docs/adr/0010). Respects
+ * prefers-reduced-motion by swapping the fade transition for an instant
+ * show/hide and skipping the staggered link entrance.
  */
 export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
   const reduceMotion = usePrefersReducedMotion();
@@ -83,7 +83,7 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
           role="dialog"
           aria-modal="true"
           aria-label="Navigation menu"
-          className="fixed inset-0 z-40 overflow-y-auto bg-black/80 p-6 backdrop-blur-3xl md:hidden"
+          className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-black/70 p-6 backdrop-blur-3xl"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -92,50 +92,54 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             if (event.target === event.currentTarget) onClose();
           }}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-semibold text-white">Sheodred's Forge</span>
-            <button
-              ref={closeButtonRef}
-              type="button"
-              onClick={onClose}
-              className="rounded-full p-2 text-slate-400 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 hover:text-white"
-              aria-label="Close navigation menu"
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
+          <div className="w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5">
+            <div className="rounded-[calc(2rem-0.375rem)] bg-slate-900/60 p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] sm:p-8">
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-semibold text-white">Sheodred's Forge</span>
+                <button
+                  ref={closeButtonRef}
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-full p-2 text-slate-400 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 hover:text-white"
+                  aria-label="Close navigation menu"
+                >
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
 
-          <nav aria-label="Primary" className="mt-10 flex flex-col gap-1">
-            {primaryNavLinks.map((link, index) => (
-              <motion.div
-                key={link.to}
-                custom={index}
-                variants={linkReveal}
-                initial={reduceMotion ? undefined : "hidden"}
-                animate="visible"
-              >
-                <NavLink to={link.to} className={drawerLinkClass} end={link.to === "/"} onClick={onClose}>
-                  {link.label}
-                </NavLink>
-              </motion.div>
-            ))}
-            <hr className="my-4 border-white/10" />
-            {legalNavLinks.map((link, index) => (
-              <motion.div
-                key={link.to}
-                custom={primaryNavLinks.length + index}
-                variants={linkReveal}
-                initial={reduceMotion ? undefined : "hidden"}
-                animate="visible"
-              >
-                <NavLink to={link.to} className={drawerLinkClass} onClick={onClose}>
-                  {link.label}
-                </NavLink>
-              </motion.div>
-            ))}
-          </nav>
+              <nav aria-label="Primary" className="mt-8 flex flex-col gap-1">
+                {primaryNavLinks.map((link, index) => (
+                  <motion.div
+                    key={link.to}
+                    custom={index}
+                    variants={linkReveal}
+                    initial={reduceMotion ? undefined : "hidden"}
+                    animate="visible"
+                  >
+                    <NavLink to={link.to} className={drawerLinkClass} end={link.to === "/"} onClick={onClose}>
+                      {link.label}
+                    </NavLink>
+                  </motion.div>
+                ))}
+                <hr className="my-4 border-white/10" />
+                {legalNavLinks.map((link, index) => (
+                  <motion.div
+                    key={link.to}
+                    custom={primaryNavLinks.length + index}
+                    variants={linkReveal}
+                    initial={reduceMotion ? undefined : "hidden"}
+                    animate="visible"
+                  >
+                    <NavLink to={link.to} className={drawerLinkClass} onClick={onClose}>
+                      {link.label}
+                    </NavLink>
+                  </motion.div>
+                ))}
+              </nav>
+            </div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
