@@ -40,7 +40,7 @@ export function FleaMarketPanel() {
   if (!data || data.length === 0) {
     return (
       <InfoPanelCard title="Flea Market">
-        <p className="text-sm text-slate-400">No flea markets in the next 7 days.</p>
+        <p className="text-sm text-slate-400">No flea markets in the next 30 days.</p>
       </InfoPanelCard>
     );
   }

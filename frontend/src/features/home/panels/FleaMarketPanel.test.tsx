@@ -51,6 +51,6 @@ describe("FleaMarketPanel", () => {
 
     renderPanel();
 
-    expect(await screen.findByText(/no flea markets in the next 7 days/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no flea markets in the next 30 days/i)).toBeInTheDocument();
   });
 });

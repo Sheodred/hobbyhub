@@ -4,7 +4,7 @@ require_once __DIR__ . '/../lib/db.php';
 
 $stmt = db()->prepare(
     'SELECT headline, teaser, url, published_at FROM news_items
-     WHERE source = ? AND published_at BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY)
+     WHERE source = ? AND published_at BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 30 DAY)
      ORDER BY published_at ASC'
 );
 $stmt->execute(['FLEAMARKET']);
