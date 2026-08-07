@@ -35,14 +35,14 @@ describe("WeatherPanel", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ current: { temperature_2m: 18.4, weather_code: 2 } }),
+        json: async () => ({ current: { temperature_2m: 18.4, weather_code: 2, is_day: 1 } }),
       }),
     );
 
     renderPanel();
 
     expect(await screen.findByText("18°C")).toBeInTheDocument();
-    expect(screen.getByText("Partly cloudy")).toBeInTheDocument();
+    expect(screen.getByText("Partly cloudy · Day")).toBeInTheDocument();
   });
 
   it("shows a graceful message when the user declines the location prompt", async () => {

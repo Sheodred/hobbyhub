@@ -25,3 +25,31 @@ const WEATHER_CODE_LABELS: Record<number, string> = {
 export function describeWeatherCode(code: number): string {
   return WEATHER_CODE_LABELS[code] ?? "Unknown conditions";
 }
+
+export type WeatherKind = "clear" | "partly-cloudy" | "cloudy" | "fog" | "rain" | "snow" | "thunderstorm";
+
+const WEATHER_CODE_KINDS: Record<number, WeatherKind> = {
+  0: "clear",
+  1: "clear",
+  2: "partly-cloudy",
+  3: "cloudy",
+  45: "fog",
+  48: "fog",
+  51: "rain",
+  53: "rain",
+  55: "rain",
+  61: "rain",
+  63: "rain",
+  65: "rain",
+  71: "snow",
+  73: "snow",
+  75: "snow",
+  80: "rain",
+  81: "rain",
+  82: "rain",
+  95: "thunderstorm",
+};
+
+export function classifyWeatherCode(code: number): WeatherKind {
+  return WEATHER_CODE_KINDS[code] ?? "cloudy";
+}
