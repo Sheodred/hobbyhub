@@ -2,12 +2,20 @@ import { Hero } from "./Hero";
 import { HighlightCard } from "./HighlightCard";
 import { highlights } from "./highlights";
 import { InfoPanels } from "./panels/InfoPanels";
+import { MusicPanel } from "./panels/MusicPanel";
 import { WeatherPanel } from "./panels/WeatherPanel";
 
 export function HomePage() {
   return (
     <div className="mx-auto flex w-full flex-col gap-12 lg:w-3/4">
       <Hero />
+
+      <section aria-labelledby="music-heading" className="mx-auto w-full max-w-md">
+        <h2 id="music-heading" className="sr-only">
+          Music
+        </h2>
+        <MusicPanel />
+      </section>
 
       <section aria-labelledby="highlights-heading">
         <h2 id="highlights-heading" className="sr-only">

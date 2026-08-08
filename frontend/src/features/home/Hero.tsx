@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
-import { MusicPanel } from "./panels/MusicPanel";
 
 const EASE = [0.32, 0.72, 0, 1] as const;
 
@@ -11,77 +10,64 @@ export function Hero() {
 
   return (
     <div className="rounded-[2.5rem] border border-white/10 bg-white/[0.03] p-1.5 sm:p-2">
-      <section className="relative overflow-hidden rounded-[calc(2.5rem-0.5rem)] bg-[#1b1533]/60 px-6 py-24 text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] sm:px-12 sm:py-32">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <section
+        className="relative isolate flex min-h-[calc(100dvh-10rem)] flex-col justify-end overflow-hidden rounded-[calc(2.5rem-0.5rem)] bg-cover bg-center p-6 sm:p-10"
+        style={{ backgroundImage: "url(/background.png)" }}
+      >
+        {/* Dark gradient anchored to the bottom edge, not covering the image -
+            keeps the center/top of the scene fully visible while the hero
+            title and blurb near the bottom stay legible. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-2/3 bg-gradient-to-t from-black/75 via-black/25 to-transparent"
+        />
+
+        <div className="flex flex-col items-start justify-between gap-8 sm:flex-row sm:items-end">
           <motion.div
-            className="absolute -top-24 left-1/4 h-72 w-72 rounded-full bg-indigo-600/40 mix-blend-screen blur-3xl"
-            animate={reduceMotion ? undefined : { x: [0, 40, -20, 0], y: [0, -30, 20, 0] }}
-            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-          />
+            initial={reduceMotion ? undefined : { opacity: 0, y: 20, filter: "blur(8px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 0.8, delay: 0.05, ease: EASE }}
+          >
+            <span className="text-xs font-medium uppercase tracking-[0.25em] text-indigo-300">Sheodred&apos;s Forge</span>
+            <h1 className="mt-2 text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl">
+              Where I drop my hyperfixations
+            </h1>
+          </motion.div>
+
           <motion.div
-            className="absolute top-10 right-1/4 h-72 w-72 rounded-full bg-violet-500/30 mix-blend-screen blur-3xl"
-            animate={reduceMotion ? undefined : { x: [0, -30, 20, 0], y: [0, 20, -30, 0] }}
-            transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-          />
+            initial={reduceMotion ? undefined : { opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: EASE }}
+            className="max-w-xs rounded-2xl bg-black/20 p-4 text-left shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] backdrop-blur-md sm:bg-transparent sm:p-0 sm:text-right sm:backdrop-blur-none"
+          >
+            <p className="text-sm text-slate-200">No ads, no accounts - just MTG, chess, and whatever else I'm into this week.</p>
+            <div className="mt-4 flex flex-wrap gap-2 sm:justify-end">
+              <Link
+                to="/mtg"
+                className="group relative inline-flex items-center gap-3 rounded-full bg-indigo-500 py-2.5 pl-6 pr-2.5 text-sm font-medium text-white transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-indigo-400 active:scale-[0.98]"
+              >
+                Browse cards
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-[1px] group-hover:translate-x-1 group-hover:scale-105">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 10 10 4M10 4H5M10 4v5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              </Link>
+              <Link
+                to="/chess"
+                className="rounded-full border border-white/15 bg-white/5 px-6 py-2.5 text-sm font-medium text-slate-200 backdrop-blur-md transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 active:scale-[0.98]"
+              >
+                Play chess
+              </Link>
+            </div>
+          </motion.div>
         </div>
-
-        <motion.span
-          initial={reduceMotion ? undefined : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: EASE }}
-          className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-indigo-300"
-        >
-          No ads · No accounts · Just hobbies
-        </motion.span>
-
-        <motion.h1
-          initial={reduceMotion ? undefined : { opacity: 0, y: 20, filter: "blur(8px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          transition={{ duration: 0.8, delay: 0.05, ease: EASE }}
-          className="mt-5 text-5xl font-semibold tracking-tight text-slate-100 sm:text-6xl lg:text-7xl"
-        >
-          Where I drop my hyperfixations
-        </motion.h1>
-
-        <motion.div
-          initial={reduceMotion ? undefined : { opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3, ease: EASE }}
-          className="mt-9 flex flex-wrap items-center justify-center gap-3"
-        >
-          <Link
-            to="/mtg"
-            className="group relative inline-flex items-center gap-3 rounded-full bg-indigo-500 py-2.5 pl-6 pr-2.5 text-sm font-medium text-white transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-indigo-400 active:scale-[0.98]"
-          >
-            Browse cards
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-[1px] group-hover:translate-x-1 group-hover:scale-105">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <path
-                  d="M4 10 10 4M10 4H5M10 4v5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-          </Link>
-          <Link
-            to="/chess"
-            className="rounded-full border border-white/15 bg-white/5 px-6 py-2.5 text-sm font-medium text-slate-200 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 active:scale-[0.98]"
-          >
-            Play chess
-          </Link>
-        </motion.div>
-
-        <motion.div
-          initial={reduceMotion ? undefined : { opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4, ease: EASE }}
-          className="mx-auto mt-12 max-w-md text-left"
-        >
-          <MusicPanel />
-        </motion.div>
       </section>
     </div>
   );
