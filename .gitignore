@@ -32,6 +32,7 @@ graphify-out/
 .agents/
 .claude/skills/
 skills-lock.json
+.serena/
 
 # Handoff docs belong in C:\Users\<user>\.claude\handoff\, not in the repo
 # (see CLAUDE.md). This is a safety net for one landing here by accident.
