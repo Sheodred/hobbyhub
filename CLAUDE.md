@@ -23,6 +23,7 @@ Rules:
 Run `/startup` at the start of a new session in this repo, especially
 one continuing from a previous session. It bundles: checking/building
 the graphify graph, verifying the agent-skills config, and reading any
-handoff doc from the OS temp directory (`/mattpocock-skills:handoff`
-writes there, never into this repo — no auto-loading, a fresh session
-only picks one up once told to). See `.claude/commands/startup.md`.
+handoff doc for this project from `C:\Users\<user>\.claude\handoff\`
+(`/mattpocock-skills:handoff` saves there, one timestamped folder per
+handoff, never into this repo — no auto-loading, a fresh session only
+picks one up once told to). See `.claude/commands/startup.md`.
