@@ -35,6 +35,8 @@ skills-lock.json
 .serena/
 
 # Handoff docs belong in C:\Users\<user>\.claude\handoff\, not in the repo
-# (see CLAUDE.md). This is a safety net for one landing here by accident.
+# (see CLAUDE.md). Safety net for one landing here by accident. Note: the
+# current naming (<YYYY-MM-DD>T<HHMM>-<slug>.md) has no fixed token to glob,
+# so a stray new-style handoff won't be caught here — watch for it by eye.
+# *-handoff.md still catches the temp default (hobbyhub-handoff.md).
 *-handoff.md
-handoff.md
