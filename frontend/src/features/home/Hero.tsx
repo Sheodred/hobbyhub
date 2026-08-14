@@ -10,10 +10,17 @@ export function Hero() {
 
   return (
     <div className="rounded-[2.5rem] border border-white/10 bg-white/[0.03] p-1.5 sm:p-2">
-      <section
-        className="relative isolate flex min-h-[calc(100dvh-10rem)] flex-col justify-end overflow-hidden rounded-[calc(2.5rem-0.5rem)] bg-cover bg-center p-6 sm:p-10"
-        style={{ backgroundImage: "url(/background.png)" }}
-      >
+      <section className="relative isolate flex min-h-[calc(100dvh-10rem)] flex-col justify-end overflow-hidden rounded-[calc(2.5rem-0.5rem)] p-6 sm:p-10">
+        {/* Background on its own layer (not the section itself) so it can
+            drift independently of the text/buttons above it - a slow,
+            barely-perceptible breathe (same technique as the AppShell nebula
+            drift). background-size:cover always overflows its box, so any
+            scale >= 1 never reveals an edge, however far the drift goes. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-20 bg-cover bg-center motion-safe:animate-[drift-hero_50s_ease-in-out_infinite]"
+          style={{ backgroundImage: "url(/hero-background.png)" }}
+        />
         {/* Dark gradient anchored to the bottom edge, not covering the image -
             keeps the center/top of the scene fully visible while the hero
             title and blurb near the bottom stay legible. */}

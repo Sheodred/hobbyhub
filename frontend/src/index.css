@@ -36,6 +36,15 @@ html {
   50% { transform: scale(1.12) translate(-2%, 2%); }
 }
 
+/* Hero background "breathe" - much subtler than the nebula/orb drifts since
+   this sits directly behind readable text, not in the ambient page backdrop.
+   background-size:cover already overflows its box at scale 1, so this never
+   reveals an edge. */
+@keyframes drift-hero {
+  0%, 100% { transform: scale(1) translate(0, 0); }
+  50% { transform: scale(1.035) translate(-0.5%, 0.5%); }
+}
+
 /* Tactile press feedback on every button - confirms the interface heard the
    click. Transform-only (GPU-friendly), scale/duration within the ranges
    from emilkowalski/skills' emil-design-eng skill. Skipped entirely under
