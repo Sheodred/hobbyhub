@@ -2,10 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 
 import { FadeIn } from "../../../components/FadeIn";
 import { useGeolocation } from "../../../hooks/useGeolocation";
+import { useNow } from "../../../hooks/useNow";
 import { WeatherIcon } from "./WeatherIcon";
 import { classifyWeatherCode, describeWeatherCode } from "./weatherCodes";
 
 interface OpenMeteoResponse {
+  utc_offset_seconds: number;
   current: {
     time: string;
     temperature_2m: number;
@@ -65,9 +67,22 @@ function currentPrecipitationProbability(data: OpenMeteoResponse): number | null
   return index === -1 ? null : data.hourly.precipitation_probability[index];
 }
 
-function formatLocalTime(isoTime: string): string {
-  const [, time] = isoTime.split("T");
-  return time ?? isoTime;
+// Live clock at the forecast location, not the API response's fetch-time
+// snapshot (that only updates when the query refetches, and goes stale the
+// longer the tab stays open). Driven by the browser's own clock (always
+// correct) offset by the location's UTC offset, not the device's timezone.
+function formatLocationTime(now: Date, utcOffsetSeconds: number): string {
+  const local = new Date(now.getTime() + utcOffsetSeconds * 1000);
+  const hh = String(local.getUTCHours()).padStart(2, "0");
+  const mm = String(local.getUTCMinutes()).padStart(2, "0");
+
+  const offsetMinutes = utcOffsetSeconds / 60;
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const absHours = Math.floor(Math.abs(offsetMinutes) / 60);
+  const absMinutes = Math.abs(offsetMinutes) % 60;
+  const gmt = absMinutes === 0 ? `GMT${sign}${absHours}` : `GMT${sign}${absHours}:${String(absMinutes).padStart(2, "0")}`;
+
+  return `${hh}:${mm} ${gmt}`;
 }
 
 const TILE_CLASS = "rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5";
@@ -80,6 +95,7 @@ const TILE_INNER_CLASS =
 export function WeatherPanel() {
   const geolocation = useGeolocation();
   const isReady = geolocation.status === "success";
+  const now = useNow();
 
   const { data, isFetching, isError } = useQuery({
     queryKey: ["weather", isReady ? geolocation.latitude : null, isReady ? geolocation.longitude : null],
@@ -162,7 +178,7 @@ export function WeatherPanel() {
 
         <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
           {placeName && <p className="text-sm font-medium text-slate-300">{placeName}</p>}
-          <p className="text-sm tabular-nums text-slate-400">{formatLocalTime(data.current.time)}</p>
+          <p className="text-sm tabular-nums text-slate-400">{formatLocationTime(now, data.utc_offset_seconds)}</p>
         </div>
 
         <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-center sm:divide-x sm:divide-white/10">
