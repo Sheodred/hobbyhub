@@ -1,7 +1,7 @@
 import type { Chess, Square } from "chess.js";
 import { useState } from "react";
 
-import { PieceIcon } from "./pieceIcons";
+import { pieceSpriteSrc } from "./pieceSprites";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const RANKS = ["8", "7", "6", "5", "4", "3", "2", "1"];
@@ -100,9 +100,10 @@ export function ChessBoard({ chess, disabled, onMove, orientation = "white" }: C
                         : "bg-gradient-to-b from-[#241a3f] to-[#150f28] ring-1 ring-white/15"
                     }`}
                   >
-                    <PieceIcon
-                      type={piece.type as "k" | "q" | "r" | "b" | "n" | "p"}
-                      className={`h-[62%] w-[62%] ${piece.color === "w" ? "text-indigo-950" : "text-indigo-100"}`}
+                    <img
+                      src={pieceSpriteSrc(piece.type as "k" | "q" | "r" | "b" | "n" | "p", piece.color)}
+                      alt=""
+                      className="h-[70%] w-[70%] object-contain"
                     />
                   </span>
                 )}
