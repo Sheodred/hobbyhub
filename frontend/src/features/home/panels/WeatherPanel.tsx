@@ -16,6 +16,13 @@ interface OpenMeteoResponse {
     time: string[];
     precipitation_probability: number[];
   };
+  daily: {
+    time: string[];
+    weather_code: number[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    precipitation_probability_max: number[];
+  };
 }
 
 interface PlaceResponse {
@@ -25,7 +32,11 @@ interface PlaceResponse {
 }
 
 async function fetchWeather(latitude: number, longitude: number): Promise<OpenMeteoResponse> {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,is_day&hourly=precipitation_probability&forecast_days=1&timezone=auto`;
+  const url =
+    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+    `&current=temperature_2m,weather_code,is_day&hourly=precipitation_probability` +
+    `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
+    `&forecast_days=2&timezone=auto`;
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error("Weather request failed");
@@ -61,7 +72,7 @@ function formatLocalTime(isoTime: string): string {
 
 const TILE_CLASS = "rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5";
 const TILE_INNER_CLASS =
-  "rounded-[calc(2rem-0.375rem)] bg-[#1b1533]/60 px-6 py-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] sm:px-10";
+  "relative overflow-hidden rounded-[calc(2rem-0.375rem)] bg-[#1b1533]/60 px-6 py-8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] sm:px-10";
 
 // Called directly from the browser (no backend involvement) - Open-Meteo is
 // free, keyless, and CORS-friendly, and there's no rate-limit concern worth
@@ -127,14 +138,39 @@ export function WeatherPanel() {
   const precipitationProbability = currentPrecipitationProbability(data);
   const placeName = place?.city || place?.locality || place?.principalSubdivision;
 
+  const tomorrowKind = classifyWeatherCode(data.daily.weather_code[1]);
+  const tomorrowMax = Math.round(data.daily.temperature_2m_max[1]);
+  const tomorrowMin = Math.round(data.daily.temperature_2m_min[1]);
+  const tomorrowRain = data.daily.precipitation_probability_max[1];
+
   return (
     <FadeIn className={TILE_CLASS}>
       <div className={TILE_INNER_CLASS}>
-        <div className="flex flex-wrap items-center justify-between gap-6">
-          <div className="flex items-center gap-6">
-            <WeatherIcon kind={kind} isDay={isDay} className="h-14 w-14 shrink-0 text-indigo-400" />
+        {/* AI-generated (Higgsfield/Recraft) sky backdrop, day/night matched to
+            the same is_day flag as the icon set - dark gradient on top keeps
+            the numbers readable instead of fighting the art for contrast. */}
+        <img
+          src={isDay ? "/weather/sky-day.png" : "/weather/sky-night.png"}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 h-full w-full object-cover opacity-40"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 bg-gradient-to-b from-[#1b1533]/40 via-[#1b1533]/70 to-[#1b1533]/90"
+        />
+
+        <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
+          {placeName && <p className="text-sm font-medium text-slate-300">{placeName}</p>}
+          <p className="text-sm tabular-nums text-slate-400">{formatLocalTime(data.current.time)}</p>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-center sm:divide-x sm:divide-white/10">
+          <div className="flex flex-1 items-center gap-6 sm:pr-6">
+            <WeatherIcon kind={kind} isDay={isDay} className="h-16 w-16 shrink-0" />
             <div>
-              <p className="text-4xl font-semibold tabular-nums text-slate-100 sm:text-5xl">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Today</p>
+              <p className="mt-1 text-4xl font-semibold tabular-nums text-slate-100 sm:text-5xl">
                 {Math.round(data.current.temperature_2m)}°C
               </p>
               <p className="mt-1 text-sm text-slate-400">
@@ -143,9 +179,18 @@ export function WeatherPanel() {
               </p>
             </div>
           </div>
-          <div className="text-right text-sm text-slate-400">
-            {placeName && <p className="font-medium text-slate-300">{placeName}</p>}
-            <p className="mt-1 tabular-nums">{formatLocalTime(data.current.time)}</p>
+
+          <div className="flex flex-1 items-center gap-6 sm:pl-6">
+            <WeatherIcon kind={tomorrowKind} isDay className="h-16 w-16 shrink-0" />
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Tomorrow</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-100">
+                {tomorrowMax}° <span className="text-slate-400">/ {tomorrowMin}°C</span>
+              </p>
+              <p className="mt-1 text-sm text-slate-400">
+                {describeWeatherCode(data.daily.weather_code[1])} · {tomorrowRain}% rain
+              </p>
+            </div>
           </div>
         </div>
       </div>

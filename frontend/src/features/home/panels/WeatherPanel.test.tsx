@@ -45,6 +45,13 @@ describe("WeatherPanel", () => {
               time: ["2026-08-07T13:00", "2026-08-07T14:00", "2026-08-07T15:00"],
               precipitation_probability: [10, 20, 30],
             },
+            daily: {
+              time: ["2026-08-07", "2026-08-08"],
+              weather_code: [2, 61],
+              temperature_2m_max: [21.2, 17.8],
+              temperature_2m_min: [12.5, 11.1],
+              precipitation_probability_max: [20, 65],
+            },
           }),
         });
       }),
@@ -56,6 +63,10 @@ describe("WeatherPanel", () => {
     expect(screen.getByText(/Partly cloudy · Day · 20% rain/)).toBeInTheDocument();
     expect(screen.getByText("14:32")).toBeInTheDocument();
     expect(screen.getByText("Berlin")).toBeInTheDocument();
+
+    expect(screen.getByText("Tomorrow")).toBeInTheDocument();
+    expect(screen.getByText("/ 11°C", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText(/Light rain · 65% rain/)).toBeInTheDocument();
   });
 
   it("shows a graceful message when the user declines the location prompt", async () => {
