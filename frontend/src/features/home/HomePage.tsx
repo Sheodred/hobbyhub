@@ -30,7 +30,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section aria-labelledby="weather-heading">
+      <section id="weather" aria-labelledby="weather-heading" className="scroll-mt-24">
         <h2 id="weather-heading" className="sr-only">
           Weather
         </h2>

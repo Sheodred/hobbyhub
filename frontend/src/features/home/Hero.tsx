@@ -5,6 +5,27 @@ import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 
 const EASE = [0.32, 0.72, 0, 1] as const;
 
+interface HeroHotspotProps {
+  to: string;
+  label: string;
+  className: string;
+}
+
+// Invisible click regions over matching parts of the hero artwork (chess
+// board, sky, MTG table) - a soft ring/glow on hover or keyboard focus is
+// the only visual cue, so the scene stays uncluttered at rest. Percentages
+// are hand-tuned against /hero-background.png's fixed 4:3 composition, so
+// they'll drift a little on extreme viewport aspect ratios - acceptable for
+// a decorative shortcut that duplicates the real nav/buttons below.
+function HeroHotspot({ to, label, className }: HeroHotspotProps) {
+  const sharedClassName = `group absolute rounded-[2rem] outline-none transition-shadow duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:shadow-[inset_0_0_0_2px_rgba(255,255,255,0.35),0_0_40px_rgba(255,255,255,0.12)] focus-visible:shadow-[inset_0_0_0_2px_rgba(129,140,248,0.85)] ${className}`;
+
+  if (to.startsWith("#")) {
+    return <a href={to} className={sharedClassName} aria-label={label} />;
+  }
+  return <Link to={to} className={sharedClassName} aria-label={label} />;
+}
+
 export function Hero() {
   const reduceMotion = usePrefersReducedMotion();
 
@@ -28,6 +49,10 @@ export function Hero() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-2/3 bg-gradient-to-t from-black/75 via-black/25 to-transparent"
         />
+
+        <HeroHotspot to="/chess" label="Chess pieces in the hero scene" className="left-[18%] top-[8%] h-[52%] w-[37%]" />
+        <HeroHotspot to="#weather" label="Sky in the hero scene" className="left-0 top-0 h-[16%] w-full" />
+        <HeroHotspot to="/mtg" label="Trading cards in the hero scene" className="left-[58%] top-[42%] h-[22%] w-[20%]" />
 
         <div className="flex flex-col items-start justify-between gap-8 sm:flex-row sm:items-end">
           <motion.div
