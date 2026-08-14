@@ -1,9 +1,6 @@
 import { FadeIn } from "../../components/FadeIn";
 
-// DiceBear (MIT-licensed, open-source, https://www.dicebear.com) - a
-// generated illustrated avatar, not a photo. Deterministic per seed, and
-// explicitly designed to be hotlinked from its public API.
-const AVATAR_URL = "https://api.dicebear.com/9.x/notionists/svg?seed=Adrian&backgroundColor=1e293b";
+const AVATAR_URL = "/Gemini_Generated_Image_nqv19dnqv19dnqv1.jpg";
 
 export function AboutPage() {
   return (
