@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { InfoPanelCard } from "./InfoPanelCard";
 import type { NewsItem } from "./newsApi";
 
@@ -8,8 +10,12 @@ interface NewsListPanelProps {
   isError: boolean;
 }
 
-/** Shared list rendering for the homepage's news panels (Tagesschau, WotC) - only the data source differs between them. */
+const VISIBLE_COUNT = 5;
+
+/** Shared list rendering for the homepage's news panels (Tagesschau, WotC, Dortmund) - only the data source differs between them. */
 export function NewsListPanel({ title, items, isLoading, isError }: NewsListPanelProps) {
+  const [expanded, setExpanded] = useState(false);
+
   if (isError) {
     return (
       <InfoPanelCard title={title}>
@@ -39,10 +45,13 @@ export function NewsListPanel({ title, items, isLoading, isError }: NewsListPane
     );
   }
 
+  const visibleItems = expanded ? items : items.slice(0, VISIBLE_COUNT);
+  const hasMore = items.length > VISIBLE_COUNT;
+
   return (
     <InfoPanelCard title={title}>
       <ul className="flex flex-col divide-y divide-white/5">
-        {items.map((item) => (
+        {visibleItems.map((item) => (
           <li key={item.url} className="py-3 first:pt-0 last:pb-0">
             <a
               href={item.url}
@@ -56,6 +65,15 @@ export function NewsListPanel({ title, items, isLoading, isError }: NewsListPane
           </li>
         ))}
       </ul>
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="mt-2 text-xs font-medium text-indigo-400 hover:text-indigo-300 hover:underline"
+        >
+          {expanded ? "Show less" : `Show ${items.length - VISIBLE_COUNT} more`}
+        </button>
+      )}
     </InfoPanelCard>
   );
 }
