@@ -16,8 +16,10 @@ describe("BoardgameLookupPage", () => {
         good: "Great trading game.",
         bad: "Too much luck.",
         partial: false,
-        amazon: null,
+        ratings: [],
         bgq: null,
+        players: null,
+        duration: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -55,8 +57,10 @@ describe("BoardgameLookupPage", () => {
         good: null,
         bad: null,
         partial: false,
-        amazon: null,
+        ratings: [],
         bgq: null,
+        players: null,
+        duration: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -84,8 +88,13 @@ describe("BoardgameLookupPage", () => {
         good: null,
         bad: null,
         partial: true,
-        amazon: { rating: 4.7, count: 257, title: "KOSMOS Catan - Das Spiel", url: "https://www.amazon.de/dp/B00CATAN01" },
+        ratings: [
+          { source: "Amazon.de", value: 4.7, max: 5, count: 257, title: "KOSMOS Catan - Das Spiel", url: "https://www.amazon.de/dp/B00CATAN01" },
+          { source: "H@LL9000", value: 4.8, max: 6, count: 17, title: null, url: "https://www.hall9000.de/html/spiel/catan" },
+        ],
         bgq: null,
+        players: "2 - 4",
+        duration: "30 - 45 Minuten",
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -98,14 +107,19 @@ describe("BoardgameLookupPage", () => {
     expect(screen.getByText("7.1")).toBeInTheDocument();
   });
 
-  it("shows the Amazon rating and what product it matched", async () => {
+  it("shows every external rating with its own scale", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "ok",
       game: {
         bggId: 13, name: "Catan", description: "Trade, build, settle.",
         rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
-        amazon: { rating: 4.7, count: 257, title: "KOSMOS Catan - Das Spiel", url: "https://www.amazon.de/dp/B00CATAN01" },
+        ratings: [
+          { source: "Amazon.de", value: 4.7, max: 5, count: 257, title: "KOSMOS Catan - Das Spiel", url: "https://www.amazon.de/dp/B00CATAN01" },
+          { source: "H@LL9000", value: 4.8, max: 6, count: 17, title: null, url: "https://www.hall9000.de/html/spiel/catan" },
+        ],
         bgq: null,
+        players: "2 - 4",
+        duration: "30 - 45 Minuten",
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -115,6 +129,8 @@ describe("BoardgameLookupPage", () => {
     fireEvent.submit(screen.getByRole("search"));
 
     expect(await screen.findByText("4.7")).toBeInTheDocument();
+    expect(screen.getByText("4.8")).toBeInTheDocument();
+    expect(screen.getByText("/ 6")).toBeInTheDocument();
     expect(screen.getByText(/257 ratings/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "KOSMOS Catan - Das Spiel" })).toHaveAttribute(
       "href", "https://www.amazon.de/dp/B00CATAN01"
@@ -126,7 +142,11 @@ describe("BoardgameLookupPage", () => {
       status: "ok",
       game: {
         bggId: 331106, name: "Intarsia", description: "", rating: 7.2, numRatings: 900,
-        good: "Beautiful production", bad: "Lacking replay value", partial: true, amazon: null,
+        good: "Beautiful production", bad: "Lacking replay value", partial: true, players: "2 - 4", duration: "30 - 45 Minuten",
+        ratings: [
+          { source: "Board Game Quest", value: 3.5, max: 5, count: null, title: "Intarsia Review", url: "https://www.boardgamequest.com/intarsia-review/" },
+          { source: "brettspiele-report", value: 15, max: 20, count: null, title: "Intarsia", url: "https://www.brettspiele-report.de/intarsia/" },
+        ],
         bgq: {
           score: 3.5,
           rules: "Players start with a random hand of ten cards in four colors plus wilds.",
@@ -143,6 +163,10 @@ describe("BoardgameLookupPage", () => {
 
     expect(await screen.findByText("3.5")).toBeInTheDocument();
     expect(screen.getByText(/random hand of ten cards/)).toBeInTheDocument();
+    // A 15/20 must never be shown next to a 3.5/5 without its scale.
+    expect(screen.getByText("15.0")).toBeInTheDocument();
+    expect(screen.getByText("/ 20")).toBeInTheDocument();
+    expect(screen.getByText(/2 - 4 players/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /full review at Board Game Quest/ })).toHaveAttribute(
       "href", "https://www.boardgamequest.com/intarsia-review/"
     );

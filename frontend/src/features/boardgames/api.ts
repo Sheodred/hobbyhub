@@ -11,11 +11,16 @@ export interface BoardgameSource {
   url: string;
 }
 
-/** Aggregate customer rating from amazon.de - the number and its count only. */
-export interface AmazonRating {
-  rating: number;
+/**
+ * One external rating. Each source publishes on its own scale, so `max`
+ * travels with the value and they are never combined into an average.
+ */
+export interface ExternalRating {
+  source: string;
+  value: number;
+  max: number;
   count: number | null;
-  title: string;
+  title: string | null;
   url: string;
 }
 
@@ -43,10 +48,12 @@ export interface Boardgame {
    * page says so rather than rendering the gaps as empty sections.
    */
   partial: boolean;
-  /** null when no confident product match was found, or the lookup failed. */
-  amazon: AmazonRating | null;
+  /** Empty when no other source has an entry for this game. */
+  ratings: ExternalRating[];
   /** null when Board Game Quest has no review for exactly this game. */
   bgq: BoardGameQuestReview | null;
+  players: string | null;
+  duration: string | null;
   source: BoardgameSource;
 }
 

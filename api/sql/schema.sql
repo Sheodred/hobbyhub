@@ -143,5 +143,29 @@ CREATE TABLE amazon_throttle (
     last_call_at DOUBLE NOT NULL
 );
 
+-- H@LL9000 aggregate rating per game slug (docs/adr/0014).
+CREATE TABLE hall9000_cache (
+    query_key VARCHAR(255) PRIMARY KEY,
+    response_json LONGTEXT NOT NULL,
+    expires_at DATETIME NOT NULL
+);
+
+CREATE TABLE hall9000_throttle (
+    id TINYINT PRIMARY KEY DEFAULT 1,
+    last_call_at DOUBLE NOT NULL
+);
+
+-- brettspiele-report.de overall score per game name (docs/adr/0014).
+CREATE TABLE brettspiele_report_cache (
+    query_key VARCHAR(255) PRIMARY KEY,
+    response_json LONGTEXT NOT NULL,
+    expires_at DATETIME NOT NULL
+);
+
+CREATE TABLE brettspiele_report_throttle (
+    id TINYINT PRIMARY KEY DEFAULT 1,
+    last_call_at DOUBLE NOT NULL
+);
+
 INSERT INTO wotc_news_fallback (headline, url, sort_order) VALUES
     ('Magic: The Gathering news', 'https://magic.wizards.com/en/news', 0);

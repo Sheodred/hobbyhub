@@ -127,14 +127,17 @@ export function BoardgameLookupPage() {
                 )}
               </div>
 
+              {(state.game.players || state.game.duration) && (
+                <p className="mt-2 text-sm text-slate-400">
+                  {[state.game.players && `${state.game.players} players`, state.game.duration]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
+
               {state.game.bgq && (
                 <section className="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-4">
-                  <div className="flex flex-wrap items-baseline gap-2">
-                    <span className="text-xs uppercase tracking-wide text-slate-500">Board Game Quest</span>
-                    <span className="text-lg font-semibold text-sky-300">{state.game.bgq.score.toFixed(1)}</span>
-                    <span className="text-xs text-slate-500">/ 5</span>
-                  </div>
-                  <h3 className="mt-3 text-xs font-medium uppercase tracking-wide text-slate-400">How it plays</h3>
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">How it plays</h3>
                   <p className="mt-1 text-sm text-slate-300">{state.game.bgq.rules}</p>
                   <a
                     href={state.game.bgq.url}
@@ -173,24 +176,35 @@ export function BoardgameLookupPage() {
                 </div>
               )}
 
-              {state.game.amazon && (
-                <div className="mt-6 flex flex-wrap items-baseline gap-2 border-t border-slate-800 pt-4">
-                  <span className="text-xs uppercase tracking-wide text-slate-500">Also rated on Amazon.de</span>
-                  <span className="text-lg font-semibold text-amber-300">{state.game.amazon.rating.toFixed(1)}</span>
-                  <span className="text-xs text-slate-500">
-                    / 5
-                    {state.game.amazon.count !== null && ` · ${state.game.amazon.count.toLocaleString("en")} ratings`}
-                  </span>
-                  {/* The product Amazon matched, shown so a wrong match is
-                      obvious rather than hidden behind a bare number. */}
-                  <a
-                    href={state.game.amazon.url}
-                    target="_blank"
-                    rel="noreferrer nofollow"
-                    className="w-full truncate text-xs text-slate-500 underline hover:text-slate-300"
-                  >
-                    {state.game.amazon.title}
-                  </a>
+              {state.game.ratings.length > 0 && (
+                <div className="mt-6 border-t border-slate-800 pt-4">
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Also rated by</h3>
+                  <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+                    {state.game.ratings.map((rating) => (
+                      <li key={rating.source} className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-lg font-semibold text-amber-300">{rating.value.toFixed(1)}</span>
+                          {/* Each source has its own scale - never dropped, or
+                              a 15 would read as worse than a 4.8. */}
+                          <span className="text-xs text-slate-500">/ {rating.max}</span>
+                          <span className="ml-auto text-xs text-slate-400">{rating.source}</span>
+                        </div>
+                        {rating.count !== null && (
+                          <p className="mt-1 text-xs text-slate-500">{rating.count.toLocaleString("en")} ratings</p>
+                        )}
+                        {/* What the source actually matched, so a wrong match
+                            is visible rather than hidden behind a number. */}
+                        <a
+                          href={rating.url}
+                          target="_blank"
+                          rel="noreferrer nofollow"
+                          className="mt-1 block truncate text-xs text-slate-500 underline hover:text-slate-300"
+                        >
+                          {rating.title ?? "View on site"}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 
