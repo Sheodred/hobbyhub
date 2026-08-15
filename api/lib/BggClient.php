@@ -38,8 +38,12 @@ class BggClient
                 'ratingcomments' => 1,
                 'pagesize' => self::MAX_COMMENTS,
             ]));
-            if ($xml === null || !isset($xml->item)) {
-                return null;
+            if ($xml === null) {
+                // Failed call, not an answer - see resolveSearch().
+                throw new RuntimeException('BGG thing request failed for id ' . $bggId);
+            }
+            if (!isset($xml->item)) {
+                return null; // BGG answered: no game with that id.
             }
             return $this->mapThing($xml->item);
         });
@@ -61,8 +65,16 @@ class BggClient
 
         $this->throttle();
         $xml = ($this->httpGetXml)(self::BASE_URL . '/search?' . http_build_query(['type' => 'boardgame', 'query' => $query]));
-        $items = $xml === null ? [] : $xml->item;
-        $count = $items === [] ? 0 : count($items);
+        // A null here means the HTTP call itself failed - BGG returns 401
+        // without a registered application token, and http_get_xml() gives
+        // back the same null it would for a timeout or a 5xx. Reporting that
+        // as "no such game" would be a wrong answer rather than an error, so
+        // throw and let the endpoint answer 502.
+        if ($xml === null) {
+            throw new RuntimeException('BGG search request failed');
+        }
+        $items = $xml->item;
+        $count = count($items);
 
         if ($count === 0) {
             return ['status' => 'not_found'];

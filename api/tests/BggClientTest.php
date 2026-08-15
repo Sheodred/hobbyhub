@@ -75,11 +75,32 @@ final class BggClientTest extends TestCase
         $this->assertSame(2, $calls, 'an expired cache row must not be served');
     }
 
-    public function testLookupReturnsNullWhenThingNotFound(): void
+    public function testLookupReturnsNullWhenBggHasNoSuchGame(): void
+    {
+        // BGG answers a real "no such id" with a 200 and an empty <items/>,
+        // which is data, not a failure - a genuine 404 for the caller.
+        $client = new BggClient(fn() => $this->thingXml(''));
+
+        $this->assertNull($client->lookup(999999));
+    }
+
+    public function testLookupThrowsWhenTheBggCallFails(): void
+    {
+        // A null fetch means the HTTP call itself failed (timeout, 401, 5xx).
+        // That must not be reported as "game not found" - the endpoint turns
+        // a throw into a 502, which is the honest answer.
+        $client = new BggClient(fn() => null);
+
+        $this->expectException(RuntimeException::class);
+        $client->lookup(999999);
+    }
+
+    public function testResolveSearchThrowsWhenTheBggCallFails(): void
     {
         $client = new BggClient(fn() => null);
 
-        $this->assertNull($client->lookup(999999));
+        $this->expectException(RuntimeException::class);
+        $client->resolveSearch('catan');
     }
 
     private function searchXml(string $inner): SimpleXMLElement
