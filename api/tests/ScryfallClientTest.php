@@ -99,4 +99,31 @@ final class ScryfallClientTest extends TestCase
 
         $this->assertNull($client->getCardByName('Not A Real Card'));
     }
+
+    // Scryfall puts "" - not null - at the top level of a double-faced card
+    // and the real values on the faces, which is why mana cost needs an
+    // emptiness check rather than the ?? the other fields use (#34).
+    public function testDoubleFacedCardTakesCostAndTextFromItsFrontFace(): void
+    {
+        $client = new ScryfallClient(fn() => ['data' => [[
+            'id' => 'dfc-1',
+            'name' => 'Delver of Secrets // Insectile Aberration',
+            'mana_cost' => '',
+            'type_line' => 'Creature — Human Wizard // Creature — Human Insect',
+            'card_faces' => [
+                [
+                    'mana_cost' => '{U}',
+                    'oracle_text' => 'At the beginning of your upkeep, look at the top card of your library.',
+                    'image_uris' => ['normal' => 'https://example.com/front.jpg', 'art_crop' => 'https://example.com/art.jpg'],
+                ],
+                ['mana_cost' => '', 'oracle_text' => 'Flying'],
+            ],
+        ]], 'has_more' => false, 'total_cards' => 1]);
+
+        $card = $client->search('delver of secrets', 1)['cards'][0];
+
+        $this->assertSame('{U}', $card['manaCost']);
+        $this->assertStringStartsWith('At the beginning', $card['oracleText']);
+        $this->assertSame('https://example.com/front.jpg', $card['imageUrl']);
+    }
 }

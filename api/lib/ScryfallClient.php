@@ -82,7 +82,10 @@ class ScryfallClient
         return [
             'id' => $c['id'] ?? null,
             'name' => $c['name'] ?? null,
-            'manaCost' => $c['mana_cost'] ?? null,
+            // A double-faced card carries "" at the top level and the real
+            // cost on its front face, so ?? never fires here the way it does
+            // for oracle_text below - it takes an emptiness check (#34).
+            'manaCost' => ($c['mana_cost'] ?? '') ?: ($c['card_faces'][0]['mana_cost'] ?? null),
             'typeLine' => $c['type_line'] ?? null,
             'oracleText' => $c['oracle_text'] ?? ($c['card_faces'][0]['oracle_text'] ?? null),
             'colors' => $c['colors'] ?? null,
