@@ -71,8 +71,14 @@ try {
         'status' => $missing === [] && $ranksRows > 0 ? 'ok' : 'incomplete',
         'boardgameTablesMissing' => $missing,
         'bggRanksRows' => $ranksRows,
+        // Three Commander Spellbook probes, narrowing from the exact call the
+        // combo lookup makes to the barest possible request to the same host:
+        // if all three are 403 the host is blocked, if only the query one is,
+        // something about the query trips a rule at their edge.
         'outbound' => [
             'commanderSpellbook' => probe_outbound(COMMANDER_SPELLBOOK_BASE_URL . '/variants/?q=' . rawurlencode('card:"Sol Ring"') . '&limit=1'),
+            'commanderSpellbookNoQuery' => probe_outbound(COMMANDER_SPELLBOOK_BASE_URL . '/variants/?limit=1'),
+            'commanderSpellbookRoot' => probe_outbound(COMMANDER_SPELLBOOK_BASE_URL . '/'),
             'scryfall' => probe_outbound(SCRYFALL_BASE_URL . '/cards/random'),
         ],
     ]);
