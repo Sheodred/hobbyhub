@@ -7,7 +7,7 @@ import { WeatherPanel } from "./panels/WeatherPanel";
 
 export function HomePage() {
   return (
-    <div className="mx-auto flex w-full flex-col gap-12 lg:w-3/4">
+    <div className="mx-auto flex w-full flex-col gap-12">
       <Hero />
 
       <section aria-labelledby="music-heading" className="mx-auto w-full max-w-md">
