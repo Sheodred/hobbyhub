@@ -45,8 +45,10 @@ export function DeckPage() {
       </Link>
 
       <h1 className="mt-4 text-3xl font-semibold text-slate-100">{deck.name}</h1>
+      {/* MTGGoldfish repeats itself here - a deck's "event" is often just its
+          archetype name, and the deck name already reads "X by pilot". */}
       <p className="mt-2 text-sm text-slate-400">
-        {[deck.pilot, deck.event, deck.archetypeName].filter(Boolean).join(" · ")}
+        {[...new Set([deck.pilot, deck.event, deck.archetypeName].filter(Boolean))].join(" · ")}
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">

@@ -4,10 +4,9 @@ use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../lib/ParseBotMtgGoldfishClient.php';
 
-// Fixtures follow parse.bot's documented response shape. No live call has
-// been made against this API yet (no key), so treat these as the contract we
-// believe in, not one we have observed - if the real thing differs, this file
-// and the mapping in ParseBotMtgGoldfishClient are what change.
+// Fixtures are copied from real responses (verified 2026-08-15 against
+// modern / Boros Energy / deck 7912457), not from the marketplace docs -
+// which is how the duplicate-card and #fragment cases below were found.
 final class ParseBotMtgGoldfishClientTest extends TestCase
 {
     private function client(array $data): ParseBotMtgGoldfishClient
@@ -58,6 +57,40 @@ final class ParseBotMtgGoldfishClientTest extends TestCase
             ],
             $deck['cards']
         );
+    }
+
+    public function testSameCardTwiceInASectionIsSummedNotListedTwice(): void
+    {
+        $deck = $this->client([
+            'deck_id' => '7912457',
+            'deck_name' => 'Boros Energy by tapjoshfor2',
+            'cards' => [
+                ['count' => 1, 'name' => 'Sacred Foundry', 'section' => 'Mainboard'],
+                ['count' => 4, 'name' => 'Ocelot Pride', 'section' => 'Mainboard'],
+                ['count' => 2, 'name' => 'Sacred Foundry', 'section' => 'Mainboard'],
+            ],
+        ])->deck('7912457');
+
+        $this->assertSame(
+            [
+                ['name' => 'Sacred Foundry', 'count' => 3, 'section' => 'Mainboard'],
+                ['name' => 'Ocelot Pride', 'count' => 4, 'section' => 'Mainboard'],
+            ],
+            $deck['cards']
+        );
+    }
+
+    public function testDeckUrlLosesItsTabFragment(): void
+    {
+        $decks = $this->client(['decks' => [[
+            'deck_id' => '7912457',
+            'name' => 'Boros Energy',
+            'url' => '/deck/7912457#online',
+            'pilot' => 'tapjoshfor2',
+            'event' => 'Boros Energy',
+        ]]])->archetypeDecks('/archetype/modern-boros-energy');
+
+        $this->assertSame('/deck/7912457', $decks[0]['url']);
     }
 
     public function testFailedCallIsNull(): void

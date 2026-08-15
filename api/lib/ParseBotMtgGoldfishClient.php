@@ -65,7 +65,9 @@ class ParseBotMtgGoldfishClient
                 'name' => $deck['name'] ?? '',
                 'pilot' => $deck['pilot'] ?? null,
                 'event' => $deck['event'] ?? null,
-                'url' => $deck['url'] ?? null,
+                // "/deck/7912457#online" - a tab selector, same as on
+                // archetype paths, and not part of the deck's address.
+                'url' => isset($deck['url']) ? strtok($deck['url'], '#') : null,
             ];
         }
 
@@ -82,23 +84,34 @@ class ParseBotMtgGoldfishClient
             return null;
         }
 
+        // MTGGoldfish lists the same card more than once in a section when a
+        // deck runs different printings of it - four copies of a land can
+        // arrive as 1 + 2 + 1. A deck list wants the total, so entries with
+        // the same name in the same section are summed, keeping the position
+        // of the first one.
         $cards = [];
         foreach (($data['cards'] ?? []) as $card) {
             $name = $card['name'] ?? '';
             if ($name === '') {
                 continue;
             }
-            $cards[] = [
+            $section = $card['section'] ?? 'Mainboard';
+            $key = $section . '|' . $name;
+            if (isset($cards[$key])) {
+                $cards[$key]['count'] += (int) ($card['count'] ?? 1);
+                continue;
+            }
+            $cards[$key] = [
                 'name' => $name,
                 'count' => (int) ($card['count'] ?? 1),
-                'section' => $card['section'] ?? 'Mainboard',
+                'section' => $section,
             ];
         }
 
         return [
             'deckId' => (string) ($data['deck_id'] ?? $deckId),
             'name' => $data['deck_name'] ?? '',
-            'cards' => $cards,
+            'cards' => array_values($cards),
         ];
     }
 
