@@ -8,6 +8,13 @@ import { getMtgMeta, searchCards } from "./api";
 
 const FEATURED_ART = "https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f-44d3-93c5-fa9a0b37f617.jpg";
 
+// Fixed alongside EDHREC's rotating list: two cards worth reaching in one
+// click whatever the meta is doing. Both are also the standing reference
+// cards for this section's own behaviour - Ashnod's Altar has combos and
+// {C}{C} in its text, Thassa's Oracle has a coloured cost and an ability
+// that reads like prose.
+const REFERENCE_CARDS = ["Ashnod's Altar", "Thassa's Oracle"];
+
 export function MtgPage() {
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -127,6 +134,20 @@ export function MtgPage() {
                 ))}
               </div>
             )}
+
+            <p className="mt-5 text-slate-400">Always here, whatever the meta does:</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {REFERENCE_CARDS.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => handleSuggestionClick(name)}
+                  className="rounded-full border border-slate-700 bg-slate-900 px-4 py-1.5 text-sm text-slate-200 hover:border-indigo-500 hover:text-indigo-400"
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

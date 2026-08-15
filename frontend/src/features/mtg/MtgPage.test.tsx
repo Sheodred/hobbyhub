@@ -83,6 +83,30 @@ describe("MtgPage", () => {
     expect(screen.getByLabelText(/search cards/i)).toHaveValue("Sol Ring");
   });
 
+  // #37: fixed alongside EDHREC's rotating list, so they are reachable even
+  // when the meta call returns nothing.
+  it("offers the two reference cards even with no EDHREC data, and searches on click", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/api/mtg/meta")) {
+          return Promise.resolve(
+            jsonResponse(200, { mostPlayedCards: [], popularCommanderDecks: [], standardDecks: [], commanderDecks: [] }),
+          );
+        }
+        return Promise.resolve(jsonResponse(200, { cards: [], hasMore: false, totalCards: 0 }));
+      }),
+    );
+
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: "Thassa's Oracle" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Ashnod's Altar" }));
+
+    expect(screen.getByLabelText(/search cards/i)).toHaveValue("Ashnod's Altar");
+  });
+
   it("searches and renders results", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
