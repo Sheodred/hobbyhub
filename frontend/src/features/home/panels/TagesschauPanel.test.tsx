@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TagesschauPanel } from "./TagesschauPanel";
@@ -55,5 +55,25 @@ describe("TagesschauPanel", () => {
     renderPanel();
 
     expect(await screen.findByText(/no headlines available/i)).toBeInTheDocument();
+  });
+
+  it("caps the list at 5 headlines with a show more toggle", async () => {
+    const items = Array.from({ length: 7 }, (_, i) => ({
+      headline: `Headline ${i + 1}`,
+      teaser: null,
+      url: `https://example.com/${i + 1}`,
+      publishedAt: null,
+    }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, items)));
+
+    renderPanel();
+
+    await screen.findByRole("link", { name: "Headline 1" });
+    expect(screen.getAllByRole("link")).toHaveLength(5);
+
+    fireEvent.click(screen.getByRole("button", { name: "Show 2 more" }));
+
+    expect(screen.getAllByRole("link")).toHaveLength(7);
+    expect(screen.getByRole("button", { name: "Show less" })).toBeInTheDocument();
   });
 });

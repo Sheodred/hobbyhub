@@ -211,32 +211,15 @@ This is a distinct, longer-running side project — do **not** build it inside t
 
 **Step 3 — Populate:** Use the structured lore corpus as the content source for both the game (level/plane descriptions, NPC dialogue) and the main site's fan-game page.
 
-## 6. Magic Lore Chatbot
+## 6. Boardgame Lookup
 
-A chat feature on the main web app that answers questions about Magic: The Gathering lore (planes, characters, storylines) in natural language. Concept: retrieval-augmented generation (RAG) over the same lore corpus from the fan-game repo (section 5), not a fine-tuned model — cheaper, easier to keep accurate/up to date, and avoids training-data licensing questions entirely.
+A search feature: enter a board game's name and get back its aggregated star ratings from several review sites, a short "good vs. bad" summary distilled from those reviews, and a short description of the playstyle — as easy as possible, one search box in, one answer out.
 
-**Where the data lives:**
-- Canonical source stays the `/lore` Markdown corpus in the MTG Fan Game repo (single source of truth — no duplicating/diverging content between the game and the chatbot).
-- An ingestion step chunks each lore file into ~500–800 token passages (with slight overlap so context isn't cut mid-thought), embeds each chunk, and stores them in a `lore_chunks` table in the main app's existing Postgres via the **pgvector** extension: `(id, source_file, heading, content, embedding vector, updated_at)`. Reusing Postgres avoids standing up a separate vector database for a hobby project.
-- Re-run ingestion whenever `/lore` changes — simplest approach is a small CLI/script (Java command-line runner in the backend, or a script in the fan-game repo that pushes an updated export) triggered manually or on a schedule; no need for real-time sync at this scale.
+**Open architecture question (deliberately not settled here):** whether to scrape review sites fresh on every search, or cache each looked-up game's data in our own DB and only re-scrape on a miss or once the cached entry is older than a TTL. This needs a real plan (data sources, their ToS, refresh cadence, schema) before implementation starts — tracked via a GitHub issue and worked out through this repo's usual brainstorming/planning process rather than prescribed here. See the issue for current status.
 
-**Where the LLM runs:**
-- Don't self-host a model — running a capable LLM needs GPU infrastructure that's unnecessary cost/complexity for a hobby project's traffic level.
-- Use a hosted LLM API called **server-side from the Spring Boot backend** (e.g. the Claude API, since this is already a Claude-built project) — never call the LLM directly from the browser, so the API key stays secret and usage can be logged/rate-limited. A smaller/cheaper model tier is enough for lore Q&A; only bump to a larger model if answer quality needs it.
-- Embeddings likewise via a hosted embeddings API (e.g. Voyage AI) rather than running a local embedding model — one less thing to operate.
+**Precedent already in this repo:** section 4.5 (MTG Meta) hit the same shape of problem (cache external data server-side, don't scrape sites whose ToS forbid it) — reuse that reasoning rather than re-deriving it.
 
-**Request flow (RAG):**
-1. User asks a question in the chat UI.
-2. Backend embeds the question and does a cosine-similarity search in `lore_chunks` (pgvector) for the top ~5 most relevant passages.
-3. Backend builds a prompt: system instructions (answer only from the supplied lore context, say so when the answer isn't in the corpus, stay in a friendly "lore keeper" tone, and include the required fan-content disclaimer in the UI around the chat, not in every message) + the retrieved passages + the user's question.
-4. Backend calls the LLM API and streams the response back to the frontend (Server-Sent Events), so the reply types itself out — a natural fit for the animation requirement.
-5. No long-term conversation storage needed for v1; keep each question stateless, or hold short-lived context in the browser session only.
-
-**Placement & guardrails:**
-- Surface it as a small chat panel on the fan-game page (4.8) and/or the MTG card browser (4.4), rather than a separate top-level page — it's a companion to the lore content, not a standalone destination.
-- Gate it behind login (reuses the existing member auth) to keep API costs bounded and attributable per user.
-- Apply a simple per-user rate limit (e.g. N questions/hour) stored in Postgres; no need for a dedicated rate-limiting service at this scale.
-- Keep the same Fan Content Policy disclaimer visible near the chatbot as on the fan-game page (section 4.8 / 5): unofficial, non-commercial, not endorsed by Wizards of the Coast.
+> Note: the Magic Lore Chatbot that used to live in this section has moved to the MTG Fan Game project's own roadmap (separate repo, see section 5) — the RAG/lore-chatbot design belongs with the lore corpus it depends on, not with this app's roadmap.
 
 ## 7. Non-Functional Requirements
 

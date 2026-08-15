@@ -31,6 +31,39 @@ html {
   50% { transform: translate(-5%, 4%) scale(1.05); }
 }
 
+@keyframes drift-nebula {
+  0%, 100% { transform: scale(1.05) translate(0, 0); }
+  50% { transform: scale(1.12) translate(-2%, 2%); }
+}
+
+/* Hero background "breathe" - much subtler than the nebula/orb drifts since
+   this sits directly behind readable text, not in the ambient page backdrop.
+   background-size:cover already overflows its box at scale 1, so this never
+   reveals an edge. */
+@keyframes drift-hero {
+  0%, 100% { transform: scale(1) translate(0, 0); }
+  50% { transform: scale(1.035) translate(-0.5%, 0.5%); }
+}
+
+/* Chess piece contrast outline (ChessBoard.tsx / pieceIcons.tsx). A single
+   SVG `stroke` won't work here: each piece icon is drawn from several
+   overlapping sub-shapes (e.g. the pawn's head circle + body path + base
+   rect), and stroking each sub-path individually leaves stray outline
+   segments at the internal seams where they touch. A ring of small
+   drop-shadows treats the whole rendered icon as one merged silhouette
+   instead, so the outline only traces the actual outer edge. */
+.piece-outline-dark {
+  filter: drop-shadow(1.5px 0 0 #0a0a12) drop-shadow(-1.5px 0 0 #0a0a12) drop-shadow(0 1.5px 0 #0a0a12)
+    drop-shadow(0 -1.5px 0 #0a0a12) drop-shadow(1.1px 1.1px 0 #0a0a12) drop-shadow(-1.1px -1.1px 0 #0a0a12)
+    drop-shadow(1.1px -1.1px 0 #0a0a12) drop-shadow(-1.1px 1.1px 0 #0a0a12);
+}
+
+.piece-outline-light {
+  filter: drop-shadow(1.5px 0 0 #f5f3ff) drop-shadow(-1.5px 0 0 #f5f3ff) drop-shadow(0 1.5px 0 #f5f3ff)
+    drop-shadow(0 -1.5px 0 #f5f3ff) drop-shadow(1.1px 1.1px 0 #f5f3ff) drop-shadow(-1.1px -1.1px 0 #f5f3ff)
+    drop-shadow(1.1px -1.1px 0 #f5f3ff) drop-shadow(-1.1px 1.1px 0 #f5f3ff);
+}
+
 /* Tactile press feedback on every button - confirms the interface heard the
    click. Transform-only (GPU-friendly), scale/duration within the ranges
    from emilkowalski/skills' emil-design-eng skill. Skipped entirely under

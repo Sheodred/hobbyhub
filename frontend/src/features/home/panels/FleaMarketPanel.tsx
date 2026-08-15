@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { useGeolocation } from "../../../hooks/useGeolocation";
 import { InfoPanelCard } from "./InfoPanelCard";
@@ -31,10 +32,13 @@ function formatDistance(km: number): string {
   return km < 10 ? `${km.toFixed(1)} km away` : `${Math.round(km)} km away`;
 }
 
+const VISIBLE_COUNT = 5;
+
 export function FleaMarketPanel() {
   const { data, isLoading, isError } = useQuery({ queryKey: ["flea-market"], queryFn: getFleaMarketEvents });
   const geolocation = useGeolocation();
   const userLocation = geolocation.status === "success" ? geolocation : null;
+  const [expanded, setExpanded] = useState(false);
 
   if (isError) {
     return (
@@ -65,10 +69,13 @@ export function FleaMarketPanel() {
     );
   }
 
+  const visibleEvents = expanded ? data : data.slice(0, VISIBLE_COUNT);
+  const hasMore = data.length > VISIBLE_COUNT;
+
   return (
     <InfoPanelCard title="Flea Market">
       <ul className="flex flex-col divide-y divide-white/5">
-        {data.map((event) => (
+        {visibleEvents.map((event) => (
           <li key={event.url} className="py-3 text-sm text-slate-300 first:pt-0 last:pb-0">
             <a
               href={event.url}
@@ -88,6 +95,15 @@ export function FleaMarketPanel() {
           </li>
         ))}
       </ul>
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="mt-2 text-xs font-medium text-indigo-400 hover:text-indigo-300 hover:underline"
+        >
+          {expanded ? "Show less" : `Show ${data.length - VISIBLE_COUNT} more`}
+        </button>
+      )}
     </InfoPanelCard>
   );
 }

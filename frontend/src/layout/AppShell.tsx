@@ -17,7 +17,17 @@ export function AppShell() {
           overlapping indigo/violet/fuchsia pools from muddying into brown -
           they brighten each other like light instead, which is the bit that
           reads as "flat black" without it. */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        {/* Cloud texture base layer (AI-generated, frontend/public/cloud-bg.png - same painterly
+            cloud style as the hero's sky, recolored cool/dark) sitting under the orb pools below -
+            gives the black gaps between orbs organic variation instead of flat color, closing the
+            "flat black" read the orbs alone left between color pools on a tall page. Scale starts
+            >1 and only grows during the drift so the edges never show a seam. */}
+        <img
+          src="/cloud-bg.png"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-60 mix-blend-screen motion-safe:animate-[drift-nebula_60s_ease-in-out_infinite]"
+        />
         <div
           className="absolute left-1/4 top-[5%] h-[40rem] w-[40rem] rounded-full mix-blend-screen blur-[110px] motion-safe:animate-[drift-a_26s_ease-in-out_infinite]"
           style={{ backgroundImage: "radial-gradient(closest-side, rgba(99,102,241,0.6), transparent)" }}

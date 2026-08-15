@@ -91,18 +91,17 @@ export function ChessBoard({ chess, disabled, onMove, orientation = "white" }: C
                   <span className="absolute h-3 w-3 rounded-full bg-amber-400/80 shadow-[0_0_8px_rgba(251,191,36,0.6)]" aria-hidden="true" />
                 )}
                 {isTarget && piece && <span className="absolute inset-0 ring-4 ring-inset ring-amber-400/70" aria-hidden="true" />}
+                {/* Invisible click/selection footprint - the piece itself
+                    (not this circle) carries the contrast now, via the
+                    piece-outline-* filter below, so it reads against either
+                    square color without needing a colored badge behind it. */}
                 {piece && (
-                  <span
-                    aria-hidden="true"
-                    className={`flex h-[78%] w-[78%] items-center justify-center rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.45)] ${
-                      piece.color === "w"
-                        ? "bg-gradient-to-b from-amber-50 to-amber-100 ring-1 ring-black/5"
-                        : "bg-gradient-to-b from-[#241a3f] to-[#150f28] ring-1 ring-white/15"
-                    }`}
-                  >
+                  <span aria-hidden="true" className="flex h-[78%] w-[78%] items-center justify-center rounded-full">
                     <PieceIcon
                       type={piece.type as "k" | "q" | "r" | "b" | "n" | "p"}
-                      className={`h-[62%] w-[62%] ${piece.color === "w" ? "text-indigo-950" : "text-indigo-100"}`}
+                      className={`h-[82%] w-[82%] ${
+                        piece.color === "w" ? "text-amber-50 piece-outline-dark" : "text-[#150f28] piece-outline-light"
+                      }`}
                     />
                   </span>
                 )}

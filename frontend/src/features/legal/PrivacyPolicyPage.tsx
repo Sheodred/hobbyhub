@@ -31,12 +31,15 @@ export function PrivacyPolicyPage() {
           (Art. 6(1)(f) GDPR).
         </li>
         <li>
-          <span className="font-medium text-slate-100">Location, for the homepage weather panel.</span> If you
-          allow it via your browser&apos;s own permission prompt, your device sends its coordinates directly to
-          Open-Meteo (open-meteo.com) to show local weather - this call does not go through our backend, and we
-          never see or store your location ourselves. Declining the prompt (or ignoring it) just hides the panel;
-          nothing else on the site depends on it. Legal basis: your consent, given via that browser prompt (Art.
-          6(1)(a) GDPR); withdrawable at any time through your browser&apos;s site-permission settings.
+          <span className="font-medium text-slate-100">Location, for the homepage weather and flea market panels.</span>{" "}
+          If you allow it via your browser&apos;s own permission prompt, it is used for two on-page features: the
+          weather panel sends your coordinates directly to Open-Meteo (open-meteo.com) to show local weather - this
+          call does not go through our backend; the flea market panel uses your coordinates only inside your
+          browser, to calculate and display each listed event&apos;s distance from you, and never sends them
+          anywhere. We never see or store your location ourselves in either case. Declining the prompt (or ignoring
+          it) just hides the weather panel and the per-event distance; nothing else on the site depends on it.
+          Legal basis: your consent, given via that browser prompt (Art. 6(1)(a) GDPR); withdrawable at any time
+          through your browser&apos;s site-permission settings.
         </li>
         <li>
           <span className="font-medium text-slate-100">Server logs.</span> Standard web server logs (IP address,

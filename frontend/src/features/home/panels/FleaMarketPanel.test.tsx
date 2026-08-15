@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { FleaMarketPanel } from "./FleaMarketPanel";
@@ -88,5 +88,27 @@ describe("FleaMarketPanel", () => {
     renderPanel();
 
     expect(await screen.findByText(/no flea markets in the next 30 days/i)).toBeInTheDocument();
+  });
+
+  it("caps the list at 5 events with a show more toggle", async () => {
+    const events = Array.from({ length: 7 }, (_, i) => ({
+      name: `Flea Market ${i + 1}`,
+      location: null,
+      url: `https://example.com/${i + 1}`,
+      date: "2026-08-08T09:00:00+02:00",
+      latitude: null,
+      longitude: null,
+    }));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, events)));
+
+    renderPanel();
+
+    await screen.findByRole("link", { name: "Flea Market 1" });
+    expect(screen.getAllByRole("link")).toHaveLength(5);
+
+    fireEvent.click(screen.getByRole("button", { name: "Show 2 more" }));
+
+    expect(screen.getAllByRole("link")).toHaveLength(7);
+    expect(screen.getByRole("button", { name: "Show less" })).toBeInTheDocument();
   });
 });
