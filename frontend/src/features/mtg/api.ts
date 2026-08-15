@@ -67,3 +67,36 @@ export interface MtgMetaResponse {
 export function getMtgMeta(): Promise<MtgMetaResponse> {
   return apiFetch<MtgMetaResponse>("/api/mtg/meta");
 }
+
+export interface DeckSummary {
+  deckId: string;
+  name: string;
+  pilot: string | null;
+  event: string | null;
+  url: string | null;
+}
+
+export interface ArchetypeDecksResponse {
+  archetypeName: string | null;
+  decks: DeckSummary[];
+}
+
+export function getArchetypeDecks(path: string): Promise<ArchetypeDecksResponse> {
+  const params = new URLSearchParams({ path });
+  return apiFetch<ArchetypeDecksResponse>(`/api/mtg/archetype-decks?${params.toString()}`);
+}
+
+export interface DeckSection {
+  section: string;
+  cards: { name: string; count: number }[];
+}
+
+export interface Deck extends DeckSummary {
+  format: string;
+  archetypeName: string;
+  sections: DeckSection[];
+}
+
+export function getDeck(deckId: string): Promise<Deck> {
+  return apiFetch<Deck>(`/api/mtg/decks/${deckId}`);
+}

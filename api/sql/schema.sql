@@ -167,5 +167,33 @@ CREATE TABLE brettspiele_report_throttle (
     last_call_at DOUBLE NOT NULL
 );
 
+-- Decks are imported as a snapshot, not fetched per request: the upstream is
+-- a metered third-party wrapper (200 calls/month on the free tier), and a
+-- published tournament deck never changes once it exists. The site only ever
+-- reads these tables - nothing in a request path calls out.
+CREATE TABLE mtg_decks (
+    deck_id VARCHAR(30) PRIMARY KEY,
+    name TEXT NOT NULL,
+    pilot TEXT NULL,
+    event TEXT NULL,
+    url TEXT NULL,
+    format VARCHAR(30) NOT NULL,
+    archetype_name TEXT NOT NULL,
+    archetype_path VARCHAR(255) NOT NULL,
+    sort_order INT NOT NULL,
+    fetched_at DATETIME NOT NULL,
+    INDEX idx_mtg_decks_archetype (archetype_path, sort_order)
+);
+
+CREATE TABLE mtg_deck_cards (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    deck_id VARCHAR(30) NOT NULL,
+    section VARCHAR(30) NOT NULL,
+    name TEXT NOT NULL,
+    count INT NOT NULL,
+    sort_order INT NOT NULL,
+    INDEX idx_mtg_deck_cards_deck (deck_id, sort_order)
+);
+
 INSERT INTO wotc_news_fallback (headline, url, sort_order) VALUES
     ('Magic: The Gathering news', 'https://magic.wizards.com/en/news', 0);

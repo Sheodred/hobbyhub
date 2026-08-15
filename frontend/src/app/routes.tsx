@@ -8,6 +8,8 @@ import { ImpressumPage } from "../features/legal/ImpressumPage";
 import { PrivacyPolicyPage } from "../features/legal/PrivacyPolicyPage";
 import { TermsPage } from "../features/legal/TermsPage";
 import { NotFoundPage } from "../features/misc/NotFoundPage";
+import { ArchetypeDecksPage } from "../features/mtg/ArchetypeDecksPage";
+import { DeckPage } from "../features/mtg/DeckPage";
 import { MtgCardDetailPage } from "../features/mtg/MtgCardDetailPage";
 import { MtgMetaPage } from "../features/mtg/MtgMetaPage";
 import { MtgPage } from "../features/mtg/MtgPage";
@@ -21,6 +23,11 @@ export const routes: RouteObject[] = [
       { path: "/about", element: <AboutPage /> },
       { path: "/mtg", element: <MtgPage /> },
       { path: "/mtg/meta", element: <MtgMetaPage /> },
+      // Both deck routes must stay above /mtg/:id - a static segment wins
+      // over a dynamic one in the router's ranking, but keeping them in
+      // reading order makes that obvious rather than incidental.
+      { path: "/mtg/decks", element: <ArchetypeDecksPage /> },
+      { path: "/mtg/decks/:deckId", element: <DeckPage /> },
       { path: "/mtg/:id", element: <MtgCardDetailPage /> },
       { path: "/boardgames", element: <BoardgameLookupPage /> },
       { path: "/chess", element: <ChessPage /> },

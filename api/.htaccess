@@ -18,6 +18,7 @@ RewriteRule ^mtg/printings/?$ mtg/printings.php [QSA,END]
 RewriteRule ^mtg/cards/by-name/?$ mtg/cards/by-name.php [QSA,END]
 RewriteRule ^mtg/combos/?$ mtg/combos.php [QSA,END]
 RewriteRule ^mtg/meta/?$ mtg/meta.php [QSA,END]
+RewriteRule ^mtg/archetype-decks/?$ mtg/archetype-decks.php [QSA,END]
 RewriteRule ^boardgames/lookup/?$ boardgames/lookup.php [QSA,END]
 RewriteRule ^news/tagesschau/?$ news/tagesschau.php [QSA,END]
 RewriteRule ^news/wotc/?$ news/wotc.php [QSA,END]
@@ -25,5 +26,7 @@ RewriteRule ^news/dortmund/?$ news/dortmund.php [QSA,END]
 RewriteRule ^news/fleamarket/?$ news/fleamarket.php [QSA,END]
 RewriteRule ^health/?$ health.php [QSA,END]
 
-# Dynamic route: /mtg/cards/{id} - anything not already matched above.
+# Dynamic routes: /mtg/cards/{id} and /mtg/decks/{id} - anything not already
+# matched above.
 RewriteRule ^mtg/cards/([^/]+)/?$ mtg/cards/get.php?id=$1 [QSA,END]
+RewriteRule ^mtg/decks/([^/]+)/?$ mtg/decks/get.php?id=$1 [QSA,END]

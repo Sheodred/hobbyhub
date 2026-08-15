@@ -61,8 +61,10 @@ try {
     $present = $pdo->query("SHOW TABLES LIKE 'b%'")->fetchAll(PDO::FETCH_COLUMN);
     $present = array_merge($present, $pdo->query("SHOW TABLES LIKE 'a%'")->fetchAll(PDO::FETCH_COLUMN));
     $present = array_merge($present, $pdo->query("SHOW TABLES LIKE 'h%'")->fetchAll(PDO::FETCH_COLUMN));
+    $present = array_merge($present, $pdo->query("SHOW TABLES LIKE 'm%'")->fetchAll(PDO::FETCH_COLUMN));
 
     $missing = array_values(array_diff($required, $present));
+    $deckTablesMissing = array_values(array_diff(['mtg_decks', 'mtg_deck_cards'], $present));
     $ranksRows = in_array('bgg_ranks', $present, true)
         ? (int) $pdo->query('SELECT COUNT(*) FROM bgg_ranks')->fetchColumn()
         : null;
@@ -71,6 +73,7 @@ try {
         'status' => $missing === [] && $ranksRows > 0 ? 'ok' : 'incomplete',
         'boardgameTablesMissing' => $missing,
         'bggRanksRows' => $ranksRows,
+        'deckTablesMissing' => $deckTablesMissing,
         // Three Commander Spellbook probes, narrowing from the exact call the
         // combo lookup makes to the barest possible request to the same host:
         // if all three are 403 the host is blocked, if only the query one is,

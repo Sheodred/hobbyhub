@@ -32,6 +32,12 @@ define('SCRYFALL_USER_AGENT', 'HobbyHub/0.1 (+https://github.com/Sheodred/hobbyh
 // imported bgg_ranks dump. Real value goes in config.local.php.
 env_or('BGG_API_TOKEN', '');
 env_or('COMMANDER_SPELLBOOK_BASE_URL', 'https://backend.commanderspellbook.com');
+// parse.bot's MTGGoldfish wrapper, used only by the deck importer (a metered
+// third-party service - see cron/import_mtg_decks.php). Empty means "no key",
+// and the importer refuses to run rather than burning a failed call. Real
+// value goes in config.local.php.
+env_or('PARSE_BOT_BASE_URL', 'https://api.parse.bot/scraper/4836cefe-c334-4463-86c6-73a648a3efd8');
+env_or('PARSE_BOT_API_KEY', '');
 env_or('TAGESSCHAU_BASE_URL', 'https://www.tagesschau.de');
 env_or('WOTC_NEWS_URL', 'https://magic.wizards.com/en/news');
 env_or('EDHREC_JSON_BASE_URL', 'https://json.edhrec.com');

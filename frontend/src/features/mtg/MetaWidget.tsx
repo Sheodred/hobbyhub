@@ -1,7 +1,21 @@
+import { Link } from "react-router-dom";
+
 import { FadeIn } from "../../components/FadeIn";
 import { QueryState } from "../../components/QueryState";
 import type { MetaEntry } from "./api";
 import { CardHoverPreview } from "./CardHoverPreview";
+
+// An MTGGoldfish archetype is identified by its path alone, which is also how
+// the deck importer stores it - so a meta entry pointing at one can go to our
+// own deck list instead of off-site. Anything else stays an outbound link.
+function archetypePath(url: string): string | null {
+  try {
+    const { pathname } = new URL(url, "https://www.mtggoldfish.com");
+    return pathname.startsWith("/archetype/") ? pathname : null;
+  } catch {
+    return null;
+  }
+}
 
 interface MetaWidgetProps {
   title: string;
@@ -48,6 +62,13 @@ export function MetaWidget({ title, source, entries, isLoading, isError, cardNam
                     {entry.name}
                   </a>
                 </CardHoverPreview>
+              ) : archetypePath(entry.url) ? (
+                <Link
+                  to={`/mtg/decks?archetype=${encodeURIComponent(archetypePath(entry.url)!)}`}
+                  className="text-sm text-slate-200 hover:text-indigo-400 hover:underline"
+                >
+                  {entry.name}
+                </Link>
               ) : (
                 <a
                   href={entry.url}
