@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "ai-color-palette",
+        "value": "indigo",
+        "createdAt": "2026-08-15T08:07:20.855Z",
+        "reason": "User confirmed indigo is the site's established accent, used across 12+ existing files"
+      }
+    ]
+  }
+}
