@@ -117,7 +117,9 @@ export function BoardgameLookupPage() {
                 <h2 className="text-2xl font-semibold text-slate-100">{state.game.name}</h2>
                 {state.game.rating !== null && (
                   <p className="flex items-baseline gap-2">
-                    <span className="text-2xl font-semibold text-indigo-400">{state.game.rating}</span>
+                    {/* JSON drops the trailing zero, so 8.0 arrives as 8 - pin
+                        one decimal so ratings line up with each other. */}
+                    <span className="text-2xl font-semibold text-indigo-400">{state.game.rating.toFixed(1)}</span>
                     <span className="text-xs text-slate-500">
                       / 10{state.game.numRatings !== null && ` · ${state.game.numRatings} ratings`}
                     </span>
