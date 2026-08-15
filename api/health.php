@@ -32,10 +32,16 @@ function probe_outbound(string $url): array
         CURLOPT_HTTPHEADER => ['Accept: application/json', 'User-Agent: ' . SCRYFALL_USER_AGENT],
     ]);
     $body = curl_exec($ch);
+    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $result = [
-        'httpStatus' => (int) curl_getinfo($ch, CURLINFO_HTTP_CODE),
+        'httpStatus' => $status,
         'curlError' => curl_error($ch) ?: null,
         'bytes' => $body === false ? null : strlen($body),
+        // Only on failure, and only the first 200 characters: a rejection
+        // usually explains itself ("api key required", a WAF block id), and
+        // that sentence is the difference between fixing this and guessing
+        // at it. Success bodies stay out - they are just card data.
+        'bodySnippet' => $status >= 400 && is_string($body) ? substr($body, 0, 200) : null,
     ];
     curl_close($ch);
 
