@@ -110,15 +110,18 @@ Full implementation plan: `docs/superpowers/plans/2026-08-14-boardgame-lookup.md
   not a resolved question.** If BGG or a maintainer ever raises it,
   the fallback is straightforward (add a commercial license, or pull
   the feature) — not revisited further here.
-- **The caching/staleness review gap is real and unaddressed.** Before
-  this ships to real production traffic, the 14-day TTL and the
-  "never negative-cache a failure" behavior should get the stress-test
-  pass that didn't complete during verification — specifically whether
-  a transient BGG outage on a first-ever lookup for a game gets
-  silently cached as `null` for 14 days the way `ScryfallClient`'s
-  identical pattern already can (a pre-existing limitation this feature
-  inherits rather than introduces, but worth confirming is still
-  acceptable at a 14-day TTL rather than Scryfall's 5-minute one).
+- **The caching/staleness gap is resolved (2026-08-15).** The review
+  that didn't complete during verification was replaced by reading the
+  code directly: `http_get_raw()` returns `null` for both a transient
+  network failure and a real 4xx/5xx, and `cache_aside()` cached that
+  `null` unconditionally for the full TTL — so a BGG outage on a
+  first-ever lookup would have pinned "not found" for 14 days.
+  Maintainer decision: fix it at the root rather than per-client —
+  `cache_aside()` now skips the write and returns `null` when the
+  fetcher returns `null`. That also fixes `ScryfallClient`,
+  `CommanderSpellbookClient`, and `NominatimGeocodeClient`, which had
+  the same latent behavior at shorter TTLs. The 14-day TTL stands,
+  since a failure can no longer occupy it.
 - Multi-site review aggregation, LLM-based summarization, and any
   "save to my list" feature are explicit non-goals for v1 (the latter
   is moot anyway — HobbyHub has no accounts post `docs/adr/0009`).

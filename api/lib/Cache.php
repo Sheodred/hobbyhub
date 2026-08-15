@@ -18,6 +18,15 @@ function cache_aside(string $table, string $keyColumn, string $key, int $ttlSeco
 
     $result = $fetch();
 
+    // A null fetch means the upstream call failed (http_get_raw() collapses a
+    // network error and a 4xx/5xx into the same null) - don't cache a failure
+    // as if it were data. Costs a refetch per request until it succeeds; the
+    // alternative is a transient outage pinning a wrong answer for the full
+    // TTL, which at BGG's 14 days would be two weeks (docs/adr/0011).
+    if ($result === null) {
+        return null;
+    }
+
     $stmt = $pdo->prepare(
         "REPLACE INTO $table ($keyColumn, response_json, expires_at) " .
         'VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? SECOND))'
