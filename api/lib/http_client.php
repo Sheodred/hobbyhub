@@ -8,6 +8,19 @@ function http_get_json(string $url, int $timeoutSeconds = 10, array $headers = [
     return $body === null ? null : json_decode($body, true);
 }
 
+// BGG's XML API2 returns XML rather than the JSON every other client here
+// consumes - one new primitive next to the existing helpers, not a separate
+// HTTP layer.
+function http_get_xml(string $url, int $timeoutSeconds = 10, array $headers = []): ?SimpleXMLElement
+{
+    $body = http_get_raw($url, $timeoutSeconds, array_merge(['Accept: application/xml', 'User-Agent: ' . SCRYFALL_USER_AGENT], $headers));
+    if ($body === null) {
+        return null;
+    }
+    $xml = @simplexml_load_string($body);
+    return $xml === false ? null : $xml;
+}
+
 function http_get_html(string $url, int $timeoutSeconds = 10): ?string
 {
     return http_get_raw($url, $timeoutSeconds, ['User-Agent: ' . SCRYFALL_USER_AGENT]);
