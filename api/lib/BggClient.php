@@ -29,6 +29,17 @@ class BggClient
 
     public function lookup(int $bggId): ?array
     {
+        try {
+            return $this->lookupFromApi($bggId);
+        } catch (RuntimeException $e) {
+            // BGG unreachable - answer from the imported ranks dump if it
+            // knows this id, otherwise let the failure through as a 502.
+            return $this->lookupFromRanks($bggId) ?? throw $e;
+        }
+    }
+
+    private function lookupFromApi(int $bggId): ?array
+    {
         return $this->cached($bggId, function () use ($bggId) {
             $this->throttle();
             $xml = ($this->httpGetXml)(self::BASE_URL . '/thing?' . http_build_query([
@@ -63,6 +74,15 @@ class BggClient
             return ['status' => 'ok', 'bggId' => (int) $row['bgg_id']];
         }
 
+        try {
+            return $this->resolveSearchViaApi($query, $normalized);
+        } catch (RuntimeException $e) {
+            return $this->resolveFromRanks($normalized) ?? throw $e;
+        }
+    }
+
+    private function resolveSearchViaApi(string $query, string $normalized): array
+    {
         $this->throttle();
         $xml = ($this->httpGetXml)(self::BASE_URL . '/search?' . http_build_query(['type' => 'boardgame', 'query' => $query]));
         // A null here means the HTTP call itself failed - BGG returns 401
@@ -101,6 +121,76 @@ class BggClient
         return ['status' => 'disambiguation', 'candidates' => $candidates];
     }
 
+    // --- Local fallback, backed by the imported boardgames_ranks.csv -------
+    //
+    // The dump carries names and ratings for BGG's whole catalog but no
+    // descriptions and no comments, so anything answered from here is marked
+    // partial and is never written to bgg_lookup_cache: a 14-day cache entry
+    // would outlive the outage that produced it, and would keep serving the
+    // thinner answer long after the live API came back.
+
+    private function lookupFromRanks(int $bggId): ?array
+    {
+        $stmt = db()->prepare('SELECT bgg_id, name, average, users_rated FROM bgg_ranks WHERE bgg_id = ?');
+        $stmt->execute([$bggId]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            return null;
+        }
+
+        return [
+            'bggId' => (int) $row['bgg_id'],
+            'name' => (string) $row['name'],
+            'description' => '',
+            'rating' => $row['average'] === null ? null : round((float) $row['average'], 1),
+            'numRatings' => $row['users_rated'] === null ? null : (int) $row['users_rated'],
+            'good' => null,
+            'bad' => null,
+            'partial' => true,
+            'source' => ['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/' . (int) $row['bgg_id']],
+        ];
+    }
+
+    /**
+     * @return array{status:'ok',bggId:int}|array{status:'disambiguation',candidates:array}|null
+     */
+    private function resolveFromRanks(string $normalizedQuery): ?array
+    {
+        // Exact name first, then a prefix search - two plain queries rather
+        // than one ranked query, because "which one did it actually match"
+        // stays obvious when this is debugged at 3am.
+        $matches = $this->queryRanks('SELECT bgg_id, name, year_published FROM bgg_ranks WHERE name = ? ORDER BY users_rated DESC LIMIT 10', $normalizedQuery);
+        if ($matches === []) {
+            $matches = $this->queryRanks('SELECT bgg_id, name, year_published FROM bgg_ranks WHERE name LIKE ? ORDER BY users_rated DESC LIMIT 10', $normalizedQuery . '%');
+        }
+
+        if ($matches === []) {
+            // Can't confirm the game doesn't exist - only that we can't see
+            // it. That's an error, not a "not_found" answer.
+            return null;
+        }
+
+        if (count($matches) === 1) {
+            return ['status' => 'ok', 'bggId' => (int) $matches[0]['bgg_id']];
+        }
+
+        return [
+            'status' => 'disambiguation',
+            'candidates' => array_map(fn(array $row) => [
+                'bggId' => (int) $row['bgg_id'],
+                'name' => (string) $row['name'],
+                'yearPublished' => $row['year_published'] === null ? null : (int) $row['year_published'],
+            ], $matches),
+        ];
+    }
+
+    private function queryRanks(string $sql, string $param): array
+    {
+        $stmt = db()->prepare($sql);
+        $stmt->execute([$param]);
+        return $stmt->fetchAll();
+    }
+
     private function cacheResolvedSearch(string $normalizedQuery, int $bggId): void
     {
         $stmt = db()->prepare(
@@ -129,6 +219,7 @@ class BggClient
             'numRatings' => isset($item->statistics->ratings->usersrated) ? (int) $item->statistics->ratings->usersrated['value'] : null,
             'good' => $good,
             'bad' => $bad,
+            'partial' => false,
             'source' => ['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/' . $bggId],
         ];
     }

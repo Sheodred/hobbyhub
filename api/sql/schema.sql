@@ -89,6 +89,22 @@ CREATE TABLE bgg_search_cache (
     expires_at DATETIME NOT NULL
 );
 
+-- BGG's own published boardgames_ranks.csv export, imported by
+-- api/sql/import_bgg_ranks.php. Stands in for the live XML API while that
+-- is unavailable (#40): it carries ratings and names for the whole catalog
+-- but no descriptions or comments, so a lookup served from here is
+-- deliberately partial. Not refreshed automatically - re-run the importer
+-- against a newer dump when one is downloaded.
+CREATE TABLE bgg_ranks (
+    bgg_id INT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    year_published INT NULL,
+    average DOUBLE NULL,
+    users_rated INT NULL,
+    is_expansion TINYINT NOT NULL DEFAULT 0,
+    INDEX idx_bgg_ranks_name (name)
+);
+
 -- Single row, mirrors scryfall_throttle - spaces outbound BGG requests
 -- per the ~2 req/sec community-observed convention (BggClient::throttle()).
 CREATE TABLE bgg_throttle (

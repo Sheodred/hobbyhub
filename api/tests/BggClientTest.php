@@ -10,6 +10,17 @@ final class BggClientTest extends TestCase
     {
         db()->exec('DELETE FROM bgg_lookup_cache');
         db()->exec('DELETE FROM bgg_search_cache');
+        db()->exec('DELETE FROM bgg_ranks');
+    }
+
+    private function seedRanks(): void
+    {
+        db()->exec(
+            "INSERT INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion) VALUES
+             (13, 'Catan', 1995, 7.09029, 143738, 0),
+             (926, 'Catan: Cities & Knights', 1998, 7.4, 40000, 1),
+             (266192, 'Wingspan', 2019, 8.1, 120000, 0)"
+        );
     }
 
     private function thingXml(string $inner): SimpleXMLElement
@@ -84,7 +95,7 @@ final class BggClientTest extends TestCase
         $this->assertNull($client->lookup(999999));
     }
 
-    public function testLookupThrowsWhenTheBggCallFails(): void
+    public function testLookupThrowsWhenTheBggCallFailsAndNoLocalDataExists(): void
     {
         // A null fetch means the HTTP call itself failed (timeout, 401, 5xx).
         // That must not be reported as "game not found" - the endpoint turns
@@ -95,12 +106,72 @@ final class BggClientTest extends TestCase
         $client->lookup(999999);
     }
 
-    public function testResolveSearchThrowsWhenTheBggCallFails(): void
+    public function testResolveSearchThrowsWhenTheBggCallFailsAndNoLocalDataExists(): void
     {
         $client = new BggClient(fn() => null);
 
         $this->expectException(RuntimeException::class);
         $client->resolveSearch('catan');
+    }
+
+    public function testLookupFallsBackToTheLocalRanksTableWhenBggIsUnreachable(): void
+    {
+        $this->seedRanks();
+        $client = new BggClient(fn() => null);
+
+        $result = $client->lookup(13);
+
+        $this->assertSame('Catan', $result['name']);
+        $this->assertSame(7.1, $result['rating']);
+        $this->assertSame(143738, $result['numRatings']);
+        $this->assertTrue($result['partial'], 'a ranks-backed answer carries no description or comments');
+        $this->assertSame('', $result['description']);
+        $this->assertNull($result['good']);
+        $this->assertNull($result['bad']);
+        $this->assertSame('https://boardgamegeek.com/boardgame/13', $result['source']['url']);
+    }
+
+    public function testFallbackLookupIsNotCached(): void
+    {
+        $this->seedRanks();
+        (new BggClient(fn() => null))->lookup(13);
+
+        $this->assertSame(
+            0,
+            (int) db()->query('SELECT COUNT(*) FROM bgg_lookup_cache WHERE bgg_id = 13')->fetchColumn(),
+            'dump-derived data must not occupy the 14-day cache - it would outlive the outage that caused it'
+        );
+    }
+
+    public function testResolveSearchFallsBackToAnExactLocalNameMatch(): void
+    {
+        $this->seedRanks();
+
+        $this->assertSame(
+            ['status' => 'ok', 'bggId' => 13],
+            (new BggClient(fn() => null))->resolveSearch('  CATAN ')
+        );
+    }
+
+    public function testResolveSearchFallbackOffersLocalPrefixMatchesForDisambiguation(): void
+    {
+        $this->seedRanks();
+
+        $result = (new BggClient(fn() => null))->resolveSearch('cat');
+
+        $this->assertSame('disambiguation', $result['status']);
+        $this->assertCount(2, $result['candidates']);
+        // Most-rated first, so the game people actually meant leads.
+        $this->assertSame(13, $result['candidates'][0]['bggId']);
+        $this->assertSame(1995, $result['candidates'][0]['yearPublished']);
+    }
+
+    public function testResolveSearchFallbackStillThrowsWhenNothingMatchesLocally(): void
+    {
+        $this->seedRanks();
+
+        $this->expectException(RuntimeException::class);
+        (new BggClient(fn() => null))->resolveSearch('zzzznonexistentgamezzzz');
     }
 
     private function searchXml(string $inner): SimpleXMLElement

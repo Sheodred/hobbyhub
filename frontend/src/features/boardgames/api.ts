@@ -19,6 +19,12 @@ export interface Boardgame {
   numRatings: number | null;
   good: string | null;
   bad: string | null;
+  /**
+   * True when the answer came from the imported BGG ranks dump rather than
+   * the live API - rating and name only, no description or comments. The
+   * page says so rather than rendering the gaps as empty sections.
+   */
+  partial: boolean;
   source: BoardgameSource;
 }
 
