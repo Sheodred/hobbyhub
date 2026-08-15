@@ -15,6 +15,33 @@ if (($_GET['checks'] ?? '') === '') {
     json_response(['status' => 'ok']);
 }
 
+// Commander Spellbook answers fine from a dev machine and not at all from
+// production (issue #35), and http_get_raw() collapses "DNS never resolved"
+// and "403 from their CDN" into the same null - so the one fact needed to
+// tell those apart is the one production cannot report. Scryfall is the
+// control: it is known to work from here, so a failure on both means the
+// host, and a failure on one means that host. Status code and curl's own
+// error string only, never a response body.
+function probe_outbound(string $url): array
+{
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_TIMEOUT => 8,
+        CURLOPT_HTTPHEADER => ['Accept: application/json', 'User-Agent: ' . SCRYFALL_USER_AGENT],
+    ]);
+    $body = curl_exec($ch);
+    $result = [
+        'httpStatus' => (int) curl_getinfo($ch, CURLINFO_HTTP_CODE),
+        'curlError' => curl_error($ch) ?: null,
+        'bytes' => $body === false ? null : strlen($body),
+    ];
+    curl_close($ch);
+
+    return $result;
+}
+
 $required = [
     'bgg_lookup_cache', 'bgg_search_cache', 'bgg_ranks', 'bgg_throttle',
     'bgq_review_cache', 'bgq_throttle',
@@ -38,6 +65,10 @@ try {
         'status' => $missing === [] && $ranksRows > 0 ? 'ok' : 'incomplete',
         'boardgameTablesMissing' => $missing,
         'bggRanksRows' => $ranksRows,
+        'outbound' => [
+            'commanderSpellbook' => probe_outbound(COMMANDER_SPELLBOOK_BASE_URL . '/variants/?q=' . rawurlencode('card:"Sol Ring"') . '&limit=1'),
+            'scryfall' => probe_outbound(SCRYFALL_BASE_URL . '/cards/random'),
+        ],
     ]);
 } catch (Throwable $e) {
     error_log('health checks failed: ' . $e->getMessage());
