@@ -19,6 +19,16 @@ export interface AmazonRating {
   url: string;
 }
 
+/** Board Game Quest's own review verdict: their score, how it plays, pros/cons. */
+export interface BoardGameQuestReview {
+  score: number;
+  rules: string;
+  hits: string[];
+  misses: string[];
+  title: string;
+  url: string;
+}
+
 export interface Boardgame {
   bggId: number;
   name: string;
@@ -35,6 +45,8 @@ export interface Boardgame {
   partial: boolean;
   /** null when no confident product match was found, or the lookup failed. */
   amazon: AmazonRating | null;
+  /** null when Board Game Quest has no review for exactly this game. */
+  bgq: BoardGameQuestReview | null;
   source: BoardgameSource;
 }
 

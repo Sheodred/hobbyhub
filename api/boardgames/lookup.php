@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../lib/http.php';
 require_once __DIR__ . '/../lib/BggClient.php';
 require_once __DIR__ . '/../lib/AmazonRatingClient.php';
+require_once __DIR__ . '/../lib/BoardGameQuestClient.php';
 
 $q = trim($_GET['q'] ?? '');
 $bggIdParam = $_GET['bgg_id'] ?? '';
@@ -36,6 +37,20 @@ try {
     } catch (Throwable $e) {
         error_log('amazon rating lookup failed: ' . $e->getMessage());
         $game['amazon'] = null;
+    }
+
+    // Board Game Quest's own verdict, also best-effort. Their Hits/Misses
+    // fill the good/bad slots while BGG's comments are unavailable (#40);
+    // once BGG answers again its own comments keep priority.
+    try {
+        $game['bgq'] = (new BoardGameQuestClient())->reviewFor($game['name']);
+        if ($game['bgq'] !== null) {
+            $game['good'] ??= $game['bgq']['hits'][0] ?? null;
+            $game['bad'] ??= $game['bgq']['misses'][0] ?? null;
+        }
+    } catch (Throwable $e) {
+        error_log('board game quest lookup failed: ' . $e->getMessage());
+        $game['bgq'] = null;
     }
 
     json_response(['status' => 'ok', 'game' => $game]);

@@ -112,6 +112,20 @@ CREATE TABLE bgg_throttle (
     last_call_at DOUBLE NOT NULL
 );
 
+-- Board Game Quest review verdict per game name, read from their public
+-- WordPress REST API by BoardGameQuestClient (docs/adr/0013). Long TTL - a
+-- published review doesn't change.
+CREATE TABLE bgq_review_cache (
+    query_key VARCHAR(255) PRIMARY KEY,
+    response_json LONGTEXT NOT NULL,
+    expires_at DATETIME NOT NULL
+);
+
+CREATE TABLE bgq_throttle (
+    id TINYINT PRIMARY KEY DEFAULT 1,
+    last_call_at DOUBLE NOT NULL
+);
+
 -- Aggregate customer rating per game name, read from amazon.de search
 -- results by AmazonRatingClient (docs/adr/0012). Stores the star average and
 -- rating count only - a fact, never review text. Cache-aside shape, keyed by

@@ -127,7 +127,27 @@ export function BoardgameLookupPage() {
                 )}
               </div>
 
-              {state.game.partial ? (
+              {state.game.bgq && (
+                <section className="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-4">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="text-xs uppercase tracking-wide text-slate-500">Board Game Quest</span>
+                    <span className="text-lg font-semibold text-sky-300">{state.game.bgq.score.toFixed(1)}</span>
+                    <span className="text-xs text-slate-500">/ 5</span>
+                  </div>
+                  <h3 className="mt-3 text-xs font-medium uppercase tracking-wide text-slate-400">How it plays</h3>
+                  <p className="mt-1 text-sm text-slate-300">{state.game.bgq.rules}</p>
+                  <a
+                    href={state.game.bgq.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-block text-xs text-slate-500 underline hover:text-slate-300"
+                  >
+                    Read the full review at Board Game Quest
+                  </a>
+                </section>
+              )}
+
+              {state.game.partial && !state.game.bgq ? (
                 <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-200/90">
                   Only the community rating is available for this game right now — the description and player
                   comments come from BoardGameGeek&apos;s live API, which this site can&apos;t reach yet.
