@@ -28,7 +28,9 @@ describe("ComboPanel", () => {
       vi.fn().mockResolvedValue(
         jsonResponse(200, [
           {
-            otherCards: ["Firemind's Foresight"],
+            otherCards: [
+              { name: "Firemind's Foresight", imageUrl: "https://cards.scryfall.io/small/front/5/5/abc.jpg" },
+            ],
             cardCount: 2,
             numDecks: 206,
             produces: ["Infinite damage"],
@@ -48,6 +50,34 @@ describe("ComboPanel", () => {
       "href",
       "https://commanderspellbook.com/combo/x/",
     );
+  });
+
+  it("shows a thumbnail per combo card", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(200, [
+          {
+            otherCards: [
+              { name: "Demonic Consultation", imageUrl: "https://cards.scryfall.io/small/front/8/d/x.jpg" },
+              { name: "Tainted Pact", imageUrl: null },
+            ],
+            cardCount: 3,
+            numDecks: 206,
+            produces: ["Win the game"],
+            url: "https://edhrec.com/combos/dimir/742-1295",
+          },
+        ]),
+      ),
+    );
+
+    const { container } = renderPanel();
+
+    await screen.findByText("Demonic Consultation");
+    // One image, not two: a card without a usable id is named but not shown.
+    const images = container.querySelectorAll("img");
+    expect(images).toHaveLength(1);
+    expect(images[0]).toHaveAttribute("src", "https://cards.scryfall.io/small/front/8/d/x.jpg");
   });
 
   it("renders nothing when there are no combos", async () => {

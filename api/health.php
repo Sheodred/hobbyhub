@@ -16,10 +16,10 @@ if (($_GET['checks'] ?? '') === '') {
     json_response(['status' => 'ok']);
 }
 
-// Commander Spellbook answers fine from a dev machine and not at all from
-// production (issue #35), so this reports which. Scryfall is the control: it
-// is known to work from here, so a failure on both means the host, and a
-// failure on one means that host.
+// Combos come from a third-party host that answered fine from a dev machine
+// and not at all from production once already (issue #35), so this reports
+// which. Scryfall is the control: it is known to work from here, so a failure
+// on both means the host, and a failure on one means that host.
 //
 // This used to be a second curl implementation living beside the real one;
 // it now asks the same module every client uses, which is the only way the
@@ -67,14 +67,11 @@ try {
         'boardgameTablesMissing' => $missing,
         'bggRanksRows' => $ranksRows,
         'deckTablesMissing' => $deckTablesMissing,
-        // Three Commander Spellbook probes, narrowing from the exact call the
-        // combo lookup makes to the barest possible request to the same host:
-        // if all three are 403 the host is blocked, if only the query one is,
-        // something about the query trips a rule at their edge.
+        // The exact call the combo lookup makes, for a card that is certain to
+        // be in combos - a 403 here means either the host is blocking us again
+        // or the slug was wrong, and the snippet says which.
         'outbound' => [
-            'commanderSpellbook' => probe_outbound(COMMANDER_SPELLBOOK_BASE_URL . '/variants/?q=' . rawurlencode('card:"Sol Ring"') . '&limit=1'),
-            'commanderSpellbookNoQuery' => probe_outbound(COMMANDER_SPELLBOOK_BASE_URL . '/variants/?limit=1'),
-            'commanderSpellbookRoot' => probe_outbound(COMMANDER_SPELLBOOK_BASE_URL . '/'),
+            'edhrecCombos' => probe_outbound(EDHREC_JSON_BASE_URL . '/pages/combos/sol-ring.json'),
             'scryfall' => probe_outbound(SCRYFALL_BASE_URL . '/cards/random'),
         ],
     ]);

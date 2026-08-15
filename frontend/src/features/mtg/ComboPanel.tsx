@@ -8,7 +8,7 @@ interface ComboPanelProps {
   cardName: string;
 }
 
-// Up to 3 combos this card is part of, via the Commander Spellbook API -
+// Up to 3 combos this card is part of, via EDHREC's combo API -
 // styled like edhrec.com/combos/lightning-bolt's side panel (section 4.4).
 // Renders nothing when the card genuinely has no combos, but says so when
 // the lookup fails: silence for both made a broken backend look identical
@@ -48,15 +48,32 @@ export function ComboPanel({ cardName }: ComboPanelProps) {
             <li key={combo.url} className="border-t border-slate-800 pt-3 first:border-t-0 first:pt-0">
               <p className="text-sm text-slate-200">
                 {combo.cardCount} card combo with{" "}
-                {combo.otherCards.map((name, index) => (
-                  <span key={name}>
+                {combo.otherCards.map((card, index) => (
+                  <span key={card.name}>
                     {index > 0 && ", "}
-                    <CardHoverPreview name={name}>
-                      <span className="text-slate-100">{name}</span>
+                    <CardHoverPreview name={card.name}>
+                      <span className="text-slate-100">{card.name}</span>
                     </CardHoverPreview>
                   </span>
                 ))}
               </p>
+              {/* The names are right above, so the thumbnails are decorative -
+                  they carry no information a screen reader is missing. */}
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {combo.otherCards.map(
+                  (card) =>
+                    card.imageUrl && (
+                      <img
+                        key={card.name}
+                        src={card.imageUrl}
+                        alt=""
+                        aria-hidden="true"
+                        loading="lazy"
+                        className="h-[67px] w-12 rounded border border-slate-700 object-cover"
+                      />
+                    ),
+                )}
+              </div>
               {combo.produces.length > 0 && (
                 <p className="mt-1 text-xs text-slate-400">Produces: {combo.produces.join(", ")}</p>
               )}

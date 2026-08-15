@@ -11,7 +11,7 @@ Client (React 18 + Vite)
   |      |
   |      +--> Scryfall API - MTG card search/printings (throttled + cached,
   |      |     see docs/adr/0003)
-  |      +--> Commander Spellbook API - related combos (cached)
+  |      +--> EDHREC combo API - related combos (cached, see docs/adr/0016)
   |      +--> EDHREC / MTGGoldfish - MTG Meta & Stats (WebCron-refreshed
   |      |     every 4h, see api/cron/refresh_mtg_meta.php)
   |      +--> Tagesschau / magic.wizards.com - homepage news (WebCron-
@@ -32,7 +32,7 @@ weather).
 
 | Area | API files | Frontend feature folder | Persistence | Notes |
 |---|---|---|---|---|
-| MTG | `api/mtg/` | `features/mtg/` | `scryfall_cache`, `commander_spellbook_cache` (5min/1h TTL cache-aside) | Live proxy to Scryfall + Commander Spellbook - throttling, cache, graceful empty-result handling - docs/adr/0003, docs/adr/0009 |
+| MTG | `api/mtg/` | `features/mtg/` | `scryfall_cache`, `commander_spellbook_cache` (5min/1h TTL cache-aside) | Live proxy to Scryfall + EDHREC combos - throttling, cache, graceful empty-result handling - docs/adr/0003, docs/adr/0009, docs/adr/0016 |
 | MTG Meta & Stats | `api/mtg/meta.php`, `api/cron/refresh_mtg_meta.php` | `features/mtg/MtgMetaPage.tsx` | `mtg_meta_entries` | WebCron-refreshed every 4h from EDHREC + MTGGoldfish, replace-on-success (keeps stale cache on a failed fetch) |
 | Homepage news | `api/news/`, `api/cron/refresh_news.php` | `features/home/panels/` | `news_items`, `wotc_news_fallback` | WebCron-refreshed every 20min; Tagesschau keeps cache on failure, WotC falls back to an admin-editable manual list when the scraper finds nothing |
 | Chess | none | `features/chess/` | `localStorage` only | chess.js for rules, Stockfish (WASM) for the opponent, both entirely client-side - docs/adr/0004 |
@@ -88,7 +88,8 @@ equivalent of the old `common/`/`config/` cross-cutting packages.
 
 - `scryfall_cache` (`cache_key`, `response_json`, `expires_at`) - cache-aside
   for every Scryfall call shape (search/card/by-name/printings)
-- `commander_spellbook_cache` (`card_name`, `response_json`, `expires_at`)
+- `commander_spellbook_cache` (`card_name`, `response_json`, `expires_at`) -
+  combos per card; name predates the EDHREC switch (docs/adr/0016)
 - `scryfall_throttle` - single row, last-outbound-call timestamp for the
   ~100ms spacing rule
 - `news_items` (`source`, `headline`, `teaser`, `url`, `published_at`,

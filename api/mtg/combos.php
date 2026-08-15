@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../lib/http.php';
-require_once __DIR__ . '/../lib/CommanderSpellbookClient.php';
+require_once __DIR__ . '/../lib/EdhrecComboClient.php';
 
 $cardName = trim($_GET['cardName'] ?? '');
 if ($cardName === '') {
@@ -8,7 +8,7 @@ if ($cardName === '') {
 }
 
 try {
-    $combos = (new CommanderSpellbookClient())->findCombos($cardName);
+    $combos = (new EdhrecComboClient())->findCombos($cardName);
 } catch (Throwable $e) {
     error_log($e->getMessage());
     $combos = null;

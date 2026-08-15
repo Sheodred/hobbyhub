@@ -57,6 +57,9 @@ CREATE TABLE scryfall_cache (
     expires_at DATETIME NOT NULL
 );
 
+-- Combos per card. Name predates the switch to EDHREC as the source, and is
+-- kept because renaming it costs a hand-run production migration for nothing
+-- (docs/adr/0016).
 CREATE TABLE commander_spellbook_cache (
     card_name VARCHAR(255) PRIMARY KEY,
     response_json LONGTEXT NOT NULL,

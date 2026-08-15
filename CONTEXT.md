@@ -34,7 +34,7 @@ One set's release of a Card. A Card name has many Printings; each is its own Car
 _Avoid_: version, edition, variant
 
 **Combo**:
-Two or more Cards that produce a stated result together, as published by Commander Spellbook.
+Two or more Cards that produce a stated result together, as published by Commander Spellbook and served through EDHREC (ADR-0016).
 _Avoid_: interaction, synergy
 
 **Archetype**:

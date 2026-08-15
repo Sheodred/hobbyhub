@@ -23,7 +23,7 @@ Also live: the homepage's three scheduled/cached info panels (Tagesschau
 headlines, Wizards of the Coast news, local weather), an MTG Meta & Stats
 page (most-played cards and popular Commander decks via EDHREC, Standard/
 Commander tier lists via MTGGoldfish), a related-combos panel on MTG card
-detail pages (Commander Spellbook), and a Scryfall hover-preview on card/
+detail pages (EDHREC), and a Scryfall hover-preview on card/
 commander names. See
 [`docs/project-brief.md`](docs/project-brief.md) for the full spec this
 was built against, phase by phase, annotated with what's actually done.
@@ -47,8 +47,8 @@ hit along the way.
 A second full-stack portfolio piece alongside
 [hybrid-search-api](https://github.com/Sheodred/hybrid-search-api), paired
 with a React/TypeScript frontend with real animation, a resizable app
-shell, and third-party API integrations (Scryfall, Commander Spellbook,
-EDHREC, MTGGoldfish, Tagesschau) done within their rate-limit/terms
+shell, and third-party API integrations (Scryfall, EDHREC, MTGGoldfish,
+Tagesschau) done within their rate-limit/terms
 constraints. The backend originally ran Java/Spring Boot (relevant to
 Fullstack Java job applications at the time); it was later migrated to
 PHP/MySQL to run on IONOS shared hosting — see `docs/adr/0009`.
@@ -61,9 +61,10 @@ react-resizable-panels, React Router, TanStack Query.
 tables, no ORM/framework — see `docs/adr/0009`).
 **Chess:** chess.js + stockfish.js (WASM, client-side, Web Worker).
 **MTG data:** [Scryfall REST API](https://scryfall.com/docs/api) and
-[Commander Spellbook](https://commanderspellbook.com/), proxied through the
-backend (see `docs/adr/0003-scryfall-proxy.md`); EDHREC and MTGGoldfish for
-the Meta & Stats page.
+[EDHREC](https://edhrec.com/) (combos, originally Commander Spellbook's data
+— see `docs/adr/0016-combos-via-edhrec.md`), proxied through the backend (see
+`docs/adr/0003-scryfall-proxy.md`); EDHREC and MTGGoldfish for the Meta &
+Stats page.
 **Infra:** Docker Compose (local dev: MariaDB + `php:8.3-apache` +
 Vite dev server), GitHub Actions CI, IONOS Webhosting Plus + WebCron
 (production).
@@ -175,7 +176,7 @@ features live in a separate project).
 - [x] Animation/responsive/accessibility polish (real-device mobile check still manual - see Known issues)
 - [x] Homepage info panels (Tagesschau, WotC news, weather)
 - [x] MTG Meta & Stats page (EDHREC + MTGGoldfish)
-- [x] MTG related-combos panel (Commander Spellbook) + Scryfall hover previews
+- [x] MTG related-combos panel (EDHREC) + Scryfall hover previews
 - [x] Migrate backend from Spring Boot/PostgreSQL to PHP/MySQL for IONOS hosting; extract auth/marketplace to a separate project (`docs/adr/0009`)
 - [~] Production deploy workflow (GitHub Actions → IONOS SFTP, `.github/workflows/deploy.yml`) - written and pinned, not yet run against real IONOS credentials, see Known issues
 - [ ] MTG fan-game link page (separate repo exists, not linked from this site yet)

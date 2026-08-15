@@ -38,8 +38,14 @@ export function getCardByName(name: string): Promise<Card> {
   return apiFetch<Card>(`/api/mtg/cards/by-name?${params.toString()}`);
 }
 
+export interface ComboCard {
+  name: string;
+  // Straight off Scryfall's CDN - null when EDHREC gave no usable card id.
+  imageUrl: string | null;
+}
+
 export interface Combo {
-  otherCards: string[];
+  otherCards: ComboCard[];
   cardCount: number;
   numDecks: number | null;
   produces: string[];
