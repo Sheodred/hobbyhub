@@ -14,14 +14,35 @@ class CommanderSpellbookClient
     private const MAX_PRODUCES_SHOWN = 3;
     private const CACHE_TTL_SECONDS = 3600;
 
-    public function findCombos(string $cardName): array
+    /** @var callable */
+    private $fetch;
+
+    // The User-Agent matters: Commander Spellbook sits behind a CDN that
+    // answers 403 to header-less requests from some hosts, which is what a
+    // failed lookup looks like from here (null, indistinguishable from
+    // "no combos").
+    public function __construct(?callable $fetch = null)
+    {
+        $this->fetch = $fetch ?? fn(string $url) => http_get_json($url, 10, ['User-Agent: ' . SCRYFALL_USER_AGENT]);
+    }
+
+    // Null means the lookup failed - distinct from [] ("this card has no
+    // combos"), which is a real answer worth caching.
+    public function findCombos(string $cardName): ?array
     {
         return cache_aside('commander_spellbook_cache', 'card_name', $cardName, self::CACHE_TTL_SECONDS, function () use ($cardName) {
             $query = 'card:"' . $cardName . '"';
-            $json = http_get_json(COMMANDER_SPELLBOOK_BASE_URL . '/variants/?' . http_build_query([
+            $json = ($this->fetch)(COMMANDER_SPELLBOOK_BASE_URL . '/variants/?' . http_build_query([
                 'q' => $query,
                 'limit' => self::MAX_COMBOS,
             ]));
+
+            // Without this, an upstream failure collapses into an empty
+            // combo list and cache_aside() stores it as if it were data -
+            // pinning "no combos" for the full hour, over and over.
+            if ($json === null) {
+                return null;
+            }
 
             $combos = [];
             foreach (($json['results'] ?? []) as $variant) {

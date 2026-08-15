@@ -57,4 +57,12 @@ describe("ComboPanel", () => {
 
     await waitFor(() => expect(container).toBeEmptyDOMElement());
   });
+
+  it("says the lookup failed instead of silently vanishing", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(502, { error: "combo lookup failed" })));
+
+    renderPanel();
+
+    expect(await screen.findByText(/combo lookup is unavailable/i)).toBeInTheDocument();
+  });
 });

@@ -8,11 +8,18 @@ if ($cardName === '') {
 }
 
 try {
-    json_response((new CommanderSpellbookClient())->findCombos($cardName));
+    $combos = (new CommanderSpellbookClient())->findCombos($cardName);
 } catch (Throwable $e) {
     error_log($e->getMessage());
-    // Secondary enhancement, not core content - degrade silently to an
-    // empty list (the frontend's ComboPanel renders nothing) rather than
-    // showing an error state, same as before.
-    json_response([]);
+    $combos = null;
 }
+
+// A failed lookup used to answer [] like a card with no combos does, which
+// made an outage indistinguishable from an empty result - in either case the
+// panel just vanished (issue #35). Say which one it is; the panel keeps
+// staying quiet for a genuine [].
+if ($combos === null) {
+    error_response('combo lookup failed', 502);
+}
+
+json_response($combos);

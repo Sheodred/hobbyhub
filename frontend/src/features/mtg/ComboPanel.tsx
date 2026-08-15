@@ -10,9 +10,9 @@ interface ComboPanelProps {
 
 // Up to 3 combos this card is part of, via the Commander Spellbook API -
 // styled like edhrec.com/combos/lightning-bolt's side panel (section 4.4).
-// Renders nothing if there simply aren't any combos for this card, or if
-// the lookup fails - this is a secondary enhancement, not core content, so
-// it degrades silently rather than showing an error state.
+// Renders nothing when the card genuinely has no combos, but says so when
+// the lookup fails: silence for both made a broken backend look identical
+// to an empty result for as long as it took someone to notice (issue #35).
 export function ComboPanel({ cardName }: ComboPanelProps) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["mtg-combos", cardName],
@@ -33,7 +33,12 @@ export function ComboPanel({ cardName }: ComboPanelProps) {
           </div>
         </div>
       }
-      errorFallback={null}
+      errorFallback={
+        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Combos</h2>
+          <p className="mt-3 text-sm text-slate-400">Combo lookup is unavailable right now.</p>
+        </div>
+      }
       emptyFallback={null}
     >
       <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
