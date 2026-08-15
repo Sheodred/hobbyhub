@@ -1,6 +1,7 @@
 import type { RouteObject } from "react-router-dom";
 
 import { AboutPage } from "../features/about/AboutPage";
+import { BoardgameLookupPage } from "../features/boardgames/BoardgameLookupPage";
 import { ChessPage } from "../features/chess/ChessPage";
 import { HomePage } from "../features/home/HomePage";
 import { ImpressumPage } from "../features/legal/ImpressumPage";
@@ -21,6 +22,7 @@ export const routes: RouteObject[] = [
       { path: "/mtg", element: <MtgPage /> },
       { path: "/mtg/meta", element: <MtgMetaPage /> },
       { path: "/mtg/:id", element: <MtgCardDetailPage /> },
+      { path: "/boardgames", element: <BoardgameLookupPage /> },
       { path: "/chess", element: <ChessPage /> },
       { path: "/legal/impressum", element: <ImpressumPage /> },
       { path: "/legal/privacy", element: <PrivacyPolicyPage /> },

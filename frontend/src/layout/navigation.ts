@@ -9,6 +9,7 @@ export const primaryNavLinks: NavLinkItem[] = [
   { to: "/", label: "Home" },
   { to: "/mtg", label: "Magic: The Gathering" },
   { to: "/mtg/meta", label: "Best of Meta & Stats" },
+  { to: "/boardgames", label: "Boardgame Lookup" },
   { to: "/chess", label: "Chess vs. AI" },
   { to: "/about", label: "About Me" },
 ];
