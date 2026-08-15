@@ -5,6 +5,7 @@ import { FadeIn } from "../../components/FadeIn";
 import { ApiError } from "../../lib/apiClient";
 import { getCard, getPrintings } from "./api";
 import { ComboPanel } from "./ComboPanel";
+import { ManaText } from "./ManaText";
 
 export function MtgCardDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -67,9 +68,11 @@ export function MtgCardDetailPage() {
 
           <div>
             <h1 className="text-2xl font-semibold text-slate-100">{card.name}</h1>
-            {card.manaCost && <p className="mt-1 text-slate-400">{card.manaCost}</p>}
+            {card.manaCost && <ManaText text={card.manaCost} className="mt-1 block text-slate-400" />}
             {card.typeLine && <p className="mt-3 text-sm font-medium text-slate-300">{card.typeLine}</p>}
-            {card.oracleText && <p className="mt-2 whitespace-pre-line text-slate-300">{card.oracleText}</p>}
+            {card.oracleText && (
+              <ManaText text={card.oracleText} className="mt-2 block whitespace-pre-line text-slate-300" />
+            )}
 
             <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
               {card.setName && (
