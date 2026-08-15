@@ -55,23 +55,6 @@ export function MtgMetaPage() {
           isError={isError}
         />
       </div>
-
-      <FadeIn className="mt-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-        <h3 className="text-sm font-medium text-slate-100">Looking for a specific deck?</h3>
-        <p className="mt-2 text-sm text-slate-400">
-          Moxfield doesn&apos;t offer a public API for browsing decks, so there&apos;s no live feed to show here -
-          browse decks directly on{" "}
-          <a
-            href="https://www.moxfield.com/decks"
-            target="_blank"
-            rel="noreferrer"
-            className="text-indigo-400 hover:underline"
-          >
-            Moxfield
-          </a>{" "}
-          instead.
-        </p>
-      </FadeIn>
     </div>
   );
 }

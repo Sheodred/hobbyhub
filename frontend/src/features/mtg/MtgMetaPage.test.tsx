@@ -46,6 +46,6 @@ describe("MtgMetaPage", () => {
     );
     expect(screen.getByRole("link", { name: "4c Control" })).toBeInTheDocument();
     expect(screen.getAllByText(/no data available/i)).toHaveLength(2);
-    expect(screen.getByRole("link", { name: "Moxfield" })).toHaveAttribute("href", "https://www.moxfield.com/decks");
+    expect(screen.queryByRole("link", { name: "Moxfield" })).not.toBeInTheDocument();
   });
 });
