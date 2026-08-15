@@ -55,21 +55,28 @@ class EdhrecComboClient
             }
 
             $cardlists = array_slice($json['container']['json_dict']['cardlists'] ?? [], 0, self::MAX_COMBOS);
-            return array_map(fn(array $cardlist) => $this->toCombo($cardlist), $cardlists);
+            return array_map(fn(array $cardlist) => $this->toCombo($cardlist, self::frontFace($cardName)), $cardlists);
         });
     }
 
-    // One cardlist per combo: cardviews are the other cards (EDHREC already
-    // drops the card being looked up), and .combo carries the rest.
-    private function toCombo(array $cardlist): array
+    // One cardlist per combo: cardviews are the other cards and .combo carries
+    // the rest. EDHREC drops the card being looked up from cardviews itself -
+    // but only when its own name matches the page, so a double-faced card
+    // (page "birgi-god-of-storytelling", card "Birgi ... // Harnfel ...")
+    // comes back listing itself. Drop it here rather than trusting them to.
+    private function toCombo(array $cardlist, string $searchedFrontFace): array
     {
         $combo = $cardlist['combo'] ?? [];
+        $otherViews = array_filter(
+            $cardlist['cardviews'] ?? [],
+            fn($view) => strcasecmp($view['name'] ?? '', $searchedFrontFace) !== 0
+        );
 
         return [
-            'otherCards' => array_map(fn($view) => [
+            'otherCards' => array_values(array_map(fn($view) => [
                 'name' => $view['name'] ?? '',
                 'imageUrl' => self::cardImageUrl($view['id'] ?? ''),
-            ], $cardlist['cardviews'] ?? []),
+            ], $otherViews)),
             'cardCount' => count($combo['cardIds'] ?? []),
             'numDecks' => $combo['count'] ?? null,
             'produces' => array_slice($combo['results'] ?? [], 0, self::MAX_PRODUCES_SHOWN),
@@ -92,12 +99,20 @@ class EdhrecComboClient
     // EDHREC's own slug form: apostrophes vanish rather than becoming a
     // separator ("Hidetsugu's Second Rite" -> hidetsugus-second-rite), then
     // anything else non-alphanumeric turns into a single hyphen.
-    // ponytail: names outside a-z0-9 after that (split cards, accents) slug
-    // to a 403 and render as "no combos" - fix if a real card shows up wrong.
+    // ponytail: names outside a-z0-9 after that (accents) slug to a 403 and
+    // render as "no combos" - fix if a real card shows up wrong.
     private static function slug(string $cardName): string
     {
-        $withoutApostrophes = str_replace(["'", "\u{2019}"], '', mb_strtolower($cardName));
+        $withoutApostrophes = str_replace(["'", "\u{2019}"], '', mb_strtolower(self::frontFace($cardName)));
 
         return trim(preg_replace('/[^a-z0-9]+/', '-', $withoutApostrophes), '-');
+    }
+
+    // EDHREC indexes combos under the front face alone: every back face 403s
+    // and the full "A // B" name has no page at all, so using the whole name
+    // made every multi-faced card look comboless (#34).
+    private static function frontFace(string $cardName): string
+    {
+        return trim(explode('//', $cardName)[0]);
     }
 }

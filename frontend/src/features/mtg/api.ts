@@ -1,5 +1,13 @@
 import { apiFetch } from "../../lib/apiClient";
 
+export interface CardFace {
+  name: string;
+  manaCost: string | null;
+  typeLine: string | null;
+  oracleText: string | null;
+  imageUrl: string | null;
+}
+
 export interface Card {
   id: string;
   name: string;
@@ -11,6 +19,10 @@ export interface Card {
   rarity: string | null;
   imageUrl: string | null;
   artCropUrl: string | null;
+  // Scryfall's own layout value, passed through untouched.
+  layout: string | null;
+  // Null when the card has no card_faces at all.
+  faces: CardFace[] | null;
 }
 
 export interface CardSearchResponse {

@@ -93,6 +93,17 @@ class ScryfallClient
             'rarity' => $c['rarity'] ?? null,
             'imageUrl' => $imageUris['normal'] ?? null,
             'artCropUrl' => $imageUris['art_crop'] ?? null,
+            'layout' => $c['layout'] ?? null,
+            // Only transform/modal_dfc faces carry their own image_uris; on a
+            // split or adventure card the single image lives at the top level
+            // and every face's imageUrl is null (#34).
+            'faces' => isset($c['card_faces']) ? array_map(fn(array $f) => [
+                'name' => $f['name'] ?? null,
+                'manaCost' => $f['mana_cost'] ?? null,
+                'typeLine' => $f['type_line'] ?? null,
+                'oracleText' => $f['oracle_text'] ?? null,
+                'imageUrl' => $f['image_uris']['normal'] ?? null,
+            ], $c['card_faces']) : null,
         ];
     }
 

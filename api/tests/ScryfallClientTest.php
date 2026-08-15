@@ -49,6 +49,8 @@ final class ScryfallClientTest extends TestCase
             'rarity' => 'common',
             'imageUrl' => 'https://example.com/normal.jpg',
             'artCropUrl' => 'https://example.com/art.jpg',
+            'layout' => null,
+            'faces' => null,
         ], $result['cards'][0]);
     }
 
@@ -125,5 +127,77 @@ final class ScryfallClientTest extends TestCase
         $this->assertSame('{U}', $card['manaCost']);
         $this->assertStringStartsWith('At the beginning', $card['oracleText']);
         $this->assertSame('https://example.com/front.jpg', $card['imageUrl']);
+    }
+
+    public function testTransformCardExposesBothFacesWithTheirOwnImages(): void
+    {
+        $client = new ScryfallClient(fn() => ['data' => [[
+            'id' => 'dfc-1',
+            'name' => 'Delver of Secrets // Insectile Aberration',
+            'layout' => 'transform',
+            'card_faces' => [
+                [
+                    'name' => 'Delver of Secrets',
+                    'mana_cost' => '{U}',
+                    'type_line' => 'Creature — Human Wizard',
+                    'oracle_text' => 'At the beginning of your upkeep, look at the top card of your library.',
+                    'image_uris' => ['normal' => 'https://example.com/front.jpg'],
+                ],
+                [
+                    'name' => 'Insectile Aberration',
+                    'mana_cost' => '',
+                    'type_line' => 'Creature — Human Insect',
+                    'oracle_text' => 'Flying',
+                    'image_uris' => ['normal' => 'https://example.com/back.jpg'],
+                ],
+            ],
+        ]], 'has_more' => false, 'total_cards' => 1]);
+
+        $card = $client->search('delver of secrets', 1)['cards'][0];
+
+        $this->assertSame('transform', $card['layout']);
+        $this->assertSame([
+            [
+                'name' => 'Delver of Secrets',
+                'manaCost' => '{U}',
+                'typeLine' => 'Creature — Human Wizard',
+                'oracleText' => 'At the beginning of your upkeep, look at the top card of your library.',
+                'imageUrl' => 'https://example.com/front.jpg',
+            ],
+            [
+                'name' => 'Insectile Aberration',
+                'manaCost' => '',
+                'typeLine' => 'Creature — Human Insect',
+                'oracleText' => 'Flying',
+                'imageUrl' => 'https://example.com/back.jpg',
+            ],
+        ], $card['faces']);
+    }
+
+    // A split card is one physical card: its image lives at the top level and
+    // neither face has image_uris of its own, so both faces' imageUrl is null.
+    public function testSplitCardFacesHaveNoOwnImage(): void
+    {
+        $client = new ScryfallClient(fn() => ['data' => [[
+            'id' => 'split-1',
+            'name' => 'Fire // Ice',
+            'layout' => 'split',
+            'mana_cost' => '{1}{R} // {1}{U}',
+            'type_line' => 'Instant // Instant',
+            'image_uris' => ['normal' => 'https://example.com/fireice.jpg'],
+            'card_faces' => [
+                ['name' => 'Fire', 'mana_cost' => '{1}{R}', 'type_line' => 'Instant', 'oracle_text' => 'Fire deals 2 damage divided as you choose.'],
+                ['name' => 'Ice', 'mana_cost' => '{1}{U}', 'type_line' => 'Instant', 'oracle_text' => 'Tap target permanent. Draw a card.'],
+            ],
+        ]], 'has_more' => false, 'total_cards' => 1]);
+
+        $card = $client->search('fire // ice', 1)['cards'][0];
+
+        $this->assertSame('split', $card['layout']);
+        $this->assertSame('https://example.com/fireice.jpg', $card['imageUrl']);
+        $this->assertSame(['Fire', 'Ice'], array_column($card['faces'], 'name'));
+        $this->assertSame('Tap target permanent. Draw a card.', $card['faces'][1]['oracleText']);
+        $this->assertNull($card['faces'][0]['imageUrl']);
+        $this->assertNull($card['faces'][1]['imageUrl']);
     }
 }

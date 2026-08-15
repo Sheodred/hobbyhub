@@ -48,6 +48,41 @@ final class EdhrecComboClientTest extends TestCase
         ]], $combos);
     }
 
+    public function testMultiFacedCardIsLookedUpUnderItsFrontFace(): void
+    {
+        $requested = null;
+        $client = new EdhrecComboClient(function (string $url) use (&$requested) {
+            $requested = $url;
+            return $this->response(200, ['container' => ['json_dict' => ['cardlists' => []]]]);
+        });
+
+        $client->findCombos('Birgi, God of Storytelling // Harnfel, Horn of Bounty');
+
+        // The back half has no EDHREC page at all, and neither does the full
+        // name - only the front face is indexed.
+        $this->assertSame(EDHREC_JSON_BASE_URL . '/pages/combos/birgi-god-of-storytelling.json', $requested);
+    }
+
+    // EDHREC drops the looked-up card from cardviews by matching its own page
+    // name, which a double-faced card's full name never equals - so it lists
+    // itself as one of the "other" cards unless we drop it.
+    public function testTheSearchedCardIsNotListedAmongTheOtherCards(): void
+    {
+        $client = new EdhrecComboClient(fn() => $this->response(200, ['container' => ['json_dict' => ['cardlists' => [[
+            'href' => '/combos/rakdos/1-2',
+            'cardviews' => [
+                ['name' => 'Birgi, God of Storytelling', 'id' => '8d727b9b-6114-414d-9172-16b6e1db41cc'],
+                ['name' => 'Grinning Ignus', 'id' => '5a5a5a5a-0000-0000-0000-000000000000'],
+            ],
+            'combo' => ['cardIds' => [1, 2], 'count' => 7665, 'results' => ['Infinite mana']],
+        ]]]]]));
+
+        $combos = $client->findCombos('Birgi, God of Storytelling // Harnfel, Horn of Bounty');
+
+        $this->assertSame(['Grinning Ignus'], array_column($combos[0]['otherCards'], 'name'));
+        $this->assertSame(2, $combos[0]['cardCount'], 'cardCount still counts every card in the combo');
+    }
+
     public function testFailedLookupReturnsNullAndIsNotCached(): void
     {
         $calls = 0;

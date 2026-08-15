@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -116,6 +117,142 @@ describe("MtgCardDetailPage", () => {
 
     expect(await screen.findByText("All printings (2)")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /masters 25/i })).toHaveAttribute("href", "/mtg/card-2");
+  });
+
+  it("flips a transform card between its faces", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string) => {
+        if (path.startsWith("/api/mtg/combos")) {
+          return Promise.resolve(jsonResponse(200, []));
+        }
+        return Promise.resolve(
+          jsonResponse(200, {
+            id: "card-1",
+            name: "Delver of Secrets // Insectile Aberration",
+            manaCost: "{U}",
+            typeLine: "Creature — Human Wizard",
+            oracleText: "At the beginning of your upkeep, look at the top card of your library.",
+            colors: ["U"],
+            setName: "Innistrad",
+            rarity: "common",
+            imageUrl: "https://img/delver-front.jpg",
+            artCropUrl: null,
+            layout: "transform",
+            faces: [
+              {
+                name: "Delver of Secrets",
+                manaCost: "{U}",
+                typeLine: "Creature — Human Wizard",
+                oracleText: "At the beginning of your upkeep, look at the top card of your library.",
+                imageUrl: "https://img/delver-front.jpg",
+              },
+              {
+                name: "Insectile Aberration",
+                manaCost: null,
+                typeLine: "Creature — Human Insect",
+                oracleText: "Flying.",
+                imageUrl: "https://img/delver-back.jpg",
+              },
+            ],
+          }),
+        );
+      }),
+    );
+
+    renderAt("/mtg/card-1");
+
+    expect(await screen.findByText(/look at the top card/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /insectile aberration/i }));
+
+    expect(screen.getByText("Flying.")).toBeInTheDocument();
+    expect(screen.queryByText(/look at the top card/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Creature — Human Insect")).toBeInTheDocument();
+  });
+
+  it("stacks both halves of a split card and offers no flip control", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string) => {
+        if (path.startsWith("/api/mtg/combos")) {
+          return Promise.resolve(jsonResponse(200, []));
+        }
+        return Promise.resolve(
+          jsonResponse(200, {
+            id: "card-1",
+            name: "Fire // Ice",
+            manaCost: "{1}{R}",
+            typeLine: "Instant // Instant",
+            oracleText: "Fire deals 2 damage divided as you choose.",
+            colors: ["R", "U"],
+            setName: "Apocalypse",
+            rarity: "uncommon",
+            imageUrl: "https://img/fire-ice.jpg",
+            artCropUrl: null,
+            layout: "split",
+            faces: [
+              {
+                name: "Fire",
+                manaCost: "{1}{R}",
+                typeLine: "Instant",
+                oracleText: "Fire deals 2 damage divided as you choose.",
+                imageUrl: null,
+              },
+              {
+                name: "Ice",
+                manaCost: "{1}{U}",
+                typeLine: "Instant",
+                oracleText: "Tap target permanent. Draw a card.",
+                imageUrl: null,
+              },
+            ],
+          }),
+        );
+      }),
+    );
+
+    renderAt("/mtg/card-1");
+
+    expect(await screen.findByRole("heading", { name: "Fire" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ice" })).toBeInTheDocument();
+    expect(screen.getByText(/fire deals 2 damage/i)).toBeInTheDocument();
+    expect(screen.getByText(/tap target permanent/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("offers no flip control for a normal card", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string) => {
+        if (path.startsWith("/api/mtg/combos")) {
+          return Promise.resolve(jsonResponse(200, []));
+        }
+        return Promise.resolve(
+          jsonResponse(200, {
+            id: "card-1",
+            name: "Lightning Bolt",
+            manaCost: "{R}",
+            typeLine: "Instant",
+            oracleText: "Lightning Bolt deals 3 damage to any target.",
+            colors: ["R"],
+            setName: "Alpha",
+            rarity: "common",
+            imageUrl: "https://img/bolt.jpg",
+            artCropUrl: null,
+            layout: "normal",
+            faces: null,
+          }),
+        );
+      }),
+    );
+
+    renderAt("/mtg/card-1");
+
+    await screen.findByRole("heading", { name: "Lightning Bolt" });
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("shows a not-found message for a missing card", async () => {
