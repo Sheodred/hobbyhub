@@ -153,6 +153,27 @@ export function BoardgameLookupPage() {
                 </div>
               )}
 
+              {state.game.amazon && (
+                <div className="mt-6 flex flex-wrap items-baseline gap-2 border-t border-slate-800 pt-4">
+                  <span className="text-xs uppercase tracking-wide text-slate-500">Also rated on Amazon.de</span>
+                  <span className="text-lg font-semibold text-amber-300">{state.game.amazon.rating.toFixed(1)}</span>
+                  <span className="text-xs text-slate-500">
+                    / 5
+                    {state.game.amazon.count !== null && ` · ${state.game.amazon.count.toLocaleString("en")} ratings`}
+                  </span>
+                  {/* The product Amazon matched, shown so a wrong match is
+                      obvious rather than hidden behind a bare number. */}
+                  <a
+                    href={state.game.amazon.url}
+                    target="_blank"
+                    rel="noreferrer nofollow"
+                    className="w-full truncate text-xs text-slate-500 underline hover:text-slate-300"
+                  >
+                    {state.game.amazon.title}
+                  </a>
+                </div>
+              )}
+
               <p className="mt-6 text-xs text-slate-500">
                 Data via{" "}
                 <a

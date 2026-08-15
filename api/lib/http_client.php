@@ -21,9 +21,12 @@ function http_get_xml(string $url, int $timeoutSeconds = 10, array $headers = []
     return $xml === false ? null : $xml;
 }
 
-function http_get_html(string $url, int $timeoutSeconds = 10): ?string
+// $headers is for content negotiation (Accept, Accept-Language) that some
+// hosts require before they'll serve a normal page - the User-Agent stays
+// this project's real one, callers don't get to impersonate a browser.
+function http_get_html(string $url, int $timeoutSeconds = 10, array $headers = []): ?string
 {
-    return http_get_raw($url, $timeoutSeconds, ['User-Agent: ' . SCRYFALL_USER_AGENT]);
+    return http_get_raw($url, $timeoutSeconds, array_merge(['User-Agent: ' . SCRYFALL_USER_AGENT], $headers));
 }
 
 function http_get_raw(string $url, int $timeoutSeconds, array $headers): ?string

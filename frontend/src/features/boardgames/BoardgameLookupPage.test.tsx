@@ -16,6 +16,7 @@ describe("BoardgameLookupPage", () => {
         good: "Great trading game.",
         bad: "Too much luck.",
         partial: false,
+        amazon: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -53,6 +54,7 @@ describe("BoardgameLookupPage", () => {
         good: null,
         bad: null,
         partial: false,
+        amazon: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -80,6 +82,7 @@ describe("BoardgameLookupPage", () => {
         good: null,
         bad: null,
         partial: true,
+        amazon: { rating: 4.7, count: 257, title: "KOSMOS Catan - Das Spiel", url: "https://www.amazon.de/dp/B00CATAN01" },
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -90,5 +93,27 @@ describe("BoardgameLookupPage", () => {
 
     expect(await screen.findByText(/Only the community rating is available/)).toBeInTheDocument();
     expect(screen.getByText("7.1")).toBeInTheDocument();
+  });
+
+  it("shows the Amazon rating and what product it matched", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: {
+        bggId: 13, name: "Catan", description: "Trade, build, settle.",
+        rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
+        amazon: { rating: 4.7, count: 257, title: "KOSMOS Catan - Das Spiel", url: "https://www.amazon.de/dp/B00CATAN01" },
+        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
+      },
+    });
+
+    render(<BoardgameLookupPage />);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(await screen.findByText("4.7")).toBeInTheDocument();
+    expect(screen.getByText(/257 ratings/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "KOSMOS Catan - Das Spiel" })).toHaveAttribute(
+      "href", "https://www.amazon.de/dp/B00CATAN01"
+    );
   });
 });

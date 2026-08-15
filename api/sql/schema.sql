@@ -112,5 +112,22 @@ CREATE TABLE bgg_throttle (
     last_call_at DOUBLE NOT NULL
 );
 
+-- Aggregate customer rating per game name, read from amazon.de search
+-- results by AmazonRatingClient (docs/adr/0012). Stores the star average and
+-- rating count only - a fact, never review text. Cache-aside shape, keyed by
+-- the lowercased game name.
+CREATE TABLE amazon_rating_cache (
+    query_key VARCHAR(255) PRIMARY KEY,
+    response_json LONGTEXT NOT NULL,
+    expires_at DATETIME NOT NULL
+);
+
+-- Single row, mirrors scryfall_throttle. Interval is deliberately slower
+-- than the others (AmazonRatingClient::THROTTLE_MIN_INTERVAL_MS).
+CREATE TABLE amazon_throttle (
+    id TINYINT PRIMARY KEY DEFAULT 1,
+    last_call_at DOUBLE NOT NULL
+);
+
 INSERT INTO wotc_news_fallback (headline, url, sort_order) VALUES
     ('Magic: The Gathering news', 'https://magic.wizards.com/en/news', 0);

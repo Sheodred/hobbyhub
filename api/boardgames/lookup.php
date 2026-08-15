@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../lib/http.php';
 require_once __DIR__ . '/../lib/BggClient.php';
+require_once __DIR__ . '/../lib/AmazonRatingClient.php';
 
 $q = trim($_GET['q'] ?? '');
 $bggIdParam = $_GET['bgg_id'] ?? '';
@@ -28,6 +29,15 @@ try {
     if ($game === null) {
         error_response('That board game could not be found on BoardGameGeek.', 404);
     }
+    // Second opinion from retail, best-effort: a missing or failing Amazon
+    // rating must never cost the user the BGG answer they asked for.
+    try {
+        $game['amazon'] = (new AmazonRatingClient())->ratingFor($game['name']);
+    } catch (Throwable $e) {
+        error_log('amazon rating lookup failed: ' . $e->getMessage());
+        $game['amazon'] = null;
+    }
+
     json_response(['status' => 'ok', 'game' => $game]);
 } catch (Throwable $e) {
     error_log($e->getMessage());

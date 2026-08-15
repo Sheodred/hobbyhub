@@ -11,6 +11,14 @@ export interface BoardgameSource {
   url: string;
 }
 
+/** Aggregate customer rating from amazon.de - the number and its count only. */
+export interface AmazonRating {
+  rating: number;
+  count: number | null;
+  title: string;
+  url: string;
+}
+
 export interface Boardgame {
   bggId: number;
   name: string;
@@ -25,6 +33,8 @@ export interface Boardgame {
    * page says so rather than rendering the gaps as empty sections.
    */
   partial: boolean;
+  /** null when no confident product match was found, or the lookup failed. */
+  amazon: AmazonRating | null;
   source: BoardgameSource;
 }
 
