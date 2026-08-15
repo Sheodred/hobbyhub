@@ -26,6 +26,11 @@ env_or('DB_PASSWORD', 'hobbyhub');
 env_or('SCRYFALL_BASE_URL', 'https://api.scryfall.com');
 // Scryfall asks every client to identify itself (see their API guidelines).
 define('SCRYFALL_USER_AGENT', 'HobbyHub/0.1 (+https://github.com/Sheodred/hobbyhub)');
+// BGG requires a registered application token since it started rejecting
+// unauthenticated XML API calls with 401 (#40). Empty means "no token yet" -
+// BggClient then sends no Authorization header and falls back to the
+// imported bgg_ranks dump. Real value goes in config.local.php.
+env_or('BGG_API_TOKEN', '');
 env_or('COMMANDER_SPELLBOOK_BASE_URL', 'https://backend.commanderspellbook.com');
 env_or('TAGESSCHAU_BASE_URL', 'https://www.tagesschau.de');
 env_or('WOTC_NEWS_URL', 'https://magic.wizards.com/en/news');

@@ -174,6 +174,32 @@ final class BggClientTest extends TestCase
         (new BggClient(fn() => null))->resolveSearch('zzzznonexistentgamezzzz');
     }
 
+    public function testConfiguredTokenIsSentAsAnAuthorizationHeader(): void
+    {
+        $seen = null;
+        $client = new BggClient(function ($url, $timeout = 10, array $headers = []) use (&$seen) {
+            $seen = $headers;
+            return $this->thingXml('<item id="7"><name type="primary" value="Azul"/></item>');
+        }, 'test-token-123');
+
+        $client->lookup(7);
+
+        $this->assertContains('Authorization: Bearer test-token-123', $seen);
+    }
+
+    public function testNoAuthorizationHeaderIsSentWhenNoTokenIsConfigured(): void
+    {
+        $seen = null;
+        $client = new BggClient(function ($url, $timeout = 10, array $headers = []) use (&$seen) {
+            $seen = $headers;
+            return $this->thingXml('<item id="7"><name type="primary" value="Azul"/></item>');
+        }, '');
+
+        $client->lookup(7);
+
+        $this->assertSame([], $seen, 'an empty token must not produce a header at all');
+    }
+
     private function searchXml(string $inner): SimpleXMLElement
     {
         return new SimpleXMLElement('<items>' . $inner . '</items>');

@@ -21,10 +21,22 @@ class BggClient
 
     /** @var callable */
     private $httpGetXml;
+    private string $apiToken;
 
-    public function __construct(?callable $httpGetXml = null)
+    public function __construct(?callable $httpGetXml = null, ?string $apiToken = null)
     {
         $this->httpGetXml = $httpGetXml ?? 'http_get_xml';
+        $this->apiToken = $apiToken ?? (defined('BGG_API_TOKEN') ? BGG_API_TOKEN : '');
+    }
+
+    // BGG rejects unauthenticated calls with 401 since it started requiring
+    // registered applications (#40). The scheme below is the conventional
+    // bearer form - CONFIRM IT against BGG's own docs when the token arrives
+    // (their pages 403 non-browser clients, so it could not be read from
+    // here). If they use a different scheme, this one line is the change.
+    private function authHeaders(): array
+    {
+        return $this->apiToken === '' ? [] : ['Authorization: Bearer ' . $this->apiToken];
     }
 
     public function lookup(int $bggId): ?array
@@ -48,7 +60,7 @@ class BggClient
                 'comments' => 1,
                 'ratingcomments' => 1,
                 'pagesize' => self::MAX_COMMENTS,
-            ]));
+            ]), 10, $this->authHeaders());
             if ($xml === null) {
                 // Failed call, not an answer - see resolveSearch().
                 throw new RuntimeException('BGG thing request failed for id ' . $bggId);
@@ -84,7 +96,7 @@ class BggClient
     private function resolveSearchViaApi(string $query, string $normalized): array
     {
         $this->throttle();
-        $xml = ($this->httpGetXml)(self::BASE_URL . '/search?' . http_build_query(['type' => 'boardgame', 'query' => $query]));
+        $xml = ($this->httpGetXml)(self::BASE_URL . '/search?' . http_build_query(['type' => 'boardgame', 'query' => $query]), 10, $this->authHeaders());
         // A null here means the HTTP call itself failed - BGG returns 401
         // without a registered application token, and http_get_xml() gives
         // back the same null it would for a timeout or a 5xx. Reporting that
