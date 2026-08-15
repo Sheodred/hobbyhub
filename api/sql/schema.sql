@@ -70,5 +70,31 @@ CREATE TABLE scryfall_throttle (
     last_call_at DOUBLE NOT NULL
 );
 
+-- Cache-aside table for BggClient::lookup(), shaped like scryfall_cache.
+-- Long TTL (see BggClient::LOOKUP_CACHE_TTL_SECONDS) - board game ratings
+-- and descriptions change far more slowly than MTG Standard metagame data.
+CREATE TABLE bgg_lookup_cache (
+    bgg_id INT PRIMARY KEY,
+    response_json LONGTEXT NOT NULL,
+    expires_at DATETIME NOT NULL
+);
+
+-- Caches the free-text search -> resolved bgg_id mapping, so a repeat
+-- search of the same query skips even the BGG /search call. Only the
+-- single chosen id is cached here, never the full candidate list from a
+-- disambiguation response.
+CREATE TABLE bgg_search_cache (
+    query_key VARCHAR(255) PRIMARY KEY,
+    bgg_id INT NOT NULL,
+    expires_at DATETIME NOT NULL
+);
+
+-- Single row, mirrors scryfall_throttle - spaces outbound BGG requests
+-- per the ~2 req/sec community-observed convention (BggClient::throttle()).
+CREATE TABLE bgg_throttle (
+    id TINYINT PRIMARY KEY DEFAULT 1,
+    last_call_at DOUBLE NOT NULL
+);
+
 INSERT INTO wotc_news_fallback (headline, url, sort_order) VALUES
     ('Magic: The Gathering news', 'https://magic.wizards.com/en/news', 0);
