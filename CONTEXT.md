@@ -33,8 +33,12 @@ A Magic card as Scryfall defines it, identified by its Scryfall id.
 One set's release of a Card. A Card name has many Printings; each is its own Card id.
 _Avoid_: version, edition, variant
 
+**Face**:
+One side or half of a Card that has more than one — the two sides of a transform/modal card, or the two halves of a split/adventure card. A Card always has exactly one name, cost and combo lookup no matter how many Faces it has; only the rendering differs (flip versus stacked).
+_Avoid_: side, half, mode
+
 **Combo**:
-Two or more Cards that produce a stated result together, as published by Commander Spellbook and served through EDHREC (ADR-0016).
+Two or more Cards that produce a stated result together, as published by Commander Spellbook and served through EDHREC (ADR-0016). Belongs to the Card, never to a Face — EDHREC indexes only front faces.
 _Avoid_: interaction, synergy
 
 **Archetype**:

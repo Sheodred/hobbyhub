@@ -23,7 +23,8 @@ Also live: the homepage's three scheduled/cached info panels (Tagesschau
 headlines, Wizards of the Coast news, local weather), an MTG Meta & Stats
 page (most-played cards and popular Commander decks via EDHREC, Standard/
 Commander tier lists via MTGGoldfish), a related-combos panel on MTG card
-detail pages (EDHREC), and a Scryfall hover-preview on card/
+detail pages (EDHREC), flippable double-faced cards with both halves of
+split cards shown, and a Scryfall hover-preview on card/
 commander names. See
 [`docs/project-brief.md`](docs/project-brief.md) for the full spec this
 was built against, phase by phase, annotated with what's actually done.

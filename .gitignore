@@ -9,6 +9,10 @@ api/.phpunit.result.cache
 # frontend
 frontend/node_modules/
 frontend/dist/
+# Vite dev-server output, rewritten on every local run - it sat untracked long
+# enough that "never git add -A in this repo" became a rule people had to
+# remember. Ignoring it is cheaper than remembering.
+frontend/dev-server.log
 # Vendored by scripts/copy-stockfish.js (postinstall) - a ~7MB WASM binary,
 # reproduced on every install rather than committed.
 frontend/public/stockfish/
