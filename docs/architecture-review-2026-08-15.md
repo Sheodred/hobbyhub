@@ -6,9 +6,12 @@ Deepening candidates found by scoping to the hot spots of the last 60 commits:
 and the deep-module glossary (module, interface, depth, seam, adapter,
 leverage, locality) for the architecture.
 
-Nothing here is decided. These are candidates; a chosen one becomes an ADR.
+**Outcome (same day):** candidates 1, 2 and 3 were implemented. Candidate 2
+is recorded as [ADR-0015](./adr/0015-shared-throttle-module.md), since it
+partly supersedes ADR-0011. Candidate 4 was left alone deliberately — see its
+section.
 
-## 1. Four Rating Source adapters, no interface — **strong**
+## 1. Four Rating Source adapters, no interface — **strong** · done
 
 **Files:** `api/boardgames/lookup.php`, `AmazonRatingClient`,
 `BoardGameQuestClient`, `Hall9000Client`, `BrettspieleReportClient`
@@ -31,7 +34,7 @@ endpoint. Leverage: one interface, four adapters today. The interface becomes
 the test surface — the flattening is testable without HTTP. Best-Effort
 failure moves behind the seam instead of being re-declared per source.
 
-## 2. The same throttle, implemented six times — **strong**
+## 2. The same throttle, implemented six times — **strong** · done (ADR-0015)
 
 **Files:** `ScryfallClient`, `BggClient`, `AmazonRatingClient`,
 `BoardGameQuestClient`, `Hall9000Client`, `BrettspieleReportClient`,
@@ -57,7 +60,7 @@ over one `outbound_throttle` table keyed by source name — the shape
 six call sites, one implementation. The schema stops growing two tables per
 source.
 
-## 3. The outbound seam discards why a call failed — **worth exploring**
+## 3. The outbound seam discards why a call failed — **worth exploring** · done
 
 **Files:** `api/lib/http_client.php`, `api/health.php`,
 `CommanderSpellbookClient`, `api/mtg/combos.php`
@@ -79,7 +82,7 @@ the same module.
 duplicate curl implementation. A blocked source names itself the first time
 instead of the third deploy. No change at any client's interface.
 
-## 4. QueryState is shallow — **speculative**
+## 4. QueryState is shallow — **speculative** · not done
 
 **Files:** `frontend/src/components/QueryState.tsx` and its 12 call sites
 
@@ -104,3 +107,31 @@ is also the change surface that keeps moving — `lookup.php`, `schema.sql` and
 the rating clients dominate recent history, and ADR-0014 anticipates a fifth
 Rating Source. Candidate 2 follows naturally afterwards: those adapters are
 most of the six callers a shared throttle module would serve.
+
+## What was actually built
+
+**1.** `api/lib/RatingSource.php` — the interface (`label()`, `rating()`) plus
+`collect_ratings()`, which holds the Best-Effort rule. The four clients
+implement it; `lookup.php` iterates them and its 34-line literal is gone.
+Board Game Quest's prose and H@LL9000's player count are not ratings, so they
+stay as direct calls and do not travel through the seam. Four tests
+(`RatingSourceTest`) cover what previously needed an HTTP request, including
+"one broken source must not take down the others".
+
+**2.** `api/lib/Throttle.php` — one implementation, six one-line callers,
+three tests. Deviates from the review: the six tables stay, so this needs no
+production migration. Reasoning in ADR-0015.
+
+**3.** `http_get_result()` in `api/lib/http_client.php` returns body, status
+and transport error; `http_get_raw()` is now a thin caller of it, so no client
+changed. `health.php`'s `probe_outbound()` stopped being a second curl
+implementation and calls the same module.
+
+**4.** Not done. It is the only candidate with no defect behind it — twelve
+call sites of churn to make a working module tidier. Revisit if a caller ever
+gets its `isEmpty` derivation wrong.
+
+Verified: 77/77 PHP tests; `/api/boardgames/lookup?q=wingspan` returns the
+same ratings as before the refactor (Amazon.de 4.8/5 · H@LL9000 4.6/6), and
+`/api/health` still returns exactly `{"status":"ok"}` for the deploy smoke
+test.

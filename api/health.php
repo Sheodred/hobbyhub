@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/lib/http.php';
 require_once __DIR__ . '/lib/db.php';
+require_once __DIR__ . '/lib/http_client.php';
 
 // Deploy's smoke test asserts this body is exactly {"status":"ok"}, so the
 // bare form stays the default. ?checks=1 adds a schema readiness report,
@@ -16,36 +17,28 @@ if (($_GET['checks'] ?? '') === '') {
 }
 
 // Commander Spellbook answers fine from a dev machine and not at all from
-// production (issue #35), and http_get_raw() collapses "DNS never resolved"
-// and "403 from their CDN" into the same null - so the one fact needed to
-// tell those apart is the one production cannot report. Scryfall is the
-// control: it is known to work from here, so a failure on both means the
-// host, and a failure on one means that host. Status code and curl's own
-// error string only, never a response body.
+// production (issue #35), so this reports which. Scryfall is the control: it
+// is known to work from here, so a failure on both means the host, and a
+// failure on one means that host.
+//
+// This used to be a second curl implementation living beside the real one;
+// it now asks the same module every client uses, which is the only way the
+// answer is worth anything.
 function probe_outbound(string $url): array
 {
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_TIMEOUT => 8,
-        CURLOPT_HTTPHEADER => ['Accept: application/json', 'User-Agent: ' . SCRYFALL_USER_AGENT],
-    ]);
-    $body = curl_exec($ch);
-    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $result = [
-        'httpStatus' => $status,
-        'curlError' => curl_error($ch) ?: null,
-        'bytes' => $body === false ? null : strlen($body),
+    $result = http_get_result($url, 8, ['Accept: application/json', 'User-Agent: ' . SCRYFALL_USER_AGENT]);
+    $body = $result['body'];
+
+    return [
+        'httpStatus' => $result['status'],
+        'curlError' => $result['error'],
+        'bytes' => $body === null ? null : strlen($body),
         // Only on failure, and only the first 200 characters: a rejection
         // usually explains itself ("api key required", a WAF block id), and
         // that sentence is the difference between fixing this and guessing
         // at it. Success bodies stay out - they are just card data.
-        'bodySnippet' => $status >= 400 && is_string($body) ? substr($body, 0, 200) : null,
+        'bodySnippet' => $result['status'] >= 400 && $body !== null ? substr($body, 0, 200) : null,
     ];
-    curl_close($ch);
-
-    return $result;
 }
 
 $required = [

@@ -29,7 +29,14 @@ function http_get_html(string $url, int $timeoutSeconds = 10, array $headers = [
     return http_get_raw($url, $timeoutSeconds, array_merge(['User-Agent: ' . SCRYFALL_USER_AGENT], $headers));
 }
 
-function http_get_raw(string $url, int $timeoutSeconds, array $headers): ?string
+// Everything the call revealed: body, HTTP status, and curl's own error
+// string. Callers that only want the body keep using http_get_raw(); this
+// exists because "it failed" and "it failed with a 403" are different facts,
+// and collapsing them cost three deploys to diagnose a block that was saying
+// so on every request (see docs/architecture-review-2026-08-15.md).
+//
+// @return array{body:?string,status:int,error:?string}
+function http_get_result(string $url, int $timeoutSeconds, array $headers): array
 {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -45,11 +52,22 @@ function http_get_raw(string $url, int $timeoutSeconds, array $headers): ?string
         CURLOPT_HTTPHEADER => $headers,
     ]);
     $body = curl_exec($ch);
-    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $result = [
+        'body' => $body === false ? null : $body,
+        'status' => (int) curl_getinfo($ch, CURLINFO_HTTP_CODE),
+        'error' => curl_error($ch) ?: null,
+    ];
     curl_close($ch);
 
-    if ($body === false || $status >= 400) {
+    return $result;
+}
+
+function http_get_raw(string $url, int $timeoutSeconds, array $headers): ?string
+{
+    $result = http_get_result($url, $timeoutSeconds, $headers);
+
+    if ($result['body'] === null || $result['status'] >= 400) {
         return null;
     }
-    return $body;
+    return $result['body'];
 }

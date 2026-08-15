@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/Throttle.php';
 require_once __DIR__ . '/http_client.php';
 require_once __DIR__ . '/Cache.php';
+require_once __DIR__ . '/RatingSource.php';
 
 // Reads H@LL9000's aggregate rating for a game (docs/adr/0014).
 //
@@ -12,7 +14,7 @@ require_once __DIR__ . '/Cache.php';
 //
 // robots.txt disallows exactly one path (/html/bewerten, the voting form),
 // which this client never requests. Checked 2026-08-15.
-class Hall9000Client
+class Hall9000Client implements RatingSource
 {
     // Confirmed empirically from their own ranking page: the top entry is
     // 6,0 and the rest cluster 5,2-5,9. Their scale explanation page does
@@ -34,6 +36,25 @@ class Hall9000Client
     /**
      * @return array{rating:float,max:int,count:?int,players:?string,duration:?string,url:string}|null
      */
+    public function label(): string
+    {
+        return 'H@LL9000';
+    }
+
+    // Out of 6, which is why every Rating carries its own max.
+    public function rating(string $gameName): ?array
+    {
+        $found = $this->ratingFor($gameName);
+
+        return $found === null ? null : [
+            'value' => $found['rating'],
+            'max' => $found['max'],
+            'count' => $found['count'],
+            'title' => null,
+            'url' => $found['url'],
+        ];
+    }
+
     public function ratingFor(string $gameName): ?array
     {
         $slug = $this->slug($gameName);
@@ -105,21 +126,6 @@ class Hall9000Client
 
     private function throttle(): void
     {
-        $pdo = db();
-        $row = $pdo->query('SELECT last_call_at FROM hall9000_throttle WHERE id = 1')->fetch();
-
-        $now = microtime(true);
-        if ($row) {
-            $elapsedMs = ($now - (float) $row['last_call_at']) * 1000;
-            if ($elapsedMs < self::THROTTLE_MIN_INTERVAL_MS) {
-                usleep((int) ((self::THROTTLE_MIN_INTERVAL_MS - $elapsedMs) * 1000));
-            }
-        }
-
-        $now = microtime(true);
-        $stmt = $pdo->prepare(
-            'INSERT INTO hall9000_throttle (id, last_call_at) VALUES (1, ?) ON DUPLICATE KEY UPDATE last_call_at = ?'
-        );
-        $stmt->execute([$now, $now]);
+        throttle('hall9000_throttle', self::THROTTLE_MIN_INTERVAL_MS);
     }
 }

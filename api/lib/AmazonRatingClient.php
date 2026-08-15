@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/Throttle.php';
 require_once __DIR__ . '/http_client.php';
 require_once __DIR__ . '/Cache.php';
+require_once __DIR__ . '/RatingSource.php';
 
 // Reads the aggregate customer rating for a board game from amazon.de search
 // results - the single star average and its rating count, both plain facts,
@@ -12,7 +14,7 @@ require_once __DIR__ . '/Cache.php';
 // robots.txt for User-agent: * disallows neither /s nor /dp (checked
 // 2026-08-15, recorded in the ADR); requests identify themselves with the
 // project's real User-Agent and are throttled well below any browsing rate.
-class AmazonRatingClient
+class AmazonRatingClient implements RatingSource
 {
     private const CACHE_TTL_SECONDS = 7 * 24 * 60 * 60; // ratings drift slowly
     private const THROTTLE_MIN_INTERVAL_MS = 2000;      // deliberately slow
@@ -24,6 +26,26 @@ class AmazonRatingClient
     public function __construct(?callable $httpGetHtml = null)
     {
         $this->httpGetHtml = $httpGetHtml ?? 'http_get_html';
+    }
+
+    public function label(): string
+    {
+        return 'Amazon.de';
+    }
+
+    // Amazon publishes out of 5. The customer-review count is worth carrying:
+    // it is the one number that says how much the score is worth.
+    public function rating(string $gameName): ?array
+    {
+        $found = $this->ratingFor($gameName);
+
+        return $found === null ? null : [
+            'value' => $found['rating'],
+            'max' => 5,
+            'count' => $found['count'],
+            'title' => $found['title'],
+            'url' => $found['url'],
+        ];
     }
 
     /**
@@ -149,21 +171,6 @@ class AmazonRatingClient
 
     private function throttle(): void
     {
-        $pdo = db();
-        $row = $pdo->query('SELECT last_call_at FROM amazon_throttle WHERE id = 1')->fetch();
-
-        $now = microtime(true);
-        if ($row) {
-            $elapsedMs = ($now - (float) $row['last_call_at']) * 1000;
-            if ($elapsedMs < self::THROTTLE_MIN_INTERVAL_MS) {
-                usleep((int) ((self::THROTTLE_MIN_INTERVAL_MS - $elapsedMs) * 1000));
-            }
-        }
-
-        $now = microtime(true);
-        $stmt = $pdo->prepare(
-            'INSERT INTO amazon_throttle (id, last_call_at) VALUES (1, ?) ON DUPLICATE KEY UPDATE last_call_at = ?'
-        );
-        $stmt->execute([$now, $now]);
+        throttle('amazon_throttle', self::THROTTLE_MIN_INTERVAL_MS);
     }
 }

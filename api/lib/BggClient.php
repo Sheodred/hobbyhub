@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/Throttle.php';
 require_once __DIR__ . '/http_client.php';
 require_once __DIR__ . '/Cache.php';
 
@@ -278,22 +279,6 @@ class BggClient
 
     private function throttle(): void
     {
-        $pdo = db();
-        $stmt = $pdo->query('SELECT last_call_at FROM bgg_throttle WHERE id = 1');
-        $row = $stmt->fetch();
-
-        $now = microtime(true);
-        if ($row) {
-            $elapsedMs = ($now - (float) $row['last_call_at']) * 1000;
-            if ($elapsedMs < self::THROTTLE_MIN_INTERVAL_MS) {
-                usleep((int) ((self::THROTTLE_MIN_INTERVAL_MS - $elapsedMs) * 1000));
-            }
-        }
-
-        $now = microtime(true);
-        $stmt = $pdo->prepare(
-            'INSERT INTO bgg_throttle (id, last_call_at) VALUES (1, ?) ON DUPLICATE KEY UPDATE last_call_at = ?'
-        );
-        $stmt->execute([$now, $now]);
+        throttle('bgg_throttle', self::THROTTLE_MIN_INTERVAL_MS);
     }
 }

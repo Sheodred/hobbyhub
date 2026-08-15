@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/Throttle.php';
 require_once __DIR__ . '/http_client.php';
 require_once __DIR__ . '/Cache.php';
+require_once __DIR__ . '/RatingSource.php';
 
 // Reads Board Game Quest's own review verdict for a game: their score out of
 // five, a short "how it plays" blurb, and their Hits/Misses bullets
@@ -15,7 +17,7 @@ require_once __DIR__ . '/Cache.php';
 // rules blurb is truncated to RULES_MAX_LENGTH, and the bullets are the short
 // phrases they already write as a summary. This site is not a mirror of their
 // reviews - it points at them.
-class BoardGameQuestClient
+class BoardGameQuestClient implements RatingSource
 {
     public const RULES_MAX_LENGTH = 320;
 
@@ -34,6 +36,26 @@ class BoardGameQuestClient
     /**
      * @return array{score:float,rules:string,hits:string[],misses:string[],title:string,url:string}|null
      */
+    public function label(): string
+    {
+        return 'Board Game Quest';
+    }
+
+    // Their Final Score is out of 5, and they publish no count - one
+    // reviewer, one verdict.
+    public function rating(string $gameName): ?array
+    {
+        $found = $this->reviewFor($gameName);
+
+        return $found === null ? null : [
+            'value' => $found['score'],
+            'max' => 5,
+            'count' => null,
+            'title' => $found['title'],
+            'url' => $found['url'],
+        ];
+    }
+
     public function reviewFor(string $gameName): ?array
     {
         $normalized = strtolower(trim($gameName));
@@ -145,21 +167,6 @@ class BoardGameQuestClient
 
     private function throttle(): void
     {
-        $pdo = db();
-        $row = $pdo->query('SELECT last_call_at FROM bgq_throttle WHERE id = 1')->fetch();
-
-        $now = microtime(true);
-        if ($row) {
-            $elapsedMs = ($now - (float) $row['last_call_at']) * 1000;
-            if ($elapsedMs < self::THROTTLE_MIN_INTERVAL_MS) {
-                usleep((int) ((self::THROTTLE_MIN_INTERVAL_MS - $elapsedMs) * 1000));
-            }
-        }
-
-        $now = microtime(true);
-        $stmt = $pdo->prepare(
-            'INSERT INTO bgq_throttle (id, last_call_at) VALUES (1, ?) ON DUPLICATE KEY UPDATE last_call_at = ?'
-        );
-        $stmt->execute([$now, $now]);
+        throttle('bgq_throttle', self::THROTTLE_MIN_INTERVAL_MS);
     }
 }

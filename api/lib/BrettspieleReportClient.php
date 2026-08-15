@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/Throttle.php';
 require_once __DIR__ . '/http_client.php';
 require_once __DIR__ . '/Cache.php';
+require_once __DIR__ . '/RatingSource.php';
 
 // Reads brettspiele-report.de's overall score for a game (docs/adr/0014),
 // via their public WordPress REST API rather than rendered pages.
@@ -11,7 +13,7 @@ require_once __DIR__ . '/Cache.php';
 // taken - the categories above it (Anspruch, Gedächtnis, Komplexität,
 // Zufall) are descriptors, not quality marks, and averaging them would
 // invent a number the site never published.
-class BrettspieleReportClient
+class BrettspieleReportClient implements RatingSource
 {
     // Not stated on the page. Inferred: 25 sampled reviews score 8-18
     // overall and category values reach 19, with none above 20.
@@ -32,6 +34,26 @@ class BrettspieleReportClient
     /**
      * @return array{rating:int,max:int,title:string,url:string}|null
      */
+    public function label(): string
+    {
+        return 'brettspiele-report';
+    }
+
+    // Out of 20 - the widest scale of the four, and the clearest reason not
+    // to average them.
+    public function rating(string $gameName): ?array
+    {
+        $found = $this->ratingFor($gameName);
+
+        return $found === null ? null : [
+            'value' => $found['rating'],
+            'max' => $found['max'],
+            'count' => null,
+            'title' => $found['title'],
+            'url' => $found['url'],
+        ];
+    }
+
     public function ratingFor(string $gameName): ?array
     {
         $normalized = mb_strtolower(trim($gameName));
@@ -96,21 +118,6 @@ class BrettspieleReportClient
 
     private function throttle(): void
     {
-        $pdo = db();
-        $row = $pdo->query('SELECT last_call_at FROM brettspiele_report_throttle WHERE id = 1')->fetch();
-
-        $now = microtime(true);
-        if ($row) {
-            $elapsedMs = ($now - (float) $row['last_call_at']) * 1000;
-            if ($elapsedMs < self::THROTTLE_MIN_INTERVAL_MS) {
-                usleep((int) ((self::THROTTLE_MIN_INTERVAL_MS - $elapsedMs) * 1000));
-            }
-        }
-
-        $now = microtime(true);
-        $stmt = $pdo->prepare(
-            'INSERT INTO brettspiele_report_throttle (id, last_call_at) VALUES (1, ?) ON DUPLICATE KEY UPDATE last_call_at = ?'
-        );
-        $stmt->execute([$now, $now]);
+        throttle('brettspiele_report_throttle', self::THROTTLE_MIN_INTERVAL_MS);
     }
 }
