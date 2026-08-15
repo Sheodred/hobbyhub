@@ -18,6 +18,14 @@ game's data server-side and only refetch on a cache miss or TTL expiry.
 
 ## Research findings (grounding for the decision below)
 
+> **Correction (2026-08-15, during implementation):** the "free, keyless"
+> finding below is **out of date**. BGG now rejects every unauthenticated
+> XML API call — v1 and API2, any User-Agent — with `401 Unauthorized`,
+> and requires all applications, commercial and non-commercial, to
+> register and send an `Authorization` header. Tracked in
+> [#40](https://github.com/Sheodred/hobbyhub/issues/40); everything else
+> in this spec still holds.
+
 - **BoardGameGeek XML API2** (`boardgamegeek.com/xmlapi2`) is free,
   keyless, and provides a `search` endpoint (free-text → candidate game
   ids) and a `thing` endpoint (ratings/stats, description, and — via

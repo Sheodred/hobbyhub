@@ -106,6 +106,13 @@ Full implementation plan: `docs/superpowers/plans/2026-08-14-boardgame-lookup.md
   `bgg_throttle`), one new HTTP helper (`http_get_xml()` in
   `api/lib/http_client.php`, since BGG returns XML unlike Scryfall/
   EDHREC's JSON). No new cron script — on-demand, not scheduled.
+- **BGG access is no longer keyless (discovered 2026-08-15).** The XML
+  API now returns `401 Unauthorized` to every unauthenticated call and
+  requires a registered application token. This does not change the
+  caching decision recorded here, but it blocks the feature until a
+  human registers the app — see
+  [#40](https://github.com/Sheodred/hobbyhub/issues/40). Registration is
+  also the natural moment to settle the commercial-use question below.
 - **The commercial-use classification is an accepted, monitored risk,
   not a resolved question.** If BGG or a maintainer ever raises it,
   the fallback is straightforward (add a commercial license, or pull

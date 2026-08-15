@@ -876,5 +876,6 @@ git commit -m "feat(boardgame-lookup): add search page, route, and nav link"
 ## Deferred (explicit non-goals, not silent gaps — see spec)
 
 - [ ] Multi-site review scraping beyond BGG — blocked on a per-site robots.txt/ToS check (none done yet for any specific site).
-- [ ] Re-verify the 14-day cache TTL and no-negative-caching behavior — the council review that would have stress-tested this did not complete; flagged in the ADR for human sanity-check before this ships to production traffic.
+- [x] Re-verify the 14-day cache TTL and no-negative-caching behavior — done 2026-08-15 by reading the code instead of re-running the council review. `cache_aside()` did cache a failed fetch's `null` for the full TTL; fixed at the root (see ADR-0011 Consequences). 14-day TTL stands.
+- [ ] **BLOCKED — BGG XML API now returns 401 without a registered application token** ([#40](https://github.com/Sheodred/hobbyhub/issues/40)). All five tasks below are implemented and tested, but the happy path has never run against real BGG data. Needs a human registration step before this can ship.
 - [ ] LLM-based summarization of the good/bad blurb (currently a deterministic pick-from-fetched-comments heuristic).
