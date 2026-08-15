@@ -81,4 +81,55 @@ final class BggClientTest extends TestCase
 
         $this->assertNull($client->lookup(999999));
     }
+
+    private function searchXml(string $inner): SimpleXMLElement
+    {
+        return new SimpleXMLElement('<items>' . $inner . '</items>');
+    }
+
+    public function testResolveSearchSingleMatchResolvesAndCaches(): void
+    {
+        $calls = 0;
+        $fetcher = function () use (&$calls) {
+            $calls++;
+            return $this->searchXml('<item id="13" type="boardgame"><name type="primary" value="Catan"/><yearpublished value="1995"/></item>');
+        };
+
+        $result = (new BggClient($fetcher))->resolveSearch('catan');
+        $this->assertSame(['status' => 'ok', 'bggId' => 13], $result);
+
+        // Second call for the same (normalized) query must hit
+        // bgg_search_cache, not the fetcher again.
+        $second = (new BggClient($fetcher))->resolveSearch('  Catan ');
+        $this->assertSame(['status' => 'ok', 'bggId' => 13], $second);
+        $this->assertSame(1, $calls, 'resolved query should be served from bgg_search_cache on repeat, case/whitespace-insensitive');
+    }
+
+    public function testResolveSearchMultipleMatchesReturnsDisambiguationWithoutCaching(): void
+    {
+        $calls = 0;
+        $fetcher = function () use (&$calls) {
+            $calls++;
+            return $this->searchXml(
+                '<item id="13" type="boardgame"><name type="primary" value="Catan"/><yearpublished value="1995"/></item>' .
+                '<item id="1234" type="boardgame"><name type="primary" value="Catan: Cities and Knights"/><yearpublished value="1998"/></item>'
+            );
+        };
+
+        $result = (new BggClient($fetcher))->resolveSearch('catan');
+
+        $this->assertSame('disambiguation', $result['status']);
+        $this->assertCount(2, $result['candidates']);
+        $this->assertSame(['bggId' => 13, 'name' => 'Catan', 'yearPublished' => 1995], $result['candidates'][0]);
+
+        (new BggClient($fetcher))->resolveSearch('catan');
+        $this->assertSame(2, $calls, 'an ambiguous query must not be cached - it should re-search every time until resolved');
+    }
+
+    public function testResolveSearchNoMatchesReturnsNotFound(): void
+    {
+        $client = new BggClient(fn() => $this->searchXml(''));
+
+        $this->assertSame(['status' => 'not_found'], $client->resolveSearch('zzzznonexistentgamezzzz'));
+    }
 }

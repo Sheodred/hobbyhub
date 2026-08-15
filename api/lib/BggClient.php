@@ -45,6 +45,58 @@ class BggClient
         });
     }
 
+    /**
+     * @return array{status:'ok',bggId:int}|array{status:'disambiguation',candidates:array}|array{status:'not_found'}
+     */
+    public function resolveSearch(string $query): array
+    {
+        $normalized = strtolower(trim($query));
+
+        $stmt = db()->prepare('SELECT bgg_id FROM bgg_search_cache WHERE query_key = ? AND expires_at > NOW()');
+        $stmt->execute([$normalized]);
+        $row = $stmt->fetch();
+        if ($row) {
+            return ['status' => 'ok', 'bggId' => (int) $row['bgg_id']];
+        }
+
+        $this->throttle();
+        $xml = ($this->httpGetXml)(self::BASE_URL . '/search?' . http_build_query(['type' => 'boardgame', 'query' => $query]));
+        $items = $xml === null ? [] : $xml->item;
+        $count = $items === [] ? 0 : count($items);
+
+        if ($count === 0) {
+            return ['status' => 'not_found'];
+        }
+
+        if ($count === 1) {
+            $bggId = (int) $items[0]['id'];
+            $this->cacheResolvedSearch($normalized, $bggId);
+            return ['status' => 'ok', 'bggId' => $bggId];
+        }
+
+        $candidates = [];
+        foreach ($items as $item) {
+            $candidates[] = [
+                'bggId' => (int) $item['id'],
+                'name' => (string) ($item->name['value'] ?? ''),
+                'yearPublished' => isset($item->yearpublished) ? (int) $item->yearpublished['value'] : null,
+            ];
+        }
+        // Deliberately not cached - an ambiguous query has no single
+        // bgg_id to store against bgg_search_cache's one-id-per-query
+        // shape, and the disambiguation list itself is cheap to
+        // re-fetch (it's only shown once per genuinely ambiguous title).
+        return ['status' => 'disambiguation', 'candidates' => $candidates];
+    }
+
+    private function cacheResolvedSearch(string $normalizedQuery, int $bggId): void
+    {
+        $stmt = db()->prepare(
+            'REPLACE INTO bgg_search_cache (query_key, bgg_id, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? SECOND))'
+        );
+        $stmt->execute([$normalizedQuery, $bggId, self::SEARCH_CACHE_TTL_SECONDS]);
+    }
+
     private function mapThing(SimpleXMLElement $item): array
     {
         $name = '';
