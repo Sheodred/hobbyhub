@@ -3,6 +3,10 @@ name: Deploy
 on:
   push:
     branches: [main]
+  # Re-deploying the current main used to need an empty commit, or a rerun of
+  # an old run - which redeploys that run's commit, not main. During the
+  # 2026-08-16 IONOS outage that made "try again now" unnecessarily awkward.
+  workflow_dispatch:
 
 # One deploy at a time against the one webspace. Queued, never cancelled:
 # cancel-in-progress would kill a live mirror halfway through and leave the
