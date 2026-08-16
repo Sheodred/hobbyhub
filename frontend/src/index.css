@@ -6,6 +6,15 @@ html {
   scroll-behavior: smooth;
 }
 
+/* The header is sticky at top-4 and 3.5rem tall, so anything scrolled to sits
+   under it - including whatever the browser just moved focus to (WCAG 2.4.11
+   Focus Not Obscured). main carries it too because it is its own scroll
+   container. */
+html,
+main {
+  scroll-padding-top: 6rem;
+}
+
 /* One project-wide keyboard focus indicator (WCAG 2.4.11). Only three
    components defined their own, so everything else fell back to the UA ring,
    which is inconsistent against these dark glass surfaces. :focus-visible (not

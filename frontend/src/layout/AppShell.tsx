@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 
 import { Header } from "./Header";
 import { MobileDrawer } from "./MobileDrawer";
+import { legalNavLinks } from "./navigation";
 import { PageTransition } from "./PageTransition";
 
 export function AppShell() {
@@ -80,6 +81,20 @@ export function AppShell() {
           </PageTransition>
         </div>
       </main>
+      {/* Until this existed the small print and the site map were reachable
+          only by opening the hamburger drawer, which is a poor second way to
+          find anything (WCAG 2.4.5). */}
+      <footer className="mx-auto w-full max-w-7xl px-6 pb-10 pt-4">
+        <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-slate-400">
+          {legalNavLinks.map((link) => (
+            <li key={link.to}>
+              <Link to={link.to} className="hover:text-indigo-400">
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </footer>
     </div>
   );
 }

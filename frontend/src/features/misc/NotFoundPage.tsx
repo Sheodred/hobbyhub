@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
@@ -8,6 +9,17 @@ const EASE = [0.32, 0.72, 0, 1] as const;
 
 export function NotFoundPage() {
   useDocumentTitle("Page not found");
+
+  // Apache can't know a client-side route is missing, so every unknown URL is
+  // served as 200 + index.html - a soft 404 that crawlers would happily index.
+  // The meta tag is the only signal available from in here.
+  useEffect(() => {
+    const meta = document.createElement("meta");
+    meta.name = "robots";
+    meta.content = "noindex";
+    document.head.append(meta);
+    return () => meta.remove();
+  }, []);
 
   const reduceMotion = usePrefersReducedMotion();
 
@@ -27,7 +39,11 @@ export function NotFoundPage() {
             Page not found
           </h1>
           <p className="max-w-xs text-slate-400">
-            That page doesn&apos;t exist, or the link is out of date.
+            That page doesn&apos;t exist, or the link is out of date. The{" "}
+            <Link to="/sitemap" className="text-indigo-400 underline hover:text-indigo-300">
+              site map
+            </Link>{" "}
+            lists every page.
           </p>
           <Link
             to="/"

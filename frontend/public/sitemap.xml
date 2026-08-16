@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Static on purpose: eleven URLs that change maybe twice a year don't earn
+     a build step. frontend/src/app/routes.test.ts fails if a static route is
+     added without being listed here. Dynamic routes (/mtg/:id,
+     /mtg/decks/:deckId) are deliberately absent - they are unbounded. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://sheoforge.de/</loc></url>
+  <url><loc>https://sheoforge.de/about</loc></url>
+  <url><loc>https://sheoforge.de/mtg</loc></url>
+  <url><loc>https://sheoforge.de/mtg/meta</loc></url>
+  <url><loc>https://sheoforge.de/mtg/decks</loc></url>
+  <url><loc>https://sheoforge.de/boardgames</loc></url>
+  <url><loc>https://sheoforge.de/chess</loc></url>
+  <url><loc>https://sheoforge.de/sitemap</loc></url>
+  <url><loc>https://sheoforge.de/legal/impressum</loc></url>
+  <url><loc>https://sheoforge.de/legal/privacy</loc></url>
+  <url><loc>https://sheoforge.de/legal/terms</loc></url>
+  <url><loc>https://sheoforge.de/legal/accessibility</loc></url>
+</urlset>
