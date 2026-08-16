@@ -4,9 +4,20 @@ on:
   push:
     branches: [main]
 
+# One deploy at a time against the one webspace. Queued, never cancelled:
+# cancel-in-progress would kill a live mirror halfway through and leave the
+# target in a state no run has ever produced. On 2026-08-16 a second merge
+# started a second mirror on top of a stuck one, and two lftp sessions then
+# sat on the same endpoint for over an hour.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # A hung SFTP connect would otherwise run until GitHub's 6-hour default.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
 
@@ -43,15 +54,42 @@ jobs:
       - name: Install lftp
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
 
+      # The settings below exist because of a real 72-minute hang (2026-08-16).
+      # lftp's defaults let a stalled connect wait forever, and `mirror
+      # --verbose` prints nothing until the first file moves - so the log was
+      # completely empty and a dead session looked exactly like a slow upload.
+      # The run before it had recovered on its own after 5m02s of the same
+      # silence, which is why the retry loop is worth having: fail each attempt
+      # fast, say so, and try again rather than hanging.
       - name: Deploy to IONOS via SFTP
         run: |
           set -e
-          lftp -u "$IONOS_SFTP_USER,$IONOS_SFTP_PASSWORD" -p 22 sftp://$IONOS_SFTP_HOST -e "
-            set sftp:auto-confirm yes;
-            mirror -R --verbose frontend/dist public;
-            mirror -R --verbose -X vendor/ -X tests/ -X composer.json -X composer.lock -X phpunit.xml api public/api;
-            bye
-          "
+          upload() {
+            lftp -u "$IONOS_SFTP_USER,$IONOS_SFTP_PASSWORD" -p 22 sftp://$IONOS_SFTP_HOST -e "
+              debug 3;
+              set net:timeout 20;
+              set net:max-retries 2;
+              set net:reconnect-interval-base 5;
+              set sftp:auto-confirm yes;
+              mirror -R --verbose frontend/dist public;
+              mirror -R --verbose -X vendor/ -X tests/ -X composer.json -X composer.lock -X phpunit.xml api public/api;
+              bye
+            "
+          }
+
+          for attempt in 1 2 3; do
+            echo "::group::SFTP attempt $attempt"
+            if upload; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "Attempt $attempt failed. Waiting 60s before retrying."
+            sleep 60
+          done
+
+          echo "All three SFTP attempts failed - the endpoint is not accepting the connection."
+          exit 1
         env:
           IONOS_SFTP_HOST: ${{ secrets.IONOS_SFTP_HOST }}
           IONOS_SFTP_USER: ${{ secrets.IONOS_SFTP_USER }}
