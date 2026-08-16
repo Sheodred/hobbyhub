@@ -60,11 +60,48 @@ final class AmazonRatingClientTest extends TestCase
         $this->assertNull($client->ratingFor('Wingspan'));
     }
 
-    public function testReturnsNullWhenTheFetchFails(): void
+    // Since #72 "no listing for this game" is cached, so a failed fetch has to
+    // be told apart from an answered one.
+    public function testThrowsWhenTheFetchFails(): void
     {
-        $client = new AmazonRatingClient(fn() => null);
+        $this->expectException(RuntimeException::class);
 
-        $this->assertNull($client->ratingFor('Catan'));
+        (new AmazonRatingClient(fn() => null))->ratingFor('Catan');
+    }
+
+    public function testRemembersAGameWithNoMatchingListing(): void
+    {
+        $calls = 0;
+        $fetch = function () use (&$calls) {
+            $calls++;
+            return $this->searchHtml(); // Catan listings, nothing for Wingspan
+        };
+
+        $this->assertNull((new AmazonRatingClient($fetch))->ratingFor('Wingspan'));
+        $this->assertNull((new AmazonRatingClient($fetch))->ratingFor('Wingspan'));
+
+        $this->assertSame(1, $calls, 'a repeat ask is a full round trip behind a 2s throttle (#72)');
+    }
+
+    // amazon.de serves its anti-bot interstitial with a 200, so "no listing
+    // found" and "we were blocked" arrive looking identical. Remembering the
+    // second as the first would hide every game's rating for the miss TTL and
+    // would not self-heal when the block lifts.
+    public function testRefusesToRememberAMissFromAPageThatIsNotASearchResultPage(): void
+    {
+        $captcha = '<html><body><h4>Geben Sie die Zeichen unten ein</h4></body></html>';
+
+        try {
+            (new AmazonRatingClient(fn() => $captcha))->ratingFor('Catan');
+            $this->fail('a block page is not an answer about this game');
+        } catch (RuntimeException $e) {
+            // expected
+        }
+
+        $this->assertSame(
+            0,
+            (int) db()->query("SELECT COUNT(*) FROM amazon_rating_cache WHERE query_key = 'catan'")->fetchColumn()
+        );
     }
 
     public function testResultIsCachedAndNotRefetched(): void
@@ -83,7 +120,11 @@ final class AmazonRatingClientTest extends TestCase
 
     public function testAFailedFetchIsNotCached(): void
     {
-        (new AmazonRatingClient(fn() => null))->ratingFor('Catan');
+        try {
+            (new AmazonRatingClient(fn() => null))->ratingFor('Catan');
+        } catch (RuntimeException $e) {
+            // The point of this test is what is left behind, not the throw.
+        }
 
         $this->assertSame(
             0,

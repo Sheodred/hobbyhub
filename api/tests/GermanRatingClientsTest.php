@@ -15,6 +15,12 @@ final class GermanRatingClientsTest extends TestCase
 
     // --- H@LL9000 ---------------------------------------------------------
 
+    /** The shape http_get_result() returns, which is what the client takes. */
+    private function hallResponse(?string $body, int $status = 200): array
+    {
+        return ['body' => $body, 'status' => $status, 'error' => null];
+    }
+
     private function hallPage(): string
     {
         return '<html><body><h1>H@LL9000 - Rezension/Kritik Spiel: Azul</h1>'
@@ -25,7 +31,7 @@ final class GermanRatingClientsTest extends TestCase
 
     public function testHallParsesRatingCountAndPlayerInfo(): void
     {
-        $r = (new Hall9000Client(fn() => $this->hallPage()))->ratingFor('Azul');
+        $r = (new Hall9000Client(fn() => $this->hallResponse($this->hallPage())))->ratingFor('Azul');
 
         $this->assertSame(4.8, $r['rating']);
         $this->assertSame(6, $r['max']);
@@ -41,7 +47,7 @@ final class GermanRatingClientsTest extends TestCase
         $page = '<p>H@LL9000 Wertung Azul: 4,8, 17 Bewertung(en)</p>'
             . '<p>Spieler: 2 - 4 Dauer: 30 - 45 Minuten Jahr: 2017</p>';
 
-        $r = (new Hall9000Client(fn() => $page))->ratingFor('Azul');
+        $r = (new Hall9000Client(fn() => $this->hallResponse($page)))->ratingFor('Azul');
 
         $this->assertNull($r['age'], 'a missing field is null, never an empty label');
         $this->assertSame('2 - 4', $r['players']);
@@ -52,7 +58,7 @@ final class GermanRatingClientsTest extends TestCase
         $seen = null;
         $client = new Hall9000Client(function ($url) use (&$seen) {
             $seen = $url;
-            return $this->hallPage();
+            return $this->hallResponse($this->hallPage());
         });
 
         $client->ratingFor('Das Orakel von Delphi');
@@ -60,17 +66,65 @@ final class GermanRatingClientsTest extends TestCase
         $this->assertStringEndsWith('/das_orakel_von_delphi', $seen);
     }
 
-    public function testHallReturnsNullWhenThePageIsMissingOrUnparsed(): void
+    public function testHallReturnsNullWhenThePageIsMissingOrCarriesNoRating(): void
     {
-        $this->assertNull((new Hall9000Client(fn() => null))->ratingFor('Nichtvorhanden'));
-        $this->assertNull((new Hall9000Client(fn() => '<html>nothing here</html>'))->ratingFor('Azul'));
+        // No page at all for this game.
+        $this->assertNull((new Hall9000Client(fn() => $this->hallResponse(null, 404)))->ratingFor('Nichtvorhanden'));
+        // Their page, but nothing rated on it yet - also a real answer.
+        $this->assertNull(
+            (new Hall9000Client(fn() => $this->hallResponse('<html>H@LL9000 - noch keine Wertung</html>')))->ratingFor('Azul')
+        );
+    }
+
+    // A 404 is them saying "no page for this game"; a timeout says nothing at
+    // all. Before #72 both arrived as the same null, so neither could be
+    // cached without risking an outage being stored as an answer.
+    public function testHallTellsAMissingGameApartFromAFailedRequest(): void
+    {
+        $calls = 0;
+        $missing = function () use (&$calls) {
+            $calls++;
+            return $this->hallResponse(null, 404);
+        };
+
+        $this->assertNull((new Hall9000Client($missing))->ratingFor('Nichtvorhanden'));
+        $this->assertNull((new Hall9000Client($missing))->ratingFor('Nichtvorhanden'));
+        $this->assertSame(1, $calls, 'a known-missing game should not be re-fetched every request');
+
+        $this->expectException(RuntimeException::class);
+        (new Hall9000Client(fn() => $this->hallResponse(null, 0)))->ratingFor('Azul');
     }
 
     public function testHallRejectsAnImplausibleRating(): void
     {
         // Above their scale means the pattern matched something else.
-        $page = '<p>Wertung Azul: 9,9, 17 Bewertung(en)</p>';
-        $this->assertNull((new Hall9000Client(fn() => $page))->ratingFor('Azul'));
+        $page = '<p>H@LL9000 Wertung Azul: 9,9, 17 Bewertung(en)</p>';
+        $this->assertNull((new Hall9000Client(fn() => $this->hallResponse($page)))->ratingFor('Azul'));
+    }
+
+    // Caching a miss is only safe when the response was recognisably one of
+    // their game pages. A 200 consent wall, a maintenance page or changed
+    // markup would otherwise pin "this game is unrated" for the miss TTL, and
+    // would not self-heal once the parser is fixed.
+    public function testHallRefusesToRememberAMissFromAPageItDoesNotRecognise(): void
+    {
+        $calls = 0;
+        $fetch = function () use (&$calls) {
+            $calls++;
+            return $this->hallResponse('<html><body>Wartungsarbeiten</body></html>');
+        };
+
+        try {
+            (new Hall9000Client($fetch))->ratingFor('Azul');
+            $this->fail('an unrecognised 200 is not an answer');
+        } catch (RuntimeException $e) {
+            // expected
+        }
+
+        $this->assertSame(
+            0,
+            (int) db()->query("SELECT COUNT(*) FROM hall9000_cache WHERE query_key = 'azul'")->fetchColumn()
+        );
     }
 
     // --- brettspiele-report ----------------------------------------------
@@ -132,9 +186,28 @@ final class GermanRatingClientsTest extends TestCase
         );
     }
 
-    public function testReportReturnsNullWhenTheFetchFails(): void
+    // Since #72 an unreviewed game is cached as "nothing here", so a failed
+    // call has to be distinguishable - otherwise an outage is stored as "they
+    // never reviewed this" for days.
+    public function testReportThrowsWhenTheFetchFails(): void
     {
-        $this->assertNull((new BrettspieleReportClient(fn() => null))->ratingFor('Azul'));
+        $this->expectException(RuntimeException::class);
+
+        (new BrettspieleReportClient(fn() => null))->ratingFor('Azul');
+    }
+
+    public function testReportRemembersAGameTheyNeverReviewed(): void
+    {
+        $calls = 0;
+        $fetch = function () use (&$calls) {
+            $calls++;
+            return $this->reportPosts(); // Azul posts, nothing about Wingspan
+        };
+
+        $this->assertNull((new BrettspieleReportClient($fetch))->ratingFor('Wingspan'));
+        $this->assertNull((new BrettspieleReportClient($fetch))->ratingFor('Wingspan'));
+
+        $this->assertSame(1, $calls, 'asking again costs a full round trip, throttle included (#72)');
     }
 
     public function testReportCachesItsAnswer(): void

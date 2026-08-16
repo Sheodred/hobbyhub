@@ -17,6 +17,9 @@ require_once __DIR__ . '/RatingSource.php';
 class AmazonRatingClient implements RatingSource
 {
     private const CACHE_TTL_SECONDS = 7 * 24 * 60 * 60; // ratings drift slowly
+    // A game with no listing today may be listed next week - and this is the
+    // slowest source of the four, so not re-asking matters most here.
+    private const MISS_TTL_SECONDS = 3 * 24 * 60 * 60;
     private const THROTTLE_MIN_INTERVAL_MS = 2000;      // deliberately slow
     private const SEARCH_URL = 'https://www.amazon.de/s';
 
@@ -68,11 +71,22 @@ class AmazonRatingClient implements RatingSource
                 15,
                 ['Accept: text/html,application/xhtml+xml', 'Accept-Language: de-DE,de;q=0.9']
             );
-            // cache_aside() does not cache a null, so a failed fetch or an
-            // unparseable page is simply retried next time rather than
-            // pinning "no rating" for a week.
-            return $html === null ? null : $this->parseSearchHtml($html, $gameName);
-        });
+            if ($html === null) {
+                // Failed call. A null here would be stored as "amazon.de lists
+                // nothing for this game" - see Cache.php.
+                throw new RuntimeException('amazon.de request failed for ' . $gameName);
+            }
+            $parsed = $this->parseSearchHtml($html, $gameName);
+            // Their anti-bot interstitial comes back with a 200, so "nothing
+            // listed for this game" and "we were blocked" look the same from
+            // here. Only the page that is recognisably a search result page
+            // gets to answer "nothing" - otherwise a block would hide every
+            // game's rating for the miss TTL and outlive the block itself.
+            if ($parsed === null && !str_contains($html, 's-search-result')) {
+                throw new RuntimeException('amazon.de answered 200 without a search result page for ' . $gameName);
+            }
+            return $parsed;
+        }, self::MISS_TTL_SECONDS);
     }
 
     /**
