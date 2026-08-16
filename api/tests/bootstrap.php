@@ -30,3 +30,35 @@ foreach ([
 
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../lib/db.php';
+
+/**
+ * Refuse to run against anything that doesn't announce itself as throwaway.
+ *
+ * The comment above is advice; this is enforcement. Several tests DELETE FROM
+ * the tables they exercise in setUp(), and the ways to end up pointed at a real
+ * database are quieter than they look: config.php resolves DB_* through
+ * env_or(), so a config file that defines the constants first wins over the
+ * environment - and a bind mount can put such a file back inside a container
+ * that .dockerignore had deliberately excluded from the image (#44, #45).
+ *
+ * A name check is crude, but it is the only signal available before the first
+ * query runs, and it is the one thing every throwaway database here has in
+ * common (local `hobbyhub_test`, CI's `hobbyhub_test`).
+ */
+function assert_throwaway_database(string $database, string $host): void
+{
+    // Anchored to a word boundary so "contested_data" isn't mistaken for one.
+    if (preg_match('/(^|[^a-z])test([^a-z]|$)/i', $database)) {
+        return;
+    }
+
+    throw new RuntimeException(
+        "Refusing to run the test suite against database '{$database}' on host '{$host}'.\n"
+        . "This suite DELETEs from the tables it touches, so it only runs against a\n"
+        . "database whose name says it is disposable (it must contain 'test').\n"
+        . "If DB_NAME looks wrong, check for an api/config.local.php shadowing the\n"
+        . "environment - see api/tests/bootstrap.php for the throwaway DB setup."
+    );
+}
+
+assert_throwaway_database(DB_NAME, DB_HOST);
