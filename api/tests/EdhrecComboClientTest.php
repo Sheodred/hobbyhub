@@ -83,6 +83,43 @@ final class EdhrecComboClientTest extends TestCase
         $this->assertSame(2, $combos[0]['cardCount'], 'cardCount still counts every card in the combo');
     }
 
+    // EDHREC transliterates accents instead of dropping them, so the plain
+    // [^a-z0-9] pass produced slugs like "m-rton-stromgald" that 403 - which
+    // this client correctly, and uselessly, reads as "no combos" (#42).
+    // Every expectation below was checked against their live API.
+    public function testAccentedNamesAreTransliteratedTheWayEdhrecDoes(): void
+    {
+        $cases = [
+            // Márton is the one accented card known to actually have combos,
+            // so it is the end-to-end case rather than just a slug assertion.
+            'Márton Stromgald' => 'marton-stromgald',
+            'Jötun Grunt' => 'jotun-grunt',
+            "Lim-Dûl's Vault" => 'lim-duls-vault',
+            'Séance' => 'seance',
+            // A ligature expands to two letters rather than one: EDHREC
+            // serves aether-vial, and ae-ther-vial 403s.
+            'Æther Vial' => 'aether-vial',
+            // The front-face rule from #34 still applies on top of folding.
+            'Ránar the Ever-Hungry // Whatever' => 'ranar-the-ever-hungry',
+        ];
+
+        foreach ($cases as $cardName => $expectedSlug) {
+            $requested = null;
+            $client = new EdhrecComboClient(function (string $url) use (&$requested) {
+                $requested = $url;
+                return $this->response(200, ['container' => ['json_dict' => ['cardlists' => []]]]);
+            });
+
+            $client->findCombos($cardName);
+
+            $this->assertSame(
+                EDHREC_JSON_BASE_URL . '/pages/combos/' . $expectedSlug . '.json',
+                $requested,
+                $cardName
+            );
+        }
+    }
+
     public function testFailedLookupReturnsNullAndIsNotCached(): void
     {
         $calls = 0;
