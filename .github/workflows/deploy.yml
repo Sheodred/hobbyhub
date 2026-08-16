@@ -31,6 +31,51 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      - name: Install lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
+      # Runs before the build on purpose: when the endpoint is down there is
+      # no reason to spend two minutes producing a bundle nobody can upload.
+      # One connection, one listing, no retries - this answers "can we deploy
+      # at all", and the upload step below still does its own retrying.
+      #
+      # The two failure modes are worth telling apart, because they point at
+      # different people: a closed session is authentication (our credentials
+      # or a locked account), a timeout is the endpoint not answering at all
+      # (IONOS). Getting that wrong cost most of an afternoon on 2026-08-16.
+      - name: Check the SFTP endpoint before building
+        run: |
+          set +e
+          out=$(lftp -u "$IONOS_SFTP_USER,$IONOS_SFTP_PASSWORD" -p 22 "sftp://$IONOS_SFTP_HOST" -e "
+            set net:timeout 15;
+            set net:max-retries 1;
+            set sftp:auto-confirm yes;
+            cls -1 .;
+            bye
+          " 2>&1)
+          code=$?
+          set -e
+
+          if [ $code -eq 0 ]; then
+            echo "Endpoint answered and authenticated; $(printf '%s\n' "$out" | grep -c . ) entries in the target directory."
+            exit 0
+          fi
+
+          printf '%s\n' "$out"
+          case "$out" in
+            *"Connection closed"*|*"Permission denied"*|*"Login failed"*)
+              echo "::error::SFTP closed the session at authentication. The credentials are rejected or the account is locked - see the 'When a deploy hangs' section in docs/deploy-checklist.md." ;;
+            *Timeout*|*"not reachable"*|*"Network unreachable"*|*"Connection refused"*)
+              echo "::error::SFTP endpoint did not answer. That is on IONOS - nothing in this repo will fix it." ;;
+            *)
+              echo "::error::SFTP preflight failed for an unrecognised reason (above)." ;;
+          esac
+          exit 1
+        env:
+          IONOS_SFTP_HOST: ${{ secrets.IONOS_SFTP_HOST }}
+          IONOS_SFTP_USER: ${{ secrets.IONOS_SFTP_USER }}
+          IONOS_SFTP_PASSWORD: ${{ secrets.IONOS_SFTP_PASSWORD }}
+
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
@@ -55,9 +100,6 @@ jobs:
       # config.local.php, gitignored production DB credentials that do not
       # exist in this checkout at all). A mirroring delete would wipe
       # config.local.php on every deploy.
-      - name: Install lftp
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
-
       # The settings below exist because of a real 72-minute hang (2026-08-16).
       # lftp's defaults let a stalled connect wait forever, and `mirror
       # --verbose` prints nothing until the first file moves - so the log was
