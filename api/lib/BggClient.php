@@ -144,7 +144,7 @@ class BggClient
 
     private function lookupFromRanks(int $bggId): ?array
     {
-        $stmt = db()->prepare('SELECT bgg_id, name, average, users_rated FROM bgg_ranks WHERE bgg_id = ?');
+        $stmt = db()->prepare('SELECT bgg_id, name, average, users_rated, is_expansion FROM bgg_ranks WHERE bgg_id = ?');
         $stmt->execute([$bggId]);
         $row = $stmt->fetch();
         if (!$row) {
@@ -159,6 +159,7 @@ class BggClient
             'numRatings' => $row['users_rated'] === null ? null : (int) $row['users_rated'],
             'good' => null,
             'bad' => null,
+            'isExpansion' => (bool) $row['is_expansion'],
             'partial' => true,
             'source' => ['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/' . (int) $row['bgg_id']],
         ];
@@ -232,6 +233,9 @@ class BggClient
             'numRatings' => isset($item->statistics->ratings->usersrated) ? (int) $item->statistics->ratings->usersrated['value'] : null,
             'good' => $good,
             'bad' => $bad,
+            // BGG models an expansion as its own thing type rather than a
+            // flag, so the answer is already here - no second request.
+            'isExpansion' => (string) $item['type'] === 'boardgameexpansion',
             'partial' => false,
             'source' => ['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/' . $bggId],
         ];

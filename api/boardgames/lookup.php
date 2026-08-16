@@ -47,6 +47,7 @@ try {
 
     $bgqClient = new BoardGameQuestClient();
     $hallClient = new Hall9000Client();
+    $reportClient = new BrettspieleReportClient();
 
     // One list rather than four bespoke fields, and the shape of an entry now
     // lives behind the RatingSource seam rather than here. Each source keeps
@@ -57,7 +58,7 @@ try {
         new AmazonRatingClient(),
         $bgqClient,
         $hallClient,
-        new BrettspieleReportClient(),
+        $reportClient,
     ], $game['name']);
 
     // Everything below is not a rating, so it does not travel through the
@@ -66,6 +67,7 @@ try {
     // request to them.
     $bgq = optional_source('board game quest', fn() => $bgqClient->reviewFor($game['name']));
     $hall = optional_source('hall9000', fn() => $hallClient->ratingFor($game['name']));
+    $report = optional_source('brettspiele-report', fn() => $reportClient->ratingFor($game['name']));
 
     // Board Game Quest's prose fills what BGG can't supply while #40 is open:
     // their Hits/Misses stand in for BGG's comments and their Gameplay
@@ -76,9 +78,18 @@ try {
         $game['bad'] ??= $bgq['misses'][0] ?? null;
     }
 
-    // Player count and duration are only ever known from H@LL9000 today.
+    // Player count, duration and minimum age are only ever known from
+    // H@LL9000 today; when BGG's own fields come back (#40) they should win
+    // here and these should fill the gaps, the way $game['good'] does above.
     $game['players'] = $hall['players'] ?? null;
     $game['duration'] = $hall['duration'] ?? null;
+    $game['age'] = $hall['age'] ?? null;
+
+    // Not a rating - see BrettspieleReportClient. Carries its own scale for
+    // the same reason the ratings do.
+    $game['complexity'] = isset($report['complexity'])
+        ? ['value' => $report['complexity'], 'max' => $report['max'], 'url' => $report['url']]
+        : null;
 
     json_response(['status' => 'ok', 'game' => $game]);
 } catch (Throwable $e) {

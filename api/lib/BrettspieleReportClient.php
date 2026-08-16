@@ -32,7 +32,7 @@ class BrettspieleReportClient implements RatingSource
     }
 
     /**
-     * @return array{rating:int,max:int,title:string,url:string}|null
+     * @return array{rating:int,max:int,complexity:?int,title:string,url:string}|null
      */
     public function label(): string
     {
@@ -98,12 +98,29 @@ class BrettspieleReportClient implements RatingSource
             return [
                 'rating' => $rating,
                 'max' => self::MAX_RATING,
+                // Komplexität is the one category worth reading on its own: it
+                // describes how heavy the game is, not how good it is, so it
+                // travels as a fact about the game rather than through the
+                // RatingSource seam. Same 20-point scale as the verdict above.
+                'complexity' => $this->category($body, 'Komplexität'),
                 'title' => $title,
                 'url' => (string) ($post['link'] ?? ''),
             ];
         }
 
         return null;
+    }
+
+    // A single "<label>: <n>" from the category block. Null when the review
+    // doesn't carry it - not every review scores every category.
+    private function category(string $body, string $label): ?int
+    {
+        if (!preg_match('/' . preg_quote($label, '/') . ':\s*(\d{1,2})\b/iu', $body, $m)) {
+            return null;
+        }
+        $value = (int) $m[1];
+
+        return ($value > 0 && $value <= self::MAX_RATING) ? $value : null;
     }
 
     private function plainText(string $html): string
