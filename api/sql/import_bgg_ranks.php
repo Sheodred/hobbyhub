@@ -25,7 +25,7 @@ if ($header === false) {
 // Index by column name rather than position - BGG has added category rank
 // columns to this export before, and will again.
 $col = array_flip($header);
-foreach (['id', 'name', 'yearpublished', 'average', 'usersrated', 'is_expansion'] as $required) {
+foreach (['id', 'name', 'yearpublished', 'rank', 'average', 'usersrated', 'is_expansion'] as $required) {
     if (!isset($col[$required])) {
         fwrite(STDERR, "csv is missing the '$required' column\n");
         exit(1);
@@ -35,8 +35,8 @@ foreach (['id', 'name', 'yearpublished', 'average', 'usersrated', 'is_expansion'
 $pdo = db();
 $pdo->beginTransaction();
 $stmt = $pdo->prepare(
-    'REPLACE INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion)
-     VALUES (?, ?, ?, ?, ?, ?)'
+    'REPLACE INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion, bgg_rank)
+     VALUES (?, ?, ?, ?, ?, ?, ?)'
 );
 
 $imported = 0;
@@ -55,6 +55,10 @@ while (($row = fgetcsv($handle)) !== false) {
         ($row[$col['average']] ?? '') === '' ? null : (float) $row[$col['average']],
         ($row[$col['usersrated']] ?? '') === '' ? null : (int) $row[$col['usersrated']],
         (int) ($row[$col['is_expansion']] ?? 0),
+        // The export writes 0 for every game BGG doesn't rank - four fifths
+        // of the file. Storing that verbatim would let "rank 0" reach the
+        // page as if it were a position.
+        ((int) ($row[$col['rank']] ?? 0)) ?: null,
     ]);
     $imported++;
 }

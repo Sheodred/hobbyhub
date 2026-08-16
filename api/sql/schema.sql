@@ -105,6 +105,11 @@ CREATE TABLE bgg_ranks (
     average DOUBLE NULL,
     users_rated INT NULL,
     is_expansion TINYINT NOT NULL DEFAULT 0,
+    -- BGG's overall rank. NULL for the ~83% of the dump BGG doesn't rank at
+    -- all (it needs a minimum number of ratings); the export writes those as
+    -- 0, which the importer converts. Not called `rank` because that is a
+    -- reserved word in MySQL 8 and MariaDB 10.2+.
+    bgg_rank INT NULL,
     INDEX idx_bgg_ranks_name (name)
 );
 

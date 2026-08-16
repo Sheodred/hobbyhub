@@ -23,6 +23,7 @@ describe("BoardgameLookupPage", () => {
         age: null,
         complexity: null,
         isExpansion: false,
+        rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -67,6 +68,7 @@ describe("BoardgameLookupPage", () => {
         age: null,
         complexity: null,
         isExpansion: false,
+        rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -104,6 +106,7 @@ describe("BoardgameLookupPage", () => {
         age: null,
         complexity: null,
         isExpansion: false,
+        rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -132,6 +135,7 @@ describe("BoardgameLookupPage", () => {
         age: null,
         complexity: null,
         isExpansion: false,
+        rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -161,6 +165,7 @@ describe("BoardgameLookupPage", () => {
         age: "ab 12 Jahren",
         complexity: { value: 12, max: 20, url: "https://www.brettspiele-report.de/catan-staedte-und-ritter/" },
         isExpansion: true,
+        rank: 401,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/926" },
       },
     });
@@ -169,7 +174,9 @@ describe("BoardgameLookupPage", () => {
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "cities and knights" } });
     fireEvent.submit(screen.getByRole("search"));
 
-    expect(await screen.findByText(/3 - 4 players · 90 Minuten · ab 12 Jahren/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/3 - 4 players · 90 Minuten · ab 12 Jahren · BGG rank #401/)
+    ).toBeInTheDocument();
     expect(screen.getByText("Expansion")).toBeInTheDocument();
     // The scale travels with the number, and the link says whose number it is.
     expect(screen.getByRole("link", { name: /Komplexität 12 \/ 20/ })).toHaveAttribute(
@@ -184,7 +191,7 @@ describe("BoardgameLookupPage", () => {
         bggId: 13, name: "Catan", description: "Trade, build, settle.",
         rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
         ratings: [], bgq: null,
-        players: "3 - 4", duration: null, age: null, complexity: null, isExpansion: false,
+        players: "3 - 4", duration: null, age: null, complexity: null, isExpansion: false, rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -196,6 +203,8 @@ describe("BoardgameLookupPage", () => {
     expect(await screen.findByText("3 - 4 players")).toBeInTheDocument();
     expect(screen.queryByText("Expansion")).not.toBeInTheDocument();
     expect(screen.queryByText(/Komplexität/)).not.toBeInTheDocument();
+    // An unranked game says nothing, rather than "BGG rank #0".
+    expect(screen.queryByText(/BGG rank/)).not.toBeInTheDocument();
   });
 
   it("shows Board Game Quest's score and how the game plays", async () => {
@@ -204,7 +213,7 @@ describe("BoardgameLookupPage", () => {
       game: {
         bggId: 331106, name: "Intarsia", description: "", rating: 7.2, numRatings: 900,
         good: "Beautiful production", bad: "Lacking replay value", partial: true, players: "2 - 4", duration: "30 - 45 Minuten",
-        age: null, complexity: null, isExpansion: false,
+        age: null, complexity: null, isExpansion: false, rank: null,
         ratings: [
           { source: "Board Game Quest", value: 3.5, max: 5, count: null, title: "Intarsia Review", url: "https://www.boardgamequest.com/intarsia-review/" },
           { source: "brettspiele-report", value: 15, max: 20, count: null, title: "Intarsia", url: "https://www.brettspiele-report.de/intarsia/" },

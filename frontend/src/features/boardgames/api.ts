@@ -70,6 +70,11 @@ export interface Boardgame {
   complexity: Complexity | null;
   /** True when this needs a base game rather than standing on its own. */
   isExpansion: boolean;
+  /**
+   * BGG's overall position. null for the four fifths of their catalog they
+   * don't rank at all - never 0, which is how their export says "unranked".
+   */
+  rank: number | null;
   source: BoardgameSource;
 }
 
