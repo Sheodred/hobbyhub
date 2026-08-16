@@ -4,6 +4,13 @@
 
 Issues live as GitHub Issues in this repo (Sheodred/hobbyhub), via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
+### Pitfalls
+
+Traps this repo has actually sprung — stale containers hiding your edits, the
+test suite's database guard, probing external APIs before building on them,
+shell quoting. Read `docs/agents/pitfalls.md` before running the PHP suite or
+building against a third-party service.
+
 ### Domain docs
 
 Single-context layout — `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
