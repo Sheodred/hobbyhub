@@ -107,12 +107,10 @@ export function Hero() {
                 </svg>
               </span>
             </Link>
-            <Link
-              to="/chess"
-              className="rounded-full border border-white/15 bg-white/5 px-6 py-2.5 text-sm font-medium text-slate-200 backdrop-blur-md transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 active:scale-[0.98]"
-            >
-              Play chess
-            </Link>
+            {/* No chess button here: chess already has its own highlight card
+                below the hero, plus the hotspot over the chess pieces in the
+                artwork. Three buttons for three features was one restatement
+                too many. */}
             <Link
               to="/boardgames"
               className="rounded-full border border-white/15 bg-white/5 px-6 py-2.5 text-sm font-medium text-slate-200 backdrop-blur-md transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 active:scale-[0.98]"
