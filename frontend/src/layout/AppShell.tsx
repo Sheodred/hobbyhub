@@ -74,7 +74,9 @@ export function AppShell() {
       <Header mobileNavOpen={mobileNavOpen} onToggleMobileNav={() => setMobileNavOpen((open) => !open)} />
       <MobileDrawer open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
       {/* tabIndex -1 so the skip link can move focus here, not just scroll. */}
-      <main id="main-content" tabIndex={-1} className="min-h-[calc(100dvh-5.5rem)] overflow-y-auto p-6">
+      {/* The subtraction covers the header and the footer below, so a short
+          page shows both without a scroll. */}
+      <main id="main-content" tabIndex={-1} className="min-h-[calc(100dvh-10.5rem)] overflow-y-auto p-6">
         <div className="mx-auto w-full max-w-7xl">
           <PageTransition>
             <Outlet />

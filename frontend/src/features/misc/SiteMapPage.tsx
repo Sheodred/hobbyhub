@@ -11,7 +11,7 @@ function LinkGroup({ heading, links }: { heading: string; links: NavLinkItem[] }
       <ul className="mt-3 flex flex-col gap-2">
         {links.map((link) => (
           <li key={link.to}>
-            <Link to={link.to} className="text-slate-200 underline decoration-slate-600 hover:text-indigo-400">
+            <Link to={link.to} className="text-slate-200 underline hover:text-indigo-400">
               {link.label}
             </Link>
           </li>

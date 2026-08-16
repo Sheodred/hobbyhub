@@ -12,7 +12,8 @@ below).
 
 **Status:** app shell, the homepage, the About Me page, the legal pages
 (Impressum/Privacy Policy/Terms — draft template content, see
-`docs/adr/0006`), the Magic: The Gathering card search/browse subpage (live
+`docs/adr/0006`, plus a voluntary accessibility statement and a site map),
+the Magic: The Gathering card search/browse subpage (live
 Scryfall data via a PHP backend proxy, see `docs/adr/0003`), and chess vs.
 AI (Stockfish running fully client-side, see `docs/adr/0004`) are live.
 Entrance animation and a keyboard-nav/contrast pass are done too. The
