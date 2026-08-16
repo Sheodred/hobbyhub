@@ -35,6 +35,31 @@ hosting decision and migration reasoning behind this list.
 These need to be added in GitHub's repo settings by hand - not something
 set from a CI run.
 
+### When a deploy hangs on "Deploy to IONOS via SFTP"
+
+Happened on 2026-08-16: two runs sat on that step for over an hour with a
+**completely empty log**. `mirror --verbose` prints nothing until the first
+file moves, so a dead connection and a slow upload look identical.
+
+How to read it:
+
+- **No `Transferring file` line at all** means lftp never got a session -
+  the stall is in connect/handshake, not the transfer. Nothing was uploaded,
+  so the live site is still whatever the last good deploy left. There is no
+  half-mirrored state to clean up.
+- **The last good run is the tell.** It had already stalled 5m02s before its
+  first byte and then finished normally in 48s. A deploy that suddenly takes
+  minutes to start transferring is the same problem, one step earlier.
+- Since then the step retries three times with `net:timeout 20` and
+  `debug 3`, so an unreachable endpoint now fails in about a minute with a
+  logged reason instead of hanging.
+- The endpoint is only reachable with the secrets, so test it from a machine
+  that has them: `lftp -u USER,PASS sftp://HOST -e "ls; bye"`. If that hangs
+  too, it is IONOS, and no workflow change will help until it clears.
+
+Deploys are serialised (`concurrency: deploy-production`), so a second merge
+queues behind the first instead of putting two mirrors on one webspace.
+
 ## WebCron (IONOS control panel)
 
 - [ ] `api/cron/refresh_news.php` - every 20 minutes (matches the old
