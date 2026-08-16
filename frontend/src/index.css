@@ -6,6 +6,25 @@ html {
   scroll-behavior: smooth;
 }
 
+/* One project-wide keyboard focus indicator (WCAG 2.4.11). Only three
+   components defined their own, so everything else fell back to the UA ring,
+   which is inconsistent against these dark glass surfaces. :focus-visible (not
+   :focus) so a mouse click doesn't leave a ring behind. Components that set
+   their own focus style still win - this is the floor, not a ceiling. */
+:focus-visible {
+  outline: 2px solid rgb(165 180 252);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* The skip link's target. Moving focus to <main> is what makes the link do
+   anything for a screen reader, but it must not draw a ring around the whole
+   page when it receives that programmatic focus. */
+main:focus,
+main:focus-visible {
+  outline: none;
+}
+
 /* Fixed, pointer-events-none grain layer - applied once at the viewport
    level (never to scrolling containers) so it costs one paint, not one
    per scroll frame. Pure CSS, no image asset. */
