@@ -79,6 +79,10 @@ export function ChessBoard({ chess, disabled, onMove, orientation = "white" }: C
       <div
         role="grid"
         aria-label="Chess board"
+        // The cells carry the roving tabindex, so the grid is never a tab stop
+        // itself; -1 keeps it programmatically focusable, which is what an
+        // interactive role requires.
+        tabIndex={-1}
         onKeyDown={handleKeyDown}
         className="grid aspect-square grid-cols-8 overflow-hidden rounded-[calc(2rem-0.5rem)] ring-1 ring-inset ring-white/10"
       >

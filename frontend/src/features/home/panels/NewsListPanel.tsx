@@ -65,7 +65,10 @@ export function NewsListPanel({ title, items, isLoading, isError, lang }: NewsLi
               href={item.url}
               target="_blank"
               rel="noreferrer"
-              className="block text-sm text-slate-200 hover:text-indigo-400 hover:underline"
+              // py/-my pair grows the hit area to the 24px minimum (WCAG
+              // 2.5.8) without moving anything: the padding expands into the
+              // row's existing spacing and the negative margin cancels it.
+              className="-my-1.5 block py-1.5 text-sm text-slate-200 hover:text-indigo-400 hover:underline"
             >
               {item.headline}
             </a>
