@@ -236,13 +236,19 @@ export function BoardgameLookupPage() {
                   <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Also rated by</h3>
                   <ul className="mt-3 grid gap-3 sm:grid-cols-2">
                     {state.game.ratings.map((rating) => (
-                      <li key={rating.source} className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+                      // min-w-0: a grid item defaults to min-width:auto, so
+                      // without it the card grows to fit the longest retail
+                      // title ("Pegasus Spiele 51896G - Spirit Island
+                      // (deutsche Ausgabe)") and drags the whole page into a
+                      // sideways scroll on a phone. The truncate below can
+                      // only do its job once the item is allowed to shrink.
+                      <li key={rating.source} className="min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
                         <div className="flex items-baseline gap-2">
                           <span className="text-lg font-semibold text-amber-300">{rating.value.toFixed(1)}</span>
                           {/* Each source has its own scale - never dropped, or
                               a 15 would read as worse than a 4.8. */}
-                          <span className="text-xs text-slate-400">/ {rating.max}</span>
-                          <span className="ml-auto text-xs text-slate-400">{rating.source}</span>
+                          <span className="shrink-0 text-xs text-slate-400">/ {rating.max}</span>
+                          <span className="ml-auto min-w-0 truncate text-xs text-slate-400">{rating.source}</span>
                         </div>
                         {rating.count !== null && (
                           <p className="mt-1 text-xs text-slate-400">{rating.count.toLocaleString("en")} ratings</p>
