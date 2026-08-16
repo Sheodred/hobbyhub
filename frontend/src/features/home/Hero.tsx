@@ -86,7 +86,9 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.3, ease: EASE }}
           className="rounded-2xl bg-black/20 p-4 text-left shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] sm:col-start-1 sm:row-start-1 sm:m-10 sm:max-w-xs sm:self-end sm:justify-self-end sm:bg-transparent sm:p-0 sm:text-right sm:backdrop-blur-none"
         >
-          <p className="text-sm text-slate-200">No ads, no accounts - just MTG, chess, and whatever else I'm into this week.</p>
+          <p className="text-sm text-slate-200">
+            No ads, no accounts - just MTG, chess, board games, and whatever else I&apos;m into this week.
+          </p>
           <div className="mt-4 flex flex-wrap gap-2 sm:justify-end">
             <Link
               to="/mtg"
@@ -105,11 +107,15 @@ export function Hero() {
                 </svg>
               </span>
             </Link>
+            {/* No chess button here: chess already has its own highlight card
+                below the hero, plus the hotspot over the chess pieces in the
+                artwork. Three buttons for three features was one restatement
+                too many. */}
             <Link
-              to="/chess"
+              to="/boardgames"
               className="rounded-full border border-white/15 bg-white/5 px-6 py-2.5 text-sm font-medium text-slate-200 backdrop-blur-md transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 active:scale-[0.98]"
             >
-              Play chess
+              Look up a board game
             </Link>
           </div>
         </motion.div>
