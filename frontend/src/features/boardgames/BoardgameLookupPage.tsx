@@ -136,9 +136,18 @@ export function BoardgameLookupPage() {
                 )}
               </div>
 
-              {(state.game.players || state.game.duration || state.game.age || state.game.complexity) && (
+              {(state.game.players ||
+                state.game.duration ||
+                state.game.age ||
+                state.game.rank !== null ||
+                state.game.complexity) && (
                 <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-400">
-                  {[state.game.players && `${state.game.players} players`, state.game.duration, state.game.age]
+                  {[
+                    state.game.players && `${state.game.players} players`,
+                    state.game.duration,
+                    state.game.age,
+                    state.game.rank !== null && `BGG rank #${state.game.rank}`,
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                   {/* Their number on their scale, linked to the review that

@@ -15,11 +15,13 @@ final class BggClientTest extends TestCase
 
     private function seedRanks(): void
     {
+        // Wingspan is deliberately left unranked - BGG ranks only games past
+        // a ratings threshold, and most of the 180k dump has no rank at all.
         db()->exec(
-            "INSERT INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion) VALUES
-             (13, 'Catan', 1995, 7.09029, 143738, 0),
-             (926, 'Catan: Cities & Knights', 1998, 7.4, 40000, 1),
-             (266192, 'Wingspan', 2019, 8.1, 120000, 0)"
+            "INSERT INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion, bgg_rank) VALUES
+             (13, 'Catan', 1995, 7.09029, 143738, 0, 566),
+             (926, 'Catan: Cities & Knights', 1998, 7.4, 40000, 1, 401),
+             (266192, 'Wingspan', 2019, 8.1, 120000, 0, NULL)"
         );
     }
 
@@ -153,6 +155,39 @@ final class BggClientTest extends TestCase
             '<item type="boardgame" id="13"><name type="primary" value="Catan"/></item>'
         ));
         $this->assertFalse($base->lookup(13)['isExpansion']);
+    }
+
+    public function testLookupCarriesTheDumpsRankOnBothPaths(): void
+    {
+        $this->seedRanks();
+
+        // Served from the dump…
+        $this->assertSame(566, (new BggClient(fn() => null))->lookup(13)['rank']);
+
+        // …and from the live API, which does not carry the dump's rank
+        // itself. Without this the field would vanish the moment #40 clears.
+        $live = new BggClient(fn() => $this->thingXml(
+            '<item type="boardgame" id="13"><name type="primary" value="Catan"/></item>'
+        ));
+        $this->assertSame(566, $live->lookup(13)['rank']);
+    }
+
+    public function testAnUnrankedGameReportsNoRankRatherThanZero(): void
+    {
+        $this->seedRanks();
+
+        // BGG ranks only games past a ratings threshold; 0 in the dump means
+        // "unranked", and rendering it as rank 0 would be a wrong answer.
+        $this->assertNull((new BggClient(fn() => null))->lookup(266192)['rank']);
+    }
+
+    public function testLookupReportsNoRankWhenTheDumpHasNotBeenImported(): void
+    {
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item type="boardgame" id="13"><name type="primary" value="Catan"/></item>'
+        ));
+
+        $this->assertNull($client->lookup(13)['rank'], 'an empty bgg_ranks must not break a live answer');
     }
 
     public function testFallbackLookupIsNotCached(): void

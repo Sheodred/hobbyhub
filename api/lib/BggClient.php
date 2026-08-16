@@ -43,12 +43,26 @@ class BggClient
     public function lookup(int $bggId): ?array
     {
         try {
-            return $this->lookupFromApi($bggId);
+            $game = $this->lookupFromApi($bggId);
         } catch (RuntimeException $e) {
             // BGG unreachable - answer from the imported ranks dump if it
             // knows this id, otherwise let the failure through as a 502.
-            return $this->lookupFromRanks($bggId) ?? throw $e;
+            $game = $this->lookupFromRanks($bggId) ?? throw $e;
         }
+
+        // Rank comes from the dump on both paths. The thing endpoint carries
+        // its own, but reading it there would make the field appear and
+        // disappear with #40 - and this is the one we can actually verify.
+        return $game === null ? null : $game + ['rank' => $this->rankFor($bggId)];
+    }
+
+    private function rankFor(int $bggId): ?int
+    {
+        $stmt = db()->prepare('SELECT bgg_rank FROM bgg_ranks WHERE bgg_id = ?');
+        $stmt->execute([$bggId]);
+        $rank = $stmt->fetchColumn();
+
+        return $rank === false || $rank === null ? null : (int) $rank;
     }
 
     private function lookupFromApi(int $bggId): ?array
