@@ -6,7 +6,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Plus Jakarta Sans", ...defaultTheme.fontFamily.sans],
+        sans: ["Bricolage Grotesque", ...defaultTheme.fontFamily.sans],
       },
     },
   },

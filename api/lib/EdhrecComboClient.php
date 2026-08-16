@@ -96,14 +96,34 @@ class EdhrecComboClient
         return "https://cards.scryfall.io/small/front/{$scryfallId[0]}/{$scryfallId[1]}/{$scryfallId}.jpg";
     }
 
-    // EDHREC's own slug form: apostrophes vanish rather than becoming a
-    // separator ("Hidetsugu's Second Rite" -> hidetsugus-second-rite), then
-    // anything else non-alphanumeric turns into a single hyphen.
-    // ponytail: names outside a-z0-9 after that (accents) slug to a 403 and
-    // render as "no combos" - fix if a real card shows up wrong.
+    // EDHREC folds accents to their ASCII base rather than dropping them, and
+    // expands ligatures to two letters - "Márton Stromgald" is
+    // marton-stromgald, "Æther Vial" is aether-vial (ae-ther-vial 403s).
+    // Written out instead of iconv('ASCII//TRANSLIT'): that one's output is
+    // locale-dependent, and on a host whose libc resolves the locale
+    // differently it degrades to '?' or '"o' silently - which here would look
+    // exactly like the bug it was meant to fix (#42). Keys are lowercase
+    // because the fold runs after mb_strtolower().
+    private const ASCII_FOLD = [
+        'á' => 'a', 'à' => 'a', 'â' => 'a', 'ä' => 'a', 'ã' => 'a', 'å' => 'a',
+        'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+        'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+        'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'ö' => 'o', 'õ' => 'o', 'ø' => 'o', 'ō' => 'o',
+        'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ū' => 'u',
+        'ñ' => 'n', 'ç' => 'c', 'ý' => 'y',
+        'æ' => 'ae', 'œ' => 'oe', 'ß' => 'ss',
+    ];
+
+    // EDHREC's own slug form: accents fold (above), apostrophes vanish rather
+    // than becoming a separator ("Hidetsugu's Second Rite" ->
+    // hidetsugus-second-rite), then anything else non-alphanumeric turns into
+    // a single hyphen. Anything still outside a-z0-9 after the fold - a
+    // script we have no mapping for - hyphenates as before and 403s, which
+    // reads as "no combos"; that is the old behaviour, not a new failure.
     private static function slug(string $cardName): string
     {
-        $withoutApostrophes = str_replace(["'", "\u{2019}"], '', mb_strtolower(self::frontFace($cardName)));
+        $folded = strtr(mb_strtolower(self::frontFace($cardName)), self::ASCII_FOLD);
+        $withoutApostrophes = str_replace(["'", "\u{2019}"], '', $folded);
 
         return trim(preg_replace('/[^a-z0-9]+/', '-', $withoutApostrophes), '-');
     }

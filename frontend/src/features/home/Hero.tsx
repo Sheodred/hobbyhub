@@ -62,10 +62,16 @@ export function Hero() {
           <HeroHotspot to="#weather" label="Sky in the hero scene" className="left-0 top-0 h-[16%] w-full" />
           <HeroHotspot to="/mtg" label="Trading cards in the hero scene" className="left-[58%] top-[42%] h-[22%] w-[20%]" />
 
+          {/* The CTA shares this grid cell and floats at the bottom-right
+              (max-w-xs + m-10 = 22rem of occupied space), so the headline has
+              to stop short of it or it runs underneath the buttons - it did,
+              by ~200px at 1920 wide, in any font. Capped rather than shortened
+              so the h1 wraps instead of colliding. */}
           <motion.div
             initial={reduceMotion ? undefined : { opacity: 0, y: 20, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 0.8, delay: 0.05, ease: EASE }}
+            className="sm:max-w-[calc(100%-22rem)]"
           >
             <span className="text-xs font-medium uppercase tracking-[0.25em] text-indigo-300">Sheodred&apos;s Forge</span>
             <h1 className="mt-2 text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl">
