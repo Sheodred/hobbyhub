@@ -75,7 +75,7 @@ export function BoardgameLookupPage() {
         />
         <button
           type="submit"
-          className="rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-400"
+          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
           Search
         </button>

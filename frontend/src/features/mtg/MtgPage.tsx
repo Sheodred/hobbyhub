@@ -77,7 +77,7 @@ export function MtgPage() {
             </p>
             <Link
               to="/mtg/meta"
-              className="group relative mt-6 inline-flex items-center gap-3 rounded-full bg-indigo-500 py-3 pl-6 pr-3 text-base font-medium text-white transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-indigo-400 active:scale-[0.98]"
+              className="group relative mt-6 inline-flex items-center gap-3 rounded-full bg-indigo-600 py-3 pl-6 pr-3 text-base font-medium text-white transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-indigo-700 active:scale-[0.98]"
             >
               Best of Meta &amp; Stats
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-[1px] group-hover:translate-x-1 group-hover:scale-105">
@@ -110,7 +110,7 @@ export function MtgPage() {
         />
         <button
           type="submit"
-          className="rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-400"
+          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
           Search
         </button>
