@@ -12,7 +12,7 @@ export function MusicPanel() {
       <audio controls className="w-full" src="/music/worth-the-fight.mp3">
         Your browser doesn&apos;t support the audio element.
       </audio>
-      <p lang="de" className="mt-2 text-[11px] text-slate-600">© &amp; ℗ 2026 Amelie Kluge. Alle Rechte vorbehalten.</p>
+      <p lang="de" className="mt-2 text-[11px] text-slate-400">© &amp; ℗ 2026 Amelie Kluge. Alle Rechte vorbehalten.</p>
       {/* No timing/transcription data exists for this track, so the lyrics
           can't be synced to playback without drifting - shown as plain,
           on-demand text instead of a karaoke-style highlight. */}
@@ -22,7 +22,7 @@ export function MusicPanel() {
         </summary>
         <div className="mt-2 max-h-64 overflow-y-auto rounded-md bg-slate-950/40 p-3 text-sm leading-relaxed text-slate-400">
           {LYRIC_LINES.map((line, index) => (
-            <p key={index} className={line.startsWith("[") ? "mt-3 text-xs uppercase tracking-wide text-slate-600 first:mt-0" : ""}>
+            <p key={index} className={line.startsWith("[") ? "mt-3 text-xs uppercase tracking-wide text-slate-400 first:mt-0" : ""}>
               {line}
             </p>
           ))}
