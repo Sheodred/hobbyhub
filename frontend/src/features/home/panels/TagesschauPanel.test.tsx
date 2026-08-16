@@ -41,6 +41,24 @@ describe("TagesschauPanel", () => {
     expect(screen.getByText("Teaser one.")).toBeInTheDocument();
   });
 
+  // The document is lang="en", so German headlines get read out by an English
+  // speech engine unless the list declares its own language (WCAG 3.1.2, #51).
+  it("marks the headline list as German", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(200, [
+          { headline: "Spanien führt Grenzkontrollen ein", teaser: null, url: "https://example.com/1", publishedAt: null },
+        ]),
+      ),
+    );
+
+    renderPanel();
+
+    const link = await screen.findByRole("link", { name: "Spanien führt Grenzkontrollen ein" });
+    expect(link.closest("[lang]")).toHaveAttribute("lang", "de");
+  });
+
   it("shows a graceful message when the request fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(500, { message: "boom" })));
 

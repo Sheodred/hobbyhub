@@ -60,9 +60,20 @@ export function AppShell() {
         />
       </div>
       <div aria-hidden="true" className="grain-overlay" />
+      {/* First tab stop on every page (WCAG 2.4.1). Without it a keyboard user
+          walks the header and then the hero's decorative hotspots before
+          reaching any content. Invisible until focused, hence sr-only +
+          focus:not-sr-only. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-indigo-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+      >
+        Skip to main content
+      </a>
       <Header mobileNavOpen={mobileNavOpen} onToggleMobileNav={() => setMobileNavOpen((open) => !open)} />
       <MobileDrawer open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
-      <main className="min-h-[calc(100dvh-5.5rem)] overflow-y-auto p-6">
+      {/* tabIndex -1 so the skip link can move focus here, not just scroll. */}
+      <main id="main-content" tabIndex={-1} className="min-h-[calc(100dvh-5.5rem)] overflow-y-auto p-6">
         <div className="mx-auto w-full max-w-7xl">
           <PageTransition>
             <Outlet />

@@ -48,7 +48,9 @@ export function Header({ mobileNavOpen, onToggleMobileNav }: HeaderProps) {
             />
           </span>
         </button>
-        <NavLink to="/" className="whitespace-nowrap text-sm font-semibold tracking-tight text-white">
+        {/* py-1.5 only to clear the 24px minimum target height (WCAG 2.5.8);
+            the pill is centred so it changes nothing visually. */}
+        <NavLink to="/" className="whitespace-nowrap py-1.5 text-sm font-semibold tracking-tight text-white">
           Sheodred's Forge
         </NavLink>
         {sectionLabel && (

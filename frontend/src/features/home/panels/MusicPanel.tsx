@@ -6,10 +6,13 @@ const LYRIC_LINES = WORTH_THE_FIGHT_LYRICS.split("\n");
 export function MusicPanel() {
   return (
     <InfoPanelCard title="Worth the Fight">
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption -- WCAG 1.2.1 is
+          met by the full lyrics transcript below, on the same page. A <track>
+          would need timing data that doesn't exist for this song (see below). */}
       <audio controls className="w-full" src="/music/worth-the-fight.mp3">
         Your browser doesn&apos;t support the audio element.
       </audio>
-      <p className="mt-2 text-[11px] text-slate-600">© &amp; ℗ 2026 Amelie Kluge. Alle Rechte vorbehalten.</p>
+      <p lang="de" className="mt-2 text-[11px] text-slate-600">© &amp; ℗ 2026 Amelie Kluge. Alle Rechte vorbehalten.</p>
       {/* No timing/transcription data exists for this track, so the lyrics
           can't be synced to playback without drifting - shown as plain,
           on-demand text instead of a karaoke-style highlight. */}
