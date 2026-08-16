@@ -46,7 +46,12 @@ jobs:
       - name: Check the SFTP endpoint before building
         run: |
           set +e
+          # debug 3 is not decoration: without it lftp reports only "Fatal
+          # error: max-retries exceeded" and swallows the reason, which made
+          # the first version of this step unable to tell the two failure
+          # modes apart - the one thing it exists to do.
           out=$(lftp -u "$IONOS_SFTP_USER,$IONOS_SFTP_PASSWORD" -p 22 "sftp://$IONOS_SFTP_HOST" -e "
+            debug 3;
             set net:timeout 15;
             set net:max-retries 1;
             set sftp:auto-confirm yes;
@@ -67,6 +72,8 @@ jobs:
               echo "::error::SFTP closed the session at authentication. The credentials are rejected or the account is locked - see the 'When a deploy hangs' section in docs/deploy-checklist.md." ;;
             *Timeout*|*"not reachable"*|*"Network unreachable"*|*"Connection refused"*)
               echo "::error::SFTP endpoint did not answer. That is on IONOS - nothing in this repo will fix it." ;;
+            *"max-retries exceeded"*)
+              echo "::error::SFTP did not complete a session and lftp gave no reason - check the debug lines above before assuming which side is at fault." ;;
             *)
               echo "::error::SFTP preflight failed for an unrecognised reason (above)." ;;
           esac
