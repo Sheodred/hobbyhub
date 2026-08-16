@@ -4,10 +4,12 @@ import { AboutPage } from "../features/about/AboutPage";
 import { BoardgameLookupPage } from "../features/boardgames/BoardgameLookupPage";
 import { ChessPage } from "../features/chess/ChessPage";
 import { HomePage } from "../features/home/HomePage";
+import { AccessibilityPage } from "../features/legal/AccessibilityPage";
 import { ImpressumPage } from "../features/legal/ImpressumPage";
 import { PrivacyPolicyPage } from "../features/legal/PrivacyPolicyPage";
 import { TermsPage } from "../features/legal/TermsPage";
 import { NotFoundPage } from "../features/misc/NotFoundPage";
+import { SiteMapPage } from "../features/misc/SiteMapPage";
 import { ArchetypeDecksPage } from "../features/mtg/ArchetypeDecksPage";
 import { DeckPage } from "../features/mtg/DeckPage";
 import { MtgCardDetailPage } from "../features/mtg/MtgCardDetailPage";
@@ -34,6 +36,8 @@ export const routes: RouteObject[] = [
       { path: "/legal/impressum", element: <ImpressumPage /> },
       { path: "/legal/privacy", element: <PrivacyPolicyPage /> },
       { path: "/legal/terms", element: <TermsPage /> },
+      { path: "/legal/accessibility", element: <AccessibilityPage /> },
+      { path: "/sitemap", element: <SiteMapPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

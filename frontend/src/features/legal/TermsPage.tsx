@@ -1,6 +1,9 @@
 import { DraftContentNotice } from "../../components/DraftContentNotice";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 export function TermsPage() {
+  useDocumentTitle("Terms of Service");
+
   return (
     <div className="mx-auto max-w-2xl text-slate-300">
       <DraftContentNotice message="Have this reviewed before this goes live (see docs/adr/0006). Not legal advice." />

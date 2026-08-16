@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 
 import { FadeIn } from "../../components/FadeIn";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { ApiError } from "../../lib/apiClient";
 import {
   lookupBoardgame,
@@ -18,6 +19,8 @@ type ViewState =
   | { kind: "result"; game: Boardgame };
 
 export function BoardgameLookupPage() {
+  useDocumentTitle("Boardgame Lookup");
+
   const [query, setQuery] = useState("");
   const [state, setState] = useState<ViewState>({ kind: "idle" });
 
@@ -53,6 +56,14 @@ export function BoardgameLookupPage() {
     }
   }
 
+  // WCAG 4.1.3. One always-mounted region below carries this: a live region
+  // that appears with its text already inside it is routinely not announced.
+  // The error case keeps its own role="alert" - that one should interrupt.
+  let statusText = "";
+  if (state.kind === "loading") statusText = "Searching…";
+  else if (state.kind === "disambiguation") statusText = "Several games match that name — which one did you mean?";
+  else if (state.kind === "result") statusText = `${state.game.name} found`;
+
   return (
     <div>
       <h1 className="text-3xl font-semibold text-white sm:text-4xl">Boardgame Lookup</h1>
@@ -71,7 +82,7 @@ export function BoardgameLookupPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for a board game, e.g. Catan"
-          className="w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          className="w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
         />
         <button
           type="submit"
@@ -82,7 +93,9 @@ export function BoardgameLookupPage() {
       </form>
 
       <div className="mt-6">
-        {state.kind === "loading" && <p className="text-slate-400">Searching…</p>}
+        <p role="status" className="mb-3 text-sm text-slate-400 empty:mb-0">
+          {statusText}
+        </p>
 
         {state.kind === "error" && (
           <p role="alert" className="text-rose-400">
@@ -92,7 +105,6 @@ export function BoardgameLookupPage() {
 
         {state.kind === "disambiguation" && (
           <FadeIn>
-            <p className="mb-3 text-sm text-slate-400">Several games match that name — which one did you mean?</p>
             <ul className="flex flex-wrap gap-2">
               {state.candidates.map((candidate) => (
                 <li key={candidate.bggId}>
@@ -129,7 +141,7 @@ export function BoardgameLookupPage() {
                     {/* JSON drops the trailing zero, so 8.0 arrives as 8 - pin
                         one decimal so ratings line up with each other. */}
                     <span className="text-2xl font-semibold text-indigo-400">{state.game.rating.toFixed(1)}</span>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-slate-400">
                       / 10{state.game.numRatings !== null && ` · ${state.game.numRatings} ratings`}
                     </span>
                   </p>
@@ -174,7 +186,7 @@ export function BoardgameLookupPage() {
                     href={state.game.bgq.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-3 inline-block text-xs text-slate-500 underline hover:text-slate-300"
+                    className="mt-3 inline-block text-xs text-slate-400 underline hover:text-slate-300"
                   >
                     Read the full review at Board Game Quest
                   </a>
@@ -217,11 +229,11 @@ export function BoardgameLookupPage() {
                           <span className="text-lg font-semibold text-amber-300">{rating.value.toFixed(1)}</span>
                           {/* Each source has its own scale - never dropped, or
                               a 15 would read as worse than a 4.8. */}
-                          <span className="text-xs text-slate-500">/ {rating.max}</span>
+                          <span className="text-xs text-slate-400">/ {rating.max}</span>
                           <span className="ml-auto text-xs text-slate-400">{rating.source}</span>
                         </div>
                         {rating.count !== null && (
-                          <p className="mt-1 text-xs text-slate-500">{rating.count.toLocaleString("en")} ratings</p>
+                          <p className="mt-1 text-xs text-slate-400">{rating.count.toLocaleString("en")} ratings</p>
                         )}
                         {/* What the source actually matched, so a wrong match
                             is visible rather than hidden behind a number. */}
@@ -229,7 +241,7 @@ export function BoardgameLookupPage() {
                           href={rating.url}
                           target="_blank"
                           rel="noreferrer nofollow"
-                          className="mt-1 block truncate text-xs text-slate-500 underline hover:text-slate-300"
+                          className="mt-1 block truncate text-xs text-slate-400 underline hover:text-slate-300"
                         >
                           {rating.title ?? "View on site"}
                         </a>
@@ -239,7 +251,7 @@ export function BoardgameLookupPage() {
                 </div>
               )}
 
-              <p className="mt-6 text-xs text-slate-500">
+              <p className="mt-6 text-xs text-slate-400">
                 Data via{" "}
                 <a
                   href={state.game.source.url}

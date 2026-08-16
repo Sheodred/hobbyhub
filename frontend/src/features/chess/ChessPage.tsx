@@ -2,6 +2,7 @@ import type { Chess, Square } from "chess.js";
 import { useEffect, useRef, useState } from "react";
 
 import { FadeIn } from "../../components/FadeIn";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { ChessBoard } from "./ChessBoard";
 import { DIFFICULTY_DEPTH, DIFFICULTY_LABELS, type Difficulty } from "./difficulty";
 import { createStockfishEngine, type StockfishEngine } from "./stockfishEngine";
@@ -27,6 +28,8 @@ function statusText(chess: Chess): string {
 // player color - including right after restoring a saved mid-game position
 // (see docs/adr/0004).
 export function ChessPage() {
+  useDocumentTitle("Chess vs. AI");
+
   const { chess, fen, difficulty, setDifficulty, playerColor, applyMove, undo, newGame } = useChessGame();
   const engineRef = useRef<StockfishEngine | null>(null);
   const [thinking, setThinking] = useState(false);

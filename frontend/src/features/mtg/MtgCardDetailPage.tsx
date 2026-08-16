@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { FadeIn } from "../../components/FadeIn";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { ApiError } from "../../lib/apiClient";
 import { getCard, getPrintings } from "./api";
 import { ComboPanel } from "./ComboPanel";
@@ -32,6 +33,8 @@ export function MtgCardDetailPage() {
   // The route reuses this component, so without a reset another printing of a
   // flipped card would open on its back face.
   useEffect(() => setFaceIndex(0), [id]);
+
+  useDocumentTitle(card?.name ?? null);
 
   if (isFetching) {
     return <p className="text-slate-400">Loading card…</p>;

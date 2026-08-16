@@ -78,7 +78,7 @@ export function ComboPanel({ cardName }: ComboPanelProps) {
                 <p className="mt-1 text-xs text-slate-400">Produces: {combo.produces.join(", ")}</p>
               )}
               {combo.numDecks != null && (
-                <p className="mt-1 text-xs text-slate-500">Found in {combo.numDecks.toLocaleString()} decks</p>
+                <p className="mt-1 text-xs text-slate-400">Found in {combo.numDecks.toLocaleString()} decks</p>
               )}
               <a
                 href={combo.url}

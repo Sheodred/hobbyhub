@@ -1,6 +1,9 @@
 import { DraftContentNotice } from "../../components/DraftContentNotice";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 export function PrivacyPolicyPage() {
+  useDocumentTitle("Privacy Policy");
+
   return (
     <div className="mx-auto max-w-2xl text-slate-300">
       <DraftContentNotice message="Operated as a private, non-commercial project (no postal address shown accordingly, see docs/adr/0006). Not legal advice." />
@@ -40,6 +43,14 @@ export function PrivacyPolicyPage() {
           it) just hides the weather panel and the per-event distance; nothing else on the site depends on it.
           Legal basis: your consent, given via that browser prompt (Art. 6(1)(a) GDPR); withdrawable at any time
           through your browser&apos;s site-permission settings.
+        </li>
+        <li>
+          <span className="font-medium text-slate-100">Email you send us.</span> The Impressum and the
+          accessibility page invite you to write to us. If you do, your email address and whatever you put in the
+          message are processed to answer you, and kept only as long as the exchange needs. Legal basis:
+          legitimate interest in answering correspondence (Art. 6(1)(f) GDPR). You decide what to put in that
+          message — if you volunteer information about a disability while reporting a barrier, you are consenting
+          to us processing it for that purpose (Art. 9(2)(a) GDPR), and it is used for nothing else.
         </li>
         <li>
           <span className="font-medium text-slate-100">Server logs.</span> Standard web server logs (IP address,

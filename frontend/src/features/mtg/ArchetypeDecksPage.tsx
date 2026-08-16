@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { FadeIn } from "../../components/FadeIn";
 import { QueryState } from "../../components/QueryState";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { getArchetypeDecks } from "./api";
 
 export function ArchetypeDecksPage() {
@@ -14,6 +15,8 @@ export function ArchetypeDecksPage() {
     queryFn: () => getArchetypeDecks(archetype),
     enabled: archetype !== "",
   });
+
+  useDocumentTitle(data?.archetypeName ?? "Decks");
 
   return (
     <div>

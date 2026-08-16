@@ -1,3 +1,5 @@
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
+
 import { Hero } from "./Hero";
 import { HighlightCard } from "./HighlightCard";
 import { highlights } from "./highlights";
@@ -6,6 +8,8 @@ import { MusicPanel } from "./panels/MusicPanel";
 import { WeatherPanel } from "./panels/WeatherPanel";
 
 export function HomePage() {
+  useDocumentTitle(null);
+
   return (
     <div className="mx-auto flex w-full flex-col gap-12">
       <Hero />

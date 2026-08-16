@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 
 import { Header } from "./Header";
 import { MobileDrawer } from "./MobileDrawer";
+import { legalNavLinks } from "./navigation";
 import { PageTransition } from "./PageTransition";
 
 export function AppShell() {
@@ -73,13 +74,29 @@ export function AppShell() {
       <Header mobileNavOpen={mobileNavOpen} onToggleMobileNav={() => setMobileNavOpen((open) => !open)} />
       <MobileDrawer open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
       {/* tabIndex -1 so the skip link can move focus here, not just scroll. */}
-      <main id="main-content" tabIndex={-1} className="min-h-[calc(100dvh-5.5rem)] overflow-y-auto p-6">
+      {/* The subtraction covers the header and the footer below, so a short
+          page shows both without a scroll. */}
+      <main id="main-content" tabIndex={-1} className="min-h-[calc(100dvh-10.5rem)] overflow-y-auto p-6">
         <div className="mx-auto w-full max-w-7xl">
           <PageTransition>
             <Outlet />
           </PageTransition>
         </div>
       </main>
+      {/* Until this existed the small print and the site map were reachable
+          only by opening the hamburger drawer, which is a poor second way to
+          find anything (WCAG 2.4.5). */}
+      <footer className="mx-auto w-full max-w-7xl px-6 pb-10 pt-4">
+        <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-slate-400">
+          {legalNavLinks.map((link) => (
+            <li key={link.to}>
+              <Link to={link.to} className="hover:text-indigo-400">
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </footer>
     </div>
   );
 }

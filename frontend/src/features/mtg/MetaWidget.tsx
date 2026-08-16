@@ -31,7 +31,7 @@ export function MetaWidget({ title, source, entries, isLoading, isError, cardNam
   return (
     <FadeIn className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
       <h3 className="text-sm font-medium text-slate-100">{title}</h3>
-      <p className="text-xs text-slate-500">{source}</p>
+      <p className="text-xs text-slate-400">{source}</p>
 
       <QueryState
         isLoading={isLoading}
@@ -50,7 +50,7 @@ export function MetaWidget({ title, source, entries, isLoading, isError, cardNam
         <ol className="mt-3 flex flex-col gap-2">
           {(entries ?? []).map((entry, index) => (
             <li key={entry.url} className="flex items-baseline gap-2">
-              <span className="text-xs text-slate-500">{index + 1}.</span>
+              <span className="text-xs text-slate-400">{index + 1}.</span>
               {cardNames ? (
                 <CardHoverPreview name={entry.name}>
                   <a
@@ -80,7 +80,7 @@ export function MetaWidget({ title, source, entries, isLoading, isError, cardNam
                 </a>
               )}
               {entry.numDecks != null && (
-                <span className="ml-auto shrink-0 text-xs text-slate-500">{entry.numDecks.toLocaleString()} decks</span>
+                <span className="ml-auto shrink-0 text-xs text-slate-400">{entry.numDecks.toLocaleString()} decks</span>
               )}
             </li>
           ))}

@@ -242,4 +242,32 @@ describe("BoardgameLookupPage", () => {
       "href", "https://www.boardgamequest.com/intarsia-review/"
     );
   });
+
+  // WCAG 4.1.3. The region has to be in the DOM before the text arrives -
+  // one that mounts with its text already inside it is routinely not
+  // announced at all, which is the failure mode this asserts against.
+  it("announces the outcome through a live region that is already mounted", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: {
+        bggId: 13, name: "Catan", description: "Trade, build, settle.",
+        rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
+        ratings: [], bgq: null, players: null, duration: null, age: null,
+        complexity: null, isExpansion: false, rank: null,
+        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
+      },
+    });
+
+    render(<BoardgameLookupPage />);
+
+    const status = screen.getByRole("status");
+    expect(status).toBeEmptyDOMElement();
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Catan found"));
+    // Same node throughout, not a remount.
+    expect(screen.getByRole("status")).toBe(status);
+  });
 });
