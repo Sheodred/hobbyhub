@@ -148,29 +148,41 @@ export function BoardgameLookupPage() {
                 )}
               </div>
 
+              {/* One chip per fact rather than a dot-separated line: these are
+                  the facts that decide whether a game suits your table, and as
+                  small grey text they were the hardest thing on the card to
+                  read. */}
               {(state.game.players ||
                 state.game.duration ||
                 state.game.age ||
                 state.game.rank !== null ||
                 state.game.complexity) && (
-                <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-400">
+                <p className="mt-3 flex flex-wrap items-center gap-2">
                   {[
                     state.game.players && `${state.game.players} players`,
                     state.game.duration,
                     state.game.age,
                     state.game.rank !== null && `BGG rank #${state.game.rank}`,
                   ]
-                    .filter(Boolean)
-                    .join(" · ")}
+                    .filter((fact): fact is string => Boolean(fact))
+                    .map((fact) => (
+                      <span
+                        key={fact}
+                        className="rounded-full border border-indigo-400/25 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-100"
+                      >
+                        {fact}
+                      </span>
+                    ))}
                   {/* Their number on their scale, linked to the review that
                       published it - "4" alone would read as a universal
-                      difficulty rating nobody ever gave. */}
+                      difficulty rating nobody ever gave. Same chip, underlined,
+                      because this one is the only fact you can click. */}
                   {state.game.complexity && (
                     <a
                       href={state.game.complexity.url}
                       target="_blank"
                       rel="noreferrer nofollow"
-                      className="rounded-full border border-slate-700 px-2 py-0.5 text-xs text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
+                      className="rounded-full border border-indigo-400/25 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-100 underline decoration-indigo-300/40 underline-offset-2 hover:border-indigo-400/60 hover:text-white"
                     >
                       Komplexität {state.game.complexity.value} / {state.game.complexity.max} · brettspiele-report
                     </a>

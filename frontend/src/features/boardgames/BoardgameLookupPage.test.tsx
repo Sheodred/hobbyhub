@@ -174,9 +174,11 @@ describe("BoardgameLookupPage", () => {
     fireEvent.change(screen.getByRole("searchbox"), { target: { value: "cities and knights" } });
     fireEvent.submit(screen.getByRole("search"));
 
-    expect(
-      await screen.findByText(/3 - 4 players · 90 Minuten · ab 12 Jahren · BGG rank #401/)
-    ).toBeInTheDocument();
+    // One chip per fact, not one dot-separated line.
+    expect(await screen.findByText("3 - 4 players")).toBeInTheDocument();
+    expect(screen.getByText("90 Minuten")).toBeInTheDocument();
+    expect(screen.getByText("ab 12 Jahren")).toBeInTheDocument();
+    expect(screen.getByText("BGG rank #401")).toBeInTheDocument();
     expect(screen.getByText("Expansion")).toBeInTheDocument();
     // The scale travels with the number, and the link says whose number it is.
     expect(screen.getByRole("link", { name: /Komplexität 12 \/ 20/ })).toHaveAttribute(
