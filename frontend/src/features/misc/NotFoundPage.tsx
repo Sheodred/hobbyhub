@@ -28,7 +28,7 @@ export function NotFoundPage() {
           </p>
           <Link
             to="/"
-            className="group relative mt-6 inline-flex items-center gap-3 rounded-full bg-indigo-500 py-2.5 pl-6 pr-2.5 text-sm font-medium text-white transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-indigo-400 active:scale-[0.98]"
+            className="group relative mt-6 inline-flex items-center gap-3 rounded-full bg-indigo-600 py-2.5 pl-6 pr-2.5 text-sm font-medium text-white transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-indigo-700 active:scale-[0.98]"
           >
             Back to home
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-[1px] group-hover:translate-x-1 group-hover:scale-105">
