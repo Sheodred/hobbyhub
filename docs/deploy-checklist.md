@@ -52,12 +52,16 @@ up, since shared-hosting WebCron products vary here).
 - [x] `api/sql/schema.sql` applied once (see Blockers above) - no
       migration tool, this project's size doesn't need one; future schema
       changes get applied by hand the same way.
-- [ ] **Once, with the key-facts release (#58):** clear the two scrape
-      caches, whose stored rows predate the `age` and `complexity` keys and
-      would otherwise hide both fields for up to 14 days:
+- [x] **Scrape caches cleared for the key-facts release (#58)** (2026-08-16,
+      via phpMyAdmin's SQL tab):
       `DELETE FROM hall9000_cache; DELETE FROM brettspiele_report_cache;`
-      Nothing breaks without it - the fields just read as absent - and both
-      tables refill on demand.
+      Their stored rows predated the `age` and `complexity` keys and were
+      hiding both fields. 3 rows and 0 rows respectively - only H@LL9000 had
+      anything cached. Verified live afterwards: `?q=We will Wok you` now
+      answers `age: "ab 10 Jahren"` and `complexity: 4/20`.
+
+      Any future change to what a scrape client extracts needs the same
+      clear - see the cache entry in `docs/agents/pitfalls.md`.
 - [x] Confirmed the MySQL/MariaDB database IONOS provisions matches what
       `api/config.local.php` points at (`dbs15977419` / `dbu2649442` /
       `db5021097409.hosting-data.io`, not `hobbyhub`).
