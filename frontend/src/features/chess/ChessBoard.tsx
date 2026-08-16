@@ -1,5 +1,5 @@
 import type { Chess, Square } from "chess.js";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { PieceIcon } from "./pieceIcons";
 
@@ -15,6 +15,12 @@ interface ChessBoardProps {
 
 export function ChessBoard({ chess, disabled, onMove, orientation = "white" }: ChessBoardProps) {
   const [selected, setSelected] = useState<Square | null>(null);
+  // Roving tabindex: role="grid" promises that the board is one tab stop and
+  // arrow keys move inside it. Without this every square was a tab stop, so
+  // crossing the board cost ~64 Tab presses (#51). The cursor is display
+  // coordinates, not algebraic, so it keeps working when the board is flipped.
+  const [cursor, setCursor] = useState({ row: 0, col: 0 });
+  const squareRefs = useRef(new Map<string, HTMLButtonElement>());
 
   const legalTargets = selected
     ? new Set(chess.moves({ square: selected, verbose: true }).map((m) => m.to))
@@ -40,15 +46,48 @@ export function ChessBoard({ chess, disabled, onMove, orientation = "white" }: C
     }
   }
 
+  // Clamped, not wrapped: running off the a-file should stop, the way it does
+  // on a real board, rather than teleporting to the h-file.
+  function moveCursor(rowDelta: number, colDelta: number) {
+    const row = Math.min(ranks.length - 1, Math.max(0, cursor.row + rowDelta));
+    const col = Math.min(files.length - 1, Math.max(0, cursor.col + colDelta));
+    squareRefs.current.get(`${files[col]}${ranks[row]}`)?.focus();
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    const deltas: Record<string, [number, number]> = {
+      ArrowUp: [-1, 0],
+      ArrowDown: [1, 0],
+      ArrowLeft: [0, -1],
+      ArrowRight: [0, 1],
+    };
+
+    if (deltas[event.key]) {
+      event.preventDefault();
+      moveCursor(...deltas[event.key]);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      moveCursor(0, -cursor.col);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      moveCursor(0, files.length - 1 - cursor.col);
+    }
+  }
+
   return (
     <div className="w-full max-w-xl rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] sm:p-2">
       <div
         role="grid"
         aria-label="Chess board"
+        onKeyDown={handleKeyDown}
         className="grid aspect-square grid-cols-8 overflow-hidden rounded-[calc(2rem-0.5rem)] ring-1 ring-inset ring-white/10"
       >
-        {ranks.map((rank) =>
-          files.map((file) => {
+        {/* display:contents gives each rank a real role="row" for assistive
+            tech without introducing a box that would break the 8-column CSS
+            grid - gridcells must not be direct children of the grid. */}
+        {ranks.map((rank, rowIndex) => (
+          <div key={rank} role="row" className="contents">
+            {files.map((file, colIndex) => {
             const square = `${file}${rank}` as Square;
             const piece = chess.get(square);
             const isDark = (FILES.indexOf(file) + RANKS.indexOf(rank)) % 2 === 1;
@@ -62,6 +101,12 @@ export function ChessBoard({ chess, disabled, onMove, orientation = "white" }: C
                 key={square}
                 type="button"
                 role="gridcell"
+                ref={(node) => {
+                  if (node) squareRefs.current.set(square, node);
+                  else squareRefs.current.delete(square);
+                }}
+                tabIndex={cursor.row === rowIndex && cursor.col === colIndex ? 0 : -1}
+                onFocus={() => setCursor({ row: rowIndex, col: colIndex })}
                 aria-label={piece ? `${square}, ${piece.color === "w" ? "white" : "black"} ${piece.type}` : square}
                 onClick={() => handleSquareClick(square)}
                 disabled={disabled}
@@ -106,9 +151,10 @@ export function ChessBoard({ chess, disabled, onMove, orientation = "white" }: C
                   </span>
                 )}
               </button>
-            );
-          }),
-        )}
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
