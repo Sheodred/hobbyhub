@@ -40,7 +40,15 @@ class Hall9000Client implements RatingSource
 
     public function __construct(?callable $fetch = null)
     {
-        $this->fetch = $fetch ?? 'http_get_result';
+        // http_get_html() added the project's real User-Agent for us;
+        // http_get_result() adds nothing, and a UA-less request is what a WAF
+        // blocks first. Every other http_get_result() caller passes it the
+        // same way (EdhrecComboClient, health.php).
+        $this->fetch = $fetch ?? fn(string $url, int $timeout, array $headers) => http_get_result(
+            $url,
+            $timeout,
+            array_merge(['User-Agent: ' . SCRYFALL_USER_AGENT], $headers)
+        );
     }
 
     /**
@@ -86,7 +94,17 @@ class Hall9000Client implements RatingSource
             if ($result['body'] === null || $result['status'] >= 400) {
                 throw new RuntimeException('H@LL9000 request failed for ' . $slug);
             }
-            return $this->parse($result['body'], $slug);
+
+            $parsed = $this->parse($result['body'], $slug);
+            // An unparseable 200 is only an answer if it was recognisably one
+            // of their pages. Otherwise - consent wall, maintenance page,
+            // changed markup - it must not be remembered as "unrated": that
+            // would pin the wrong answer for the miss TTL and would survive
+            // the parser fix.
+            if ($parsed === null && !str_contains($result['body'], 'H@LL9000')) {
+                throw new RuntimeException('H@LL9000 answered 200 with something that is not a game page: ' . $slug);
+            }
+            return $parsed;
         }, self::MISS_TTL_SECONDS);
     }
 

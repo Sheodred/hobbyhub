@@ -66,10 +66,14 @@ final class GermanRatingClientsTest extends TestCase
         $this->assertStringEndsWith('/das_orakel_von_delphi', $seen);
     }
 
-    public function testHallReturnsNullWhenThePageIsMissingOrUnparsed(): void
+    public function testHallReturnsNullWhenThePageIsMissingOrCarriesNoRating(): void
     {
+        // No page at all for this game.
         $this->assertNull((new Hall9000Client(fn() => $this->hallResponse(null, 404)))->ratingFor('Nichtvorhanden'));
-        $this->assertNull((new Hall9000Client(fn() => $this->hallResponse('<html>nothing here</html>')))->ratingFor('Azul'));
+        // Their page, but nothing rated on it yet - also a real answer.
+        $this->assertNull(
+            (new Hall9000Client(fn() => $this->hallResponse('<html>H@LL9000 - noch keine Wertung</html>')))->ratingFor('Azul')
+        );
     }
 
     // A 404 is them saying "no page for this game"; a timeout says nothing at
@@ -94,8 +98,33 @@ final class GermanRatingClientsTest extends TestCase
     public function testHallRejectsAnImplausibleRating(): void
     {
         // Above their scale means the pattern matched something else.
-        $page = '<p>Wertung Azul: 9,9, 17 Bewertung(en)</p>';
+        $page = '<p>H@LL9000 Wertung Azul: 9,9, 17 Bewertung(en)</p>';
         $this->assertNull((new Hall9000Client(fn() => $this->hallResponse($page)))->ratingFor('Azul'));
+    }
+
+    // Caching a miss is only safe when the response was recognisably one of
+    // their game pages. A 200 consent wall, a maintenance page or changed
+    // markup would otherwise pin "this game is unrated" for the miss TTL, and
+    // would not self-heal once the parser is fixed.
+    public function testHallRefusesToRememberAMissFromAPageItDoesNotRecognise(): void
+    {
+        $calls = 0;
+        $fetch = function () use (&$calls) {
+            $calls++;
+            return $this->hallResponse('<html><body>Wartungsarbeiten</body></html>');
+        };
+
+        try {
+            (new Hall9000Client($fetch))->ratingFor('Azul');
+            $this->fail('an unrecognised 200 is not an answer');
+        } catch (RuntimeException $e) {
+            // expected
+        }
+
+        $this->assertSame(
+            0,
+            (int) db()->query("SELECT COUNT(*) FROM hall9000_cache WHERE query_key = 'azul'")->fetchColumn()
+        );
     }
 
     // --- brettspiele-report ----------------------------------------------

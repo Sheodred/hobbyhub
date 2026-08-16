@@ -76,7 +76,16 @@ class AmazonRatingClient implements RatingSource
                 // nothing for this game" - see Cache.php.
                 throw new RuntimeException('amazon.de request failed for ' . $gameName);
             }
-            return $this->parseSearchHtml($html, $gameName);
+            $parsed = $this->parseSearchHtml($html, $gameName);
+            // Their anti-bot interstitial comes back with a 200, so "nothing
+            // listed for this game" and "we were blocked" look the same from
+            // here. Only the page that is recognisably a search result page
+            // gets to answer "nothing" - otherwise a block would hide every
+            // game's rating for the miss TTL and outlive the block itself.
+            if ($parsed === null && !str_contains($html, 's-search-result')) {
+                throw new RuntimeException('amazon.de answered 200 without a search result page for ' . $gameName);
+            }
+            return $parsed;
         }, self::MISS_TTL_SECONDS);
     }
 

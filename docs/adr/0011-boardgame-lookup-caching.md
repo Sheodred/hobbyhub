@@ -129,6 +129,23 @@ Full implementation plan: `docs/superpowers/plans/2026-08-14-boardgame-lookup.md
   `CommanderSpellbookClient`, and `NominatimGeocodeClient`, which had
   the same latent behavior at shorter TTLs. The 14-day TTL stands,
   since a failure can no longer occupy it.
+- **Amended 2026-08-16 (#72): a null now has two meanings, and only one
+  of them is still uncached.** The rule above — never store a `null` —
+  was written when `null` could only mean "the call failed". It also
+  covered the case where a source answered perfectly well and simply has
+  no review for this game, so every uncovered game re-ran the full
+  remote lookup on every request, throttle included: a repeat Boardgame
+  Lookup measured 5.5s, the same as the first. `cache_aside()` now takes
+  an optional `$missTtlSeconds`; callers that pass it must **throw** on a
+  failed call, and their `null` is stored as the answer it is, for a
+  shorter TTL than a real one. Callers that don't pass it keep this
+  ADR's original behaviour exactly — `ScryfallClient`,
+  `EdhrecComboClient` and `NominatimGeocodeClient` are unchanged. The
+  four Rating Sources opted in, which is what `RatingSource` already
+  documented ("null means nothing published for this Game — a real
+  answer, not a failure. Failures throw"). A miss is only cached when
+  the response was recognisably the right kind of page, so a 200 block
+  page or changed markup cannot pin "nothing here" for the TTL.
 - Multi-site review aggregation, LLM-based summarization, and any
   "save to my list" feature are explicit non-goals for v1 (the latter
   is moot anyway — HobbyHub has no accounts post `docs/adr/0009`).

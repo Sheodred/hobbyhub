@@ -83,6 +83,27 @@ final class AmazonRatingClientTest extends TestCase
         $this->assertSame(1, $calls, 'a repeat ask is a full round trip behind a 2s throttle (#72)');
     }
 
+    // amazon.de serves its anti-bot interstitial with a 200, so "no listing
+    // found" and "we were blocked" arrive looking identical. Remembering the
+    // second as the first would hide every game's rating for the miss TTL and
+    // would not self-heal when the block lifts.
+    public function testRefusesToRememberAMissFromAPageThatIsNotASearchResultPage(): void
+    {
+        $captcha = '<html><body><h4>Geben Sie die Zeichen unten ein</h4></body></html>';
+
+        try {
+            (new AmazonRatingClient(fn() => $captcha))->ratingFor('Catan');
+            $this->fail('a block page is not an answer about this game');
+        } catch (RuntimeException $e) {
+            // expected
+        }
+
+        $this->assertSame(
+            0,
+            (int) db()->query("SELECT COUNT(*) FROM amazon_rating_cache WHERE query_key = 'catan'")->fetchColumn()
+        );
+    }
+
     public function testResultIsCachedAndNotRefetched(): void
     {
         $calls = 0;
