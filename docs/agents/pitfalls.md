@@ -4,7 +4,7 @@ Traps this repo has actually sprung, each one written down after it cost time
 or nearly cost data. Every entry names the failure, not just the rule — a rule
 without its failure gets rationalised away at 2am.
 
-These came out of issues #44, #45, #46, #47, #49 and #50.
+These came out of issues #44, #45, #46, #47, #49, #50, #54 and #55.
 
 ## Running the PHP test suite
 
@@ -82,6 +82,27 @@ actually separates broken from fixed.
 Evidence in a report proves something about whatever the reporter probed, which
 is not automatically what the code calls.
 
+## A DOM sweep only sees the state that happens to be rendered
+
+**Before filing any "X is missing" finding from an automated sweep, grep the
+source for X.** An absence in the DOM and an absence in the codebase are
+different claims, and only the second justifies the word "missing".
+
+The #51 accessibility audit is the worked example. A scripted sweep of `/`,
+`/mtg`, `/chess` and `/boardgames` reported no `<nav>` landmark and no
+`<footer>` on every route. Both were wrong: `MobileDrawer` renders
+`<nav aria-label="Primary">` — with focus trap, Escape handling and focus
+restore — and the legal links live in the same drawer. The sweep ran with the
+drawer closed, so the markup did not exist at scan time and scored as absent.
+Two of nine findings were false and had to be retracted in the #52/#53 PR body.
+
+This UI has modals, drawers, disclosures and tabs. Either drive them open before
+scanning, or scope the finding explicitly to the state that was scanned.
+
+Positive findings from a sweep are usually safe; **negative ones are exactly the
+class a state-dependent sample gets wrong**, because anything conditionally
+rendered is indistinguishable from anything absent.
+
 ## Determinism beats brevity across a system boundary
 
 Before using a standard-library call, ask whether its output depends on ambient
@@ -99,6 +120,29 @@ with nothing logged. An explicit map is a few lines longer and identical on
 every host.
 
 "Shortest thing that works" is scoped to the machine it was tested on.
+
+## The shell's working directory is an invisible argument
+
+All tooling lives in `frontend/`; the repo root has no `package.json`. The shell
+keeps its working directory between tool calls, so an unrelated `cd` several
+calls earlier is enough to send a directory-sensitive command somewhere else.
+
+`npm install -D eslint-plugin-jsx-a11y` for #51 ran from the repo root and
+created a fresh `package.json`, `package-lock.json` and `node_modules/` there.
+Nothing failed: `eslint` resolved the plugin anyway because module resolution
+walks *up* the tree, `npm run lint` passed, the full suite passed. The only tell
+was `git status` showing three untracked entries at the root. Uncaught, the
+dependency would have been missing from `frontend/package.json` and CI would
+have broken for the next person, not here.
+
+- Put the directory in the command (`npm --prefix frontend install …`, or a `cd`
+  in the same invocation), never inherit it.
+- After a dependency change, check that **the intended manifest actually
+  changed**. Exit code 0 is not that evidence.
+- `git status` after any tooling change is cheap and catches the whole class.
+
+Failure modes that resolve *upward* — module resolution, config discovery, VCS
+root detection — actively conceal misplacement by making the wrong location work.
 
 ## Shell quoting belongs to the tool, not the environment
 
