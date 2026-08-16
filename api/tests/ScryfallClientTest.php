@@ -44,7 +44,9 @@ final class ScryfallClientTest extends TestCase
             'manaCost' => '{R}',
             'typeLine' => 'Instant',
             'oracleText' => 'Lightning Bolt deals 3 damage to any target.',
-            'colors' => ['R'],
+            // No 'colors' here on purpose: Scryfall sends it (see the fixture
+            // above) and mapCard() deliberately drops it - it was wrong for
+            // every double-faced card and read by nothing (#43).
             'setName' => 'Limited Edition Alpha',
             'rarity' => 'common',
             'imageUrl' => 'https://example.com/normal.jpg',

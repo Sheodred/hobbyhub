@@ -88,7 +88,6 @@ class ScryfallClient
             'manaCost' => ($c['mana_cost'] ?? '') ?: ($c['card_faces'][0]['mana_cost'] ?? null),
             'typeLine' => $c['type_line'] ?? null,
             'oracleText' => $c['oracle_text'] ?? ($c['card_faces'][0]['oracle_text'] ?? null),
-            'colors' => $c['colors'] ?? null,
             'setName' => $c['set_name'] ?? null,
             'rarity' => $c['rarity'] ?? null,
             'imageUrl' => $imageUris['normal'] ?? null,

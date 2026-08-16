@@ -14,7 +14,6 @@ export interface Card {
   manaCost: string | null;
   typeLine: string | null;
   oracleText: string | null;
-  colors: string[] | null;
   setName: string | null;
   rarity: string | null;
   imageUrl: string | null;
