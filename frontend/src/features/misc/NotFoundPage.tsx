@@ -1,11 +1,14 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 
 const EASE = [0.32, 0.72, 0, 1] as const;
 
 export function NotFoundPage() {
+  useDocumentTitle("Page not found");
+
   const reduceMotion = usePrefersReducedMotion();
 
   return (

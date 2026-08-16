@@ -1,6 +1,9 @@
 import { DraftContentNotice } from "../../components/DraftContentNotice";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 export function PrivacyPolicyPage() {
+  useDocumentTitle("Privacy Policy");
+
   return (
     <div className="mx-auto max-w-2xl text-slate-300">
       <DraftContentNotice message="Operated as a private, non-commercial project (no postal address shown accordingly, see docs/adr/0006). Not legal advice." />

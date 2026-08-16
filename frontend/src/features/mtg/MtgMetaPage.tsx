@@ -2,10 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { FadeIn } from "../../components/FadeIn";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { getMtgMeta } from "./api";
 import { MetaWidget } from "./MetaWidget";
 
 export function MtgMetaPage() {
+  useDocumentTitle("Best of Meta & Stats");
+
   const { data, isLoading, isError } = useQuery({ queryKey: ["mtg-meta"], queryFn: getMtgMeta });
 
   return (

@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
 import { FadeIn } from "../../components/FadeIn";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { ApiError } from "../../lib/apiClient";
 import { getMtgMeta, searchCards } from "./api";
 
@@ -16,6 +17,8 @@ const FEATURED_ART = "https://cards.scryfall.io/art_crop/front/4/e/4e4fb50c-a81f
 const REFERENCE_CARDS = ["Ashnod's Altar", "Thassa's Oracle"];
 
 export function MtgPage() {
+  useDocumentTitle("Magic: The Gathering");
+
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -45,6 +48,14 @@ export function MtgPage() {
     setQuery(name);
     runSearch(name);
   }
+
+  // WCAG 4.1.3. Kept as a plain string rendered into one always-mounted
+  // region below: a live region that appears with its text already inside it
+  // is routinely not announced at all.
+  let statusText = "";
+  if (isFetching) statusText = "Searching…";
+  else if (data && data.cards.length === 0) statusText = `No cards found for "${submittedQuery}".`;
+  else if (data) statusText = `${data.totalCards} card(s) found`;
 
   return (
     <div>
@@ -106,7 +117,7 @@ export function MtgPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for a card, e.g. Lightning Bolt"
-          className="w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          className="w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
         />
         <button
           type="submit"
@@ -117,6 +128,10 @@ export function MtgPage() {
       </form>
 
       <div className="mt-6">
+        <p role="status" className="mb-3 text-sm text-slate-400 empty:mb-0">
+          {statusText}
+        </p>
+
         {submittedQuery.length === 0 && (
           <div>
             <p className="text-slate-400">Not sure what to search for? Popular this week, via EDHREC:</p>
@@ -151,21 +166,14 @@ export function MtgPage() {
           </div>
         )}
 
-        {isFetching && <p className="text-slate-400">Searching…</p>}
-
         {isError && (
           <p role="alert" className="text-rose-400">
             {error instanceof ApiError ? error.message : "Something went wrong searching for cards."}
           </p>
         )}
 
-        {data && !isFetching && data.cards.length === 0 && (
-          <p className="text-slate-400">No cards found for &quot;{submittedQuery}&quot;.</p>
-        )}
-
         {data && data.cards.length > 0 && (
           <FadeIn key={`${submittedQuery}-${page}`}>
-            <p className="mb-3 text-sm text-slate-400">{data.totalCards} card(s) found</p>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
               {data.cards.map((card) => (
                 <Link

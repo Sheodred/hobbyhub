@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 
 import { FadeIn } from "../../components/FadeIn";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { ApiError } from "../../lib/apiClient";
 import { getDeck } from "./api";
 import { CardHoverPreview } from "./CardHoverPreview";
@@ -19,6 +20,8 @@ export function DeckPage() {
     queryFn: () => getDeck(deckId!),
     enabled: Boolean(deckId),
   });
+
+  useDocumentTitle(deck?.name ?? null);
 
   if (isFetching) {
     return <p className="text-slate-400">Loading deck…</p>;
@@ -60,7 +63,7 @@ export function DeckPage() {
             <ul className="mt-3 flex flex-col gap-1">
               {section.cards.map((card) => (
                 <li key={card.name} className="flex items-baseline gap-2 text-sm">
-                  <span className="w-6 shrink-0 text-slate-500">{card.count}</span>
+                  <span className="w-6 shrink-0 text-slate-400">{card.count}</span>
                   <CardHoverPreview name={card.name}>
                     <span className="text-slate-200">{card.name}</span>
                   </CardHoverPreview>

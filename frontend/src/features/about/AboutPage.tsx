@@ -1,8 +1,11 @@
 import { FadeIn } from "../../components/FadeIn";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 const AVATAR_URL = "/Gemini_Generated_Image_nqv19dnqv19dnqv1.jpg";
 
 export function AboutPage() {
+  useDocumentTitle("About Me");
+
   return (
     <div className="mx-auto max-w-2xl">
       <FadeIn className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
