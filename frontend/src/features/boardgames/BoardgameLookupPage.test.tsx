@@ -20,6 +20,9 @@ describe("BoardgameLookupPage", () => {
         bgq: null,
         players: null,
         duration: null,
+        age: null,
+        complexity: null,
+        isExpansion: false,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -61,6 +64,9 @@ describe("BoardgameLookupPage", () => {
         bgq: null,
         players: null,
         duration: null,
+        age: null,
+        complexity: null,
+        isExpansion: false,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -95,6 +101,9 @@ describe("BoardgameLookupPage", () => {
         bgq: null,
         players: "2 - 4",
         duration: "30 - 45 Minuten",
+        age: null,
+        complexity: null,
+        isExpansion: false,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -120,6 +129,9 @@ describe("BoardgameLookupPage", () => {
         bgq: null,
         players: "2 - 4",
         duration: "30 - 45 Minuten",
+        age: null,
+        complexity: null,
+        isExpansion: false,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -137,12 +149,62 @@ describe("BoardgameLookupPage", () => {
     );
   });
 
+  it("shows the facts that decide whether a game suits the table", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: {
+        bggId: 926, name: "Catan: Cities & Knights", description: "More Catan.",
+        rating: 7.4, numRatings: 40000, good: null, bad: null, partial: false,
+        ratings: [], bgq: null,
+        players: "3 - 4",
+        duration: "90 Minuten",
+        age: "ab 12 Jahren",
+        complexity: { value: 12, max: 20, url: "https://www.brettspiele-report.de/catan-staedte-und-ritter/" },
+        isExpansion: true,
+        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/926" },
+      },
+    });
+
+    render(<BoardgameLookupPage />);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "cities and knights" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(await screen.findByText(/3 - 4 players · 90 Minuten · ab 12 Jahren/)).toBeInTheDocument();
+    expect(screen.getByText("Expansion")).toBeInTheDocument();
+    // The scale travels with the number, and the link says whose number it is.
+    expect(screen.getByRole("link", { name: /Komplexität 12 \/ 20/ })).toHaveAttribute(
+      "href", "https://www.brettspiele-report.de/catan-staedte-und-ritter/"
+    );
+  });
+
+  it("leaves out facts no source published, rather than showing empty labels", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: {
+        bggId: 13, name: "Catan", description: "Trade, build, settle.",
+        rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
+        ratings: [], bgq: null,
+        players: "3 - 4", duration: null, age: null, complexity: null, isExpansion: false,
+        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
+      },
+    });
+
+    render(<BoardgameLookupPage />);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(await screen.findByText("3 - 4 players")).toBeInTheDocument();
+    expect(screen.queryByText("Expansion")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Komplexität/)).not.toBeInTheDocument();
+  });
+
   it("shows Board Game Quest's score and how the game plays", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "ok",
       game: {
         bggId: 331106, name: "Intarsia", description: "", rating: 7.2, numRatings: 900,
         good: "Beautiful production", bad: "Lacking replay value", partial: true, players: "2 - 4", duration: "30 - 45 Minuten",
+        age: null, complexity: null, isExpansion: false,
         ratings: [
           { source: "Board Game Quest", value: 3.5, max: 5, count: null, title: "Intarsia Review", url: "https://www.boardgamequest.com/intarsia-review/" },
           { source: "brettspiele-report", value: 15, max: 20, count: null, title: "Intarsia", url: "https://www.brettspiele-report.de/intarsia/" },

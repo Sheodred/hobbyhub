@@ -32,7 +32,19 @@ final class GermanRatingClientsTest extends TestCase
         $this->assertSame(17, $r['count']);
         $this->assertSame('2 - 4', $r['players']);
         $this->assertSame('30 - 45 Minuten', $r['duration']);
+        $this->assertSame('ab 8 Jahren', $r['age']);
         $this->assertSame('https://www.hall9000.de/html/spiel/azul', $r['url']);
+    }
+
+    public function testHallReportsNoAgeWhenThePageOmitsIt(): void
+    {
+        $page = '<p>H@LL9000 Wertung Azul: 4,8, 17 Bewertung(en)</p>'
+            . '<p>Spieler: 2 - 4 Dauer: 30 - 45 Minuten Jahr: 2017</p>';
+
+        $r = (new Hall9000Client(fn() => $page))->ratingFor('Azul');
+
+        $this->assertNull($r['age'], 'a missing field is null, never an empty label');
+        $this->assertSame('2 - 4', $r['players']);
     }
 
     public function testHallBuildsTheSlugTheirOwnFeedsUse(): void
@@ -86,6 +98,28 @@ final class GermanRatingClientsTest extends TestCase
         $this->assertSame(15, $r['rating']);
         $this->assertSame(20, $r['max']);
         $this->assertSame('https://www.brettspiele-report.de/azul/', $r['url']);
+    }
+
+    public function testReportReadsKomplexitaetAlongsideTheOverallScore(): void
+    {
+        // Their own complexity descriptor, on the same 20-point scale as the
+        // overall verdict. Read as a fact about the game, never mixed into
+        // the ratings - it says how heavy, not how good.
+        $r = (new BrettspieleReportClient(fn() => $this->reportPosts()))->ratingFor('Azul');
+
+        $this->assertSame(4, $r['complexity']);
+        $this->assertSame(15, $r['rating'], 'the overall verdict must not move');
+    }
+
+    public function testReportReportsNoComplexityWhenTheReviewOmitsIt(): void
+    {
+        $posts = [[
+            'link' => 'https://www.brettspiele-report.de/azul/',
+            'title' => ['rendered' => 'Azul'],
+            'content' => ['rendered' => 'brettspiele-report Bewertung Azul Bewertung: 15 Sehr gut.'],
+        ]];
+
+        $this->assertNull((new BrettspieleReportClient(fn() => $posts))->ratingFor('Azul')['complexity']);
     }
 
     public function testReportRejectsADifferentGameInTheSameSeries(): void

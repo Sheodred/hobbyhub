@@ -34,7 +34,7 @@ class Hall9000Client implements RatingSource
     }
 
     /**
-     * @return array{rating:float,max:int,count:?int,players:?string,duration:?string,url:string}|null
+     * @return array{rating:float,max:int,count:?int,players:?string,duration:?string,age:?string,url:string}|null
      */
     public function label(): string
     {
@@ -95,11 +95,12 @@ class Hall9000Client implements RatingSource
             'count' => (int) $m[2],
             'players' => $this->field($text, 'Spieler'),
             'duration' => $this->field($text, 'Dauer'),
+            'age' => $this->field($text, 'Alter'),
             'url' => self::GAME_URL . $slug,
         ];
     }
 
-    // "Spieler: 2 - 4", "Dauer: 30 - 45 Minuten"
+    // "Spieler: 2 - 4", "Dauer: 30 - 45 Minuten", "Alter: ab 8 Jahren"
     private function field(string $text, string $label): ?string
     {
         if (!preg_match('/' . preg_quote($label, '/') . ':\s*([^:]{1,40}?)\s+(?:Dauer|Alter|Jahr|Bewertung|Verlag):/iu', $text, $m)) {

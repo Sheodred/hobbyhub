@@ -4,7 +4,7 @@ Traps this repo has actually sprung, each one written down after it cost time
 or nearly cost data. Every entry names the failure, not just the rule — a rule
 without its failure gets rationalised away at 2am.
 
-These came out of issues #44, #45, #46, #47, #49, #50, #54 and #55.
+These came out of issues #44, #45, #46, #47, #49, #50, #54, #55 and #58.
 
 ## Running the PHP test suite
 
@@ -120,6 +120,26 @@ with nothing logged. An explicit map is a few lines longer and identical on
 every host.
 
 "Shortest thing that works" is scoped to the machine it was tested on.
+
+## A cache outlives the shape you parse its contents into
+
+`cache_aside()` stores the *parsed array*, not the raw response. Add a field
+to a parser and every cached row still holds the old shape, so the new field
+reads as absent — for the full TTL, which here is 14 days.
+
+Adding `age` to `Hall9000Client` (#58) passed every unit test and then came
+back `null` from the real endpoint. Nothing was wrong with the parser: the
+answer was served from a `hall9000_cache` row written before the change.
+`?? null` meant no error, no warning, just a field that quietly never
+appeared.
+
+**Any change to what a client extracts needs its cache table cleared as part
+of the release**, and the check belongs in `docs/deploy-checklist.md` under
+Database, because this repo applies database steps by hand.
+
+Generally: a test suite exercises the parser, a real request exercises the
+parser *plus the cache*. When those two disagree, suspect the cache before
+the parser.
 
 ## The shell's working directory is an invisible argument
 

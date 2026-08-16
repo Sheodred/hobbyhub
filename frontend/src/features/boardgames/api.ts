@@ -34,6 +34,13 @@ export interface BoardGameQuestReview {
   url: string;
 }
 
+/** A complexity figure carries its scale for the same reason a rating does. */
+export interface Complexity {
+  value: number;
+  max: number;
+  url: string;
+}
+
 export interface Boardgame {
   bggId: number;
   name: string;
@@ -54,6 +61,15 @@ export interface Boardgame {
   bgq: BoardGameQuestReview | null;
   players: string | null;
   duration: string | null;
+  /** As the source words it, e.g. "ab 8 Jahren" - never reduced to a number. */
+  age: string | null;
+  /**
+   * How heavy the game is, on the publishing site's own scale. A descriptor,
+   * not a verdict: it belongs nowhere near `ratings`.
+   */
+  complexity: Complexity | null;
+  /** True when this needs a base game rather than standing on its own. */
+  isExpansion: boolean;
   source: BoardgameSource;
 }
 

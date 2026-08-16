@@ -114,7 +114,16 @@ export function BoardgameLookupPage() {
           <FadeIn key={state.game.bggId}>
             <article className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
               <div className="flex flex-wrap items-baseline justify-between gap-3">
-                <h2 className="text-2xl font-semibold text-slate-100">{state.game.name}</h2>
+                <h2 className="text-2xl font-semibold text-slate-100">
+                  {state.game.name}
+                  {/* Not decoration: an expansion needs a base game, which is
+                      the first thing that decides whether you can play it. */}
+                  {state.game.isExpansion && (
+                    <span className="ml-2 align-middle rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-200">
+                      Expansion
+                    </span>
+                  )}
+                </h2>
                 {state.game.rating !== null && (
                   <p className="flex items-baseline gap-2">
                     {/* JSON drops the trailing zero, so 8.0 arrives as 8 - pin
@@ -127,11 +136,24 @@ export function BoardgameLookupPage() {
                 )}
               </div>
 
-              {(state.game.players || state.game.duration) && (
-                <p className="mt-2 text-sm text-slate-400">
-                  {[state.game.players && `${state.game.players} players`, state.game.duration]
+              {(state.game.players || state.game.duration || state.game.age || state.game.complexity) && (
+                <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-400">
+                  {[state.game.players && `${state.game.players} players`, state.game.duration, state.game.age]
                     .filter(Boolean)
                     .join(" · ")}
+                  {/* Their number on their scale, linked to the review that
+                      published it - "4" alone would read as a universal
+                      difficulty rating nobody ever gave. */}
+                  {state.game.complexity && (
+                    <a
+                      href={state.game.complexity.url}
+                      target="_blank"
+                      rel="noreferrer nofollow"
+                      className="rounded-full border border-slate-700 px-2 py-0.5 text-xs text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
+                    >
+                      Komplexität {state.game.complexity.value} / {state.game.complexity.max} · brettspiele-report
+                    </a>
+                  )}
                 </p>
               )}
 

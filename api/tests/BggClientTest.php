@@ -131,6 +131,30 @@ final class BggClientTest extends TestCase
         $this->assertSame('https://boardgamegeek.com/boardgame/13', $result['source']['url']);
     }
 
+    public function testFallbackLookupReportsWhetherTheGameIsAnExpansion(): void
+    {
+        $this->seedRanks();
+        $client = new BggClient(fn() => null);
+
+        $this->assertTrue($client->lookup(926)['isExpansion'], 'Cities & Knights needs a base game');
+        $this->assertFalse($client->lookup(13)['isExpansion']);
+    }
+
+    public function testLookupReadsTheExpansionFlagFromTheThingType(): void
+    {
+        // The live answer carries it on the item itself, so the flag survives
+        // BGG coming back - it is not a fallback-only field.
+        $expansion = new BggClient(fn() => $this->thingXml(
+            '<item type="boardgameexpansion" id="926"><name type="primary" value="Catan: Cities &amp; Knights"/></item>'
+        ));
+        $this->assertTrue($expansion->lookup(926)['isExpansion']);
+
+        $base = new BggClient(fn() => $this->thingXml(
+            '<item type="boardgame" id="13"><name type="primary" value="Catan"/></item>'
+        ));
+        $this->assertFalse($base->lookup(13)['isExpansion']);
+    }
+
     public function testFallbackLookupIsNotCached(): void
     {
         $this->seedRanks();
