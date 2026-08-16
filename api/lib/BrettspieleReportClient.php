@@ -20,6 +20,8 @@ class BrettspieleReportClient implements RatingSource
     public const MAX_RATING = 20;
 
     private const CACHE_TTL_SECONDS = 14 * 24 * 60 * 60;
+    // An unreviewed game may be reviewed next month - days, not weeks.
+    private const MISS_TTL_SECONDS = 3 * 24 * 60 * 60;
     private const THROTTLE_MIN_INTERVAL_MS = 1000;
     private const API_URL = 'https://www.brettspiele-report.de/wp-json/wp/v2/posts';
 
@@ -68,8 +70,13 @@ class BrettspieleReportClient implements RatingSource
                 'per_page' => 10,
                 '_fields' => 'link,title,content',
             ]));
-            return is_array($posts) ? $this->pick($posts, $gameName) : null;
-        });
+            if (!is_array($posts)) {
+                // Failed call. A null here would be cached as "they never
+                // reviewed this game" - see Cache.php.
+                throw new RuntimeException('brettspiele-report request failed for ' . $gameName);
+            }
+            return $this->pick($posts, $gameName);
+        }, self::MISS_TTL_SECONDS);
     }
 
     /** @param array<int,array> $posts */

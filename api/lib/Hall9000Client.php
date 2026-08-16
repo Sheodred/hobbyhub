@@ -22,15 +22,25 @@ class Hall9000Client implements RatingSource
     public const MAX_RATING = 6;
 
     private const CACHE_TTL_SECONDS = 14 * 24 * 60 * 60;
+    // They review new games continually, so "no page for this one" is held for
+    // days rather than weeks.
+    private const MISS_TTL_SECONDS = 3 * 24 * 60 * 60;
     private const THROTTLE_MIN_INTERVAL_MS = 1000;
     private const GAME_URL = 'https://www.hall9000.de/html/spiel/';
 
-    /** @var callable */
-    private $httpGetHtml;
+    /**
+     * Takes the whole result rather than just the body, because a 404 here
+     * means "we have no page for this game" - a real answer worth caching -
+     * while a timeout means nothing at all. http_get_html() collapses both
+     * into null (same reason EdhrecComboClient takes a result).
+     *
+     * @var callable
+     */
+    private $fetch;
 
-    public function __construct(?callable $httpGetHtml = null)
+    public function __construct(?callable $fetch = null)
     {
-        $this->httpGetHtml = $httpGetHtml ?? 'http_get_html';
+        $this->fetch = $fetch ?? 'http_get_result';
     }
 
     /**
@@ -64,13 +74,20 @@ class Hall9000Client implements RatingSource
 
         return cache_aside('hall9000_cache', 'query_key', $slug, self::CACHE_TTL_SECONDS, function () use ($slug) {
             $this->throttle();
-            $html = ($this->httpGetHtml)(
+            $result = ($this->fetch)(
                 self::GAME_URL . rawurlencode($slug),
                 15,
                 ['Accept: text/html', 'Accept-Language: de-DE,de;q=0.9']
             );
-            return $html === null ? null : $this->parse($html, $slug);
-        });
+
+            if ($result['status'] === 404) {
+                return null; // They answered: no page for this game.
+            }
+            if ($result['body'] === null || $result['status'] >= 400) {
+                throw new RuntimeException('H@LL9000 request failed for ' . $slug);
+            }
+            return $this->parse($result['body'], $slug);
+        }, self::MISS_TTL_SECONDS);
     }
 
     /**

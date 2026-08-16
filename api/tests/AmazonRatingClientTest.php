@@ -60,11 +60,27 @@ final class AmazonRatingClientTest extends TestCase
         $this->assertNull($client->ratingFor('Wingspan'));
     }
 
-    public function testReturnsNullWhenTheFetchFails(): void
+    // Since #72 "no listing for this game" is cached, so a failed fetch has to
+    // be told apart from an answered one.
+    public function testThrowsWhenTheFetchFails(): void
     {
-        $client = new AmazonRatingClient(fn() => null);
+        $this->expectException(RuntimeException::class);
 
-        $this->assertNull($client->ratingFor('Catan'));
+        (new AmazonRatingClient(fn() => null))->ratingFor('Catan');
+    }
+
+    public function testRemembersAGameWithNoMatchingListing(): void
+    {
+        $calls = 0;
+        $fetch = function () use (&$calls) {
+            $calls++;
+            return $this->searchHtml(); // Catan listings, nothing for Wingspan
+        };
+
+        $this->assertNull((new AmazonRatingClient($fetch))->ratingFor('Wingspan'));
+        $this->assertNull((new AmazonRatingClient($fetch))->ratingFor('Wingspan'));
+
+        $this->assertSame(1, $calls, 'a repeat ask is a full round trip behind a 2s throttle (#72)');
     }
 
     public function testResultIsCachedAndNotRefetched(): void
@@ -83,7 +99,11 @@ final class AmazonRatingClientTest extends TestCase
 
     public function testAFailedFetchIsNotCached(): void
     {
-        (new AmazonRatingClient(fn() => null))->ratingFor('Catan');
+        try {
+            (new AmazonRatingClient(fn() => null))->ratingFor('Catan');
+        } catch (RuntimeException $e) {
+            // The point of this test is what is left behind, not the throw.
+        }
 
         $this->assertSame(
             0,

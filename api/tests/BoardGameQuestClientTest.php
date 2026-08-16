@@ -66,9 +66,28 @@ final class BoardGameQuestClientTest extends TestCase
         $this->assertNull($client->reviewFor('Wingspan'));
     }
 
-    public function testReturnsNullWhenTheFetchFails(): void
+    // Since #72 an unreviewed game is cached as "nothing here", so a failed
+    // call must be told apart from an answered one - otherwise an outage gets
+    // stored as "Board Game Quest has no review for this" for two weeks.
+    public function testAFailedFetchThrowsRatherThanLookingLikeNoReview(): void
     {
-        $this->assertNull((new BoardGameQuestClient(fn() => null))->reviewFor('Azul'));
+        $this->expectException(RuntimeException::class);
+
+        (new BoardGameQuestClient(fn() => null))->reviewFor('Azul');
+    }
+
+    public function testAGameTheyHaveNotReviewedIsRememberedRatherThanReAsked(): void
+    {
+        $calls = 0;
+        $fetch = function () use (&$calls) {
+            $calls++;
+            return $this->feed(); // real posts, none of them about Wingspan
+        };
+
+        $this->assertNull((new BoardGameQuestClient($fetch))->reviewFor('Wingspan'));
+        $this->assertNull((new BoardGameQuestClient($fetch))->reviewFor('Wingspan'));
+
+        $this->assertSame(1, $calls, 'asking again is a full remote round trip, throttle included (#72)');
     }
 
     public function testResultIsCachedAndNotRefetched(): void
