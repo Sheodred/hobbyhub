@@ -42,7 +42,6 @@ describe("MtgCardDetailPage", () => {
             manaCost: "{R}",
             typeLine: "Instant",
             oracleText: "Lightning Bolt deals 3 damage to any target.",
-            colors: ["R"],
             setName: "Alpha",
             rarity: "common",
             imageUrl: "https://img/bolt.jpg",
@@ -71,7 +70,6 @@ describe("MtgCardDetailPage", () => {
                 manaCost: "{R}",
                 typeLine: "Instant",
                 oracleText: null,
-                colors: ["R"],
                 setName: "Alpha",
                 rarity: "common",
                 imageUrl: "https://img/alpha.jpg",
@@ -83,7 +81,6 @@ describe("MtgCardDetailPage", () => {
                 manaCost: "{R}",
                 typeLine: "Instant",
                 oracleText: null,
-                colors: ["R"],
                 setName: "Masters 25",
                 rarity: "uncommon",
                 imageUrl: "https://img/masters25.jpg",
@@ -102,7 +99,6 @@ describe("MtgCardDetailPage", () => {
             manaCost: "{R}",
             typeLine: "Instant",
             oracleText: "Lightning Bolt deals 3 damage to any target.",
-            colors: ["R"],
             setName: "Alpha",
             rarity: "common",
             imageUrl: "https://img/alpha.jpg",
@@ -117,6 +113,41 @@ describe("MtgCardDetailPage", () => {
 
     expect(await screen.findByText("All printings (2)")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /masters 25/i })).toHaveAttribute("href", "/mtg/card-2");
+  });
+
+  // The printing you are currently viewing was marked only by an indigo
+  // border - colour alone, which a screen reader cannot convey (WCAG 1.4.1).
+  it("marks the printing being viewed in a way that is not colour-only", async () => {
+    const printing = (id: string, setName: string) => ({
+      id,
+      name: "Lightning Bolt",
+      manaCost: "{R}",
+      typeLine: "Instant",
+      oracleText: "Lightning Bolt deals 3 damage to any target.",
+      setName,
+      rarity: "common",
+      imageUrl: null,
+      artCropUrl: null,
+    });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((path: string) => {
+        if (path.startsWith("/api/mtg/combos")) {
+          return Promise.resolve(jsonResponse(200, []));
+        }
+        if (path.startsWith("/api/mtg/printings")) {
+          return Promise.resolve(jsonResponse(200, [printing("card-1", "Alpha"), printing("card-2", "Masters 25")]));
+        }
+        return Promise.resolve(jsonResponse(200, printing("card-1", "Alpha")));
+      }),
+    );
+
+    renderAt("/mtg/card-1");
+    await screen.findByText("All printings (2)");
+
+    expect(screen.getByRole("link", { name: /alpha/i })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: /masters 25/i })).not.toHaveAttribute("aria-current");
   });
 
   it("flips a transform card between its faces", async () => {
@@ -134,7 +165,6 @@ describe("MtgCardDetailPage", () => {
             manaCost: "{U}",
             typeLine: "Creature — Human Wizard",
             oracleText: "At the beginning of your upkeep, look at the top card of your library.",
-            colors: ["U"],
             setName: "Innistrad",
             rarity: "common",
             imageUrl: "https://img/delver-front.jpg",
@@ -186,7 +216,6 @@ describe("MtgCardDetailPage", () => {
             manaCost: "{1}{R}",
             typeLine: "Instant // Instant",
             oracleText: "Fire deals 2 damage divided as you choose.",
-            colors: ["R", "U"],
             setName: "Apocalypse",
             rarity: "uncommon",
             imageUrl: "https://img/fire-ice.jpg",
@@ -236,7 +265,6 @@ describe("MtgCardDetailPage", () => {
             manaCost: "{R}",
             typeLine: "Instant",
             oracleText: "Lightning Bolt deals 3 damage to any target.",
-            colors: ["R"],
             setName: "Alpha",
             rarity: "common",
             imageUrl: "https://img/bolt.jpg",

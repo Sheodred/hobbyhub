@@ -149,6 +149,10 @@ export function MtgCardDetailPage() {
               <Link
                 key={printing.id}
                 to={`/mtg/${printing.id}`}
+                // The indigo border was the only marker for "the printing you
+                // are looking at" - colour alone, invisible to a screen reader
+                // (WCAG 1.4.1). aria-current carries the same meaning in text.
+                aria-current={printing.id === card.id ? "page" : undefined}
                 className={`group overflow-hidden rounded-lg border transition-colors ${
                   printing.id === card.id
                     ? "border-indigo-500"
