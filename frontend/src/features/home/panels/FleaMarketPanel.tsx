@@ -74,7 +74,9 @@ export function FleaMarketPanel() {
 
   return (
     <InfoPanelCard title="Flea Market">
-      <ul className="flex flex-col divide-y divide-white/5">
+      {/* Event names and locations come from a German source inside an
+          English document - see the lang note on NewsListPanel (WCAG 3.1.2). */}
+      <ul lang="de" className="flex flex-col divide-y divide-white/5">
         {visibleEvents.map((event) => (
           <li key={event.url} className="py-3 text-sm text-slate-300 first:pt-0 last:pb-0">
             <a

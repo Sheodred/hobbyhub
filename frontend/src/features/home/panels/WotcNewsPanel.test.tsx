@@ -40,6 +40,24 @@ describe("WotcNewsPanel", () => {
     );
   });
 
+  // Counterpart to the Tagesschau test: this source is English, so it must not
+  // inherit a German lang from the shared list component.
+  it("leaves the headline list in the document language", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(200, [
+          { headline: "New set announced", teaser: null, url: "https://magic.wizards.com/en/news/x", publishedAt: null },
+        ]),
+      ),
+    );
+
+    renderPanel();
+
+    const link = await screen.findByRole("link", { name: "New set announced" });
+    expect(link.closest("[lang]")).toBeNull();
+  });
+
   it("shows a graceful message when the cache is empty", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, [])));
 
