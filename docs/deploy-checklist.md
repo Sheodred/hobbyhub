@@ -62,22 +62,18 @@ up, since shared-hosting WebCron products vary here).
 
       Any future change to what a scrape client extracts needs the same
       clear - see the cache entry in `docs/agents/pitfalls.md`.
-- [ ] **Once, with the BGG-rank release (#58):** add the column and fill it,
-      both through phpMyAdmin's SQL tab - there is no CLI path to this
-      database from outside IONOS.
+- [x] **`bgg_rank` column added and filled for #58** (2026-08-16, via
+      phpMyAdmin - IONOS firewalls off external database connections, so the
+      CLI importer has no path here). `ALTER TABLE bgg_ranks ADD COLUMN
+      bgg_rank INT NULL;` followed by a generated helper-table import of the
+      2026-08-15 dump: 31,137 ranks, verified live afterwards (Brass:
+      Birmingham #1, Azul #99, expansions correctly NULL since BGG ranks
+      those separately).
 
-      ```sql
-      ALTER TABLE bgg_ranks ADD COLUMN bgg_rank INT NULL;
-      ```
+      A future dump refresh needs the same treatment, or `bgg_rank` goes
+      stale while the other columns update - the CLI importer writes it, but
+      only reaches the dev database.
 
-      Then import `bgg_rank_update.sql` (873 KB, ~31k ranks in 63 batched
-      `UPDATE`s, generated from the 2026-08-15 dump). It is `UPDATE`, never
-      `INSERT`, so it can only touch rows that already exist. Rows it doesn't
-      name stay NULL, which is exactly what "BGG doesn't rank this" means -
-      four fifths of the catalog. Like the CSV it came from, that file is
-      BGG's data and is not kept in this repo.
-
-      Without it the rank simply doesn't render; nothing else is affected.
 - [x] Confirmed the MySQL/MariaDB database IONOS provisions matches what
       `api/config.local.php` points at (`dbs15977419` / `dbu2649442` /
       `db5021097409.hosting-data.io`, not `hobbyhub`).
