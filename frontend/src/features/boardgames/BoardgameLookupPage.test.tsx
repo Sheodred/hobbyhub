@@ -450,4 +450,96 @@ describe("BoardgameLookupPage", () => {
     await waitFor(() => expect(screen.getByRole("combobox")).toHaveAttribute("aria-expanded", "false"));
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
+  it("shows what the local dump already knows before the slow sources arrive (#91)", async () => {
+    vi.spyOn(api, "lookupBoardgameLocal").mockResolvedValue({
+      status: "ok",
+      game: {
+        bggId: 13,
+        name: "Catan",
+        description: "",
+        rating: 7.1,
+        numRatings: 143738,
+        good: null,
+        bad: null,
+        partial: true,
+        ratings: [],
+        bgq: null,
+        players: null,
+        duration: null,
+        age: null,
+        complexity: null,
+        isExpansion: false,
+        rank: 566,
+        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
+      },
+    });
+
+    // The slow half never settles during this test, so anything asserted
+    // below is necessarily coming from the instant path.
+    vi.spyOn(api, "lookupBoardgame").mockReturnValue(new Promise(() => {}));
+
+    render(<BoardgameLookupPage />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => expect(screen.getByText("Catan")).toBeInTheDocument());
+    expect(screen.getByText("7.1")).toBeInTheDocument();
+    // And it must say more is still coming, or a partial answer reads as
+    // the whole answer.
+    expect(screen.getByRole("status")).toHaveTextContent(/still/i);
+  });
+
+  it("replaces the instant answer with the full one when the slow sources land", async () => {
+    vi.spyOn(api, "lookupBoardgameLocal").mockResolvedValue({
+      status: "ok",
+      game: {
+        bggId: 13, name: "Catan", description: "", rating: 7.1, numRatings: 143738,
+        good: null, bad: null, partial: true, ratings: [], bgq: null, players: null,
+        duration: null, age: null, complexity: null, isExpansion: false, rank: 566,
+        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
+      },
+    });
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: {
+        bggId: 13, name: "Catan", description: "Trade, build, settle.", rating: 7.2,
+        numRatings: 1000, good: "Great trading game.", bad: "Too much luck.",
+        partial: false, ratings: [], bgq: null, players: "3-4", duration: null,
+        age: null, complexity: null, isExpansion: false, rank: 566,
+        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
+      },
+    });
+
+    render(<BoardgameLookupPage />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => expect(screen.getByText("Great trading game.")).toBeInTheDocument());
+    expect(screen.getByText("Trade, build, settle.")).toBeInTheDocument();
+    expect(screen.getByRole("status")).not.toHaveTextContent(/still/i);
+  });
+
+  it("keeps the instant answer when the slow half fails outright", async () => {
+    vi.spyOn(api, "lookupBoardgameLocal").mockResolvedValue({
+      status: "ok",
+      game: {
+        bggId: 13, name: "Catan", description: "", rating: 7.1, numRatings: 143738,
+        good: null, bad: null, partial: true, ratings: [], bgq: null, players: null,
+        duration: null, age: null, complexity: null, isExpansion: false, rank: 566,
+        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
+      },
+    });
+    vi.spyOn(api, "lookupBoardgame").mockRejectedValue(new Error("upstream down"));
+
+    render(<BoardgameLookupPage />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    // Throwing away a good partial answer because the enrichment failed
+    // would be a regression on today's behaviour, which at least shows the
+    // dump's data when BGG is unreachable.
+    await waitFor(() => expect(screen.getByRole("status")).not.toHaveTextContent(/still/i));
+    expect(screen.getByText("Catan")).toBeInTheDocument();
+    expect(screen.getByText("7.1")).toBeInTheDocument();
+  });
 });

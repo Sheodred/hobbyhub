@@ -98,6 +98,22 @@ export function lookupBoardgameById(bggId: number): Promise<BoardgameLookupResul
   return apiFetch<BoardgameLookupResult>(`/api/boardgames/lookup?${params.toString()}`);
 }
 
+/**
+ * The instant half of a lookup (#91): only what the local BGG ranks dump
+ * knows, with no external call behind it. "unavailable" means the dump has
+ * not been imported - that is "we can't see", not "no such game".
+ */
+export type BoardgameLocalResult =
+  | { status: "ok"; game: Boardgame }
+  | { status: "disambiguation"; candidates: BoardgameCandidate[] }
+  | { status: "not_found" }
+  | { status: "unavailable" };
+
+export function lookupBoardgameLocal(query: string): Promise<BoardgameLocalResult> {
+  const params = new URLSearchParams({ q: query });
+  return apiFetch<BoardgameLocalResult>(`/api/boardgames/local?${params.toString()}`);
+}
+
 export function suggestBoardgames(query: string): Promise<BoardgameCandidate[]> {
   const params = new URLSearchParams({ q: query });
   return apiFetch<{ suggestions: BoardgameCandidate[] }>(`/api/boardgames/suggest?${params.toString()}`).then(

@@ -430,6 +430,44 @@ final class BggClientTest extends TestCase
         (new BggClient(fn() => null))->resolveSearch('teasd');
     }
 
+    public function testLookupLocalAnswersFromTheDumpWithoutTouchingTheNetwork(): void
+    {
+        // #91: the whole point is that this path costs no external call, so
+        // the fetcher must never be reached. A cold full lookup measured
+        // 4-5s in production; this is the part that can answer immediately.
+        $this->seedRanks();
+        $calls = 0;
+        $client = new BggClient(function () use (&$calls) {
+            $calls++;
+            return null;
+        });
+
+        $result = $client->lookupLocal('catan');
+
+        $this->assertSame(0, $calls, 'the local path must not call BGG at all');
+        $this->assertSame('ok', $result['status']);
+        $this->assertSame('Catan', $result['game']['name']);
+        $this->assertTrue($result['game']['partial'], 'dump-derived data carries no description or comments');
+        $this->assertSame(566, $result['game']['rank']);
+    }
+
+    public function testLookupLocalOffersTheSameDisambiguationTheFullLookupWould(): void
+    {
+        $this->seedRanks();
+
+        $result = (new BggClient(fn() => null))->lookupLocal('cat');
+
+        $this->assertSame('disambiguation', $result['status']);
+        $this->assertSame([13, 926], array_column($result['candidates'], 'bggId'));
+    }
+
+    public function testLookupLocalReportsNothingKnownRatherThanGuessingWhenTheDumpIsEmpty(): void
+    {
+        // An empty dump is "we can't see", not "no such game" - the same
+        // distinction resolveSearch() protects.
+        $this->assertSame(['status' => 'unavailable'], (new BggClient(fn() => null))->lookupLocal('catan'));
+    }
+
     public function testDidYouMeanRanksATranspositionAsOneEdit(): void
     {
         // 'Ctaan' transposes the 'a' and 't' of 'Catan'. Plain Levenshtein
