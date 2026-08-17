@@ -48,7 +48,7 @@ describe("BoardgameLookupPage", () => {
   // The example is the site's one worked example, so it is pinned: it has to
   // resolve to a single game, not a disambiguation list (#100).
   it("uses a modern hobby game as the search example", () => {
-    render(<BoardgameLookupPage />);
+    renderPage();
     expect(screen.getByRole("combobox")).toHaveAttribute("placeholder", "Search for a board game, e.g. Frosthaven");
   });
 
@@ -445,7 +445,7 @@ describe("BoardgameLookupPage", () => {
       suggestions: [{ bggId: 13, name: "Catan", yearPublished: 1995 }],
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "teasd" } });
     fireEvent.submit(screen.getByRole("search"));
 
