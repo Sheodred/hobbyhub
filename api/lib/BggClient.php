@@ -191,6 +191,17 @@ class BggClient
         if ($matches === []) {
             $matches = $this->queryRanks('SELECT bgg_id, name, year_published FROM bgg_ranks WHERE name LIKE ? ORDER BY users_rated DESC LIMIT 10', $normalizedQuery . '%');
         }
+        if ($matches === []) {
+            // #73: a query with the punctuation dropped (users have no
+            // reason to type it) matches neither pass above, since the dump
+            // keeps it in the stored name. Strip ':' '-' ',' and spaces from
+            // both sides so "Brass Birmingham" meets "Brass: Birmingham".
+            $stripped = str_replace([':', '-', ',', ' '], '', $normalizedQuery);
+            $matches = $this->queryRanks(
+                "SELECT bgg_id, name, year_published FROM bgg_ranks WHERE REPLACE(REPLACE(REPLACE(REPLACE(name, ':', ''), '-', ''), ',', ''), ' ', '') = ? ORDER BY users_rated DESC LIMIT 10",
+                $stripped
+            );
+        }
 
         if ($matches === []) {
             // Can't confirm the game doesn't exist - only that we can't see

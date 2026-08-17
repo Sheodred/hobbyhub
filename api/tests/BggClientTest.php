@@ -225,6 +225,23 @@ final class BggClientTest extends TestCase
         $this->assertSame(1995, $result['candidates'][0]['yearPublished']);
     }
 
+    public function testResolveSearchFallbackMatchesLocalNameWithPunctuationStripped(): void
+    {
+        // #73: the dump stores "Brass: Birmingham" but a user has no reason
+        // to type the colon. Exact and prefix passes both miss it verbatim,
+        // so a third, punctuation-insensitive pass must catch it instead of
+        // falling through to the "can't confirm" error.
+        db()->exec(
+            "INSERT INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion, bgg_rank) VALUES
+             (224517, 'Brass: Birmingham', 2018, 8.6, 50000, 0, 5)"
+        );
+
+        $this->assertSame(
+            ['status' => 'ok', 'bggId' => 224517],
+            (new BggClient(fn() => null))->resolveSearch('Brass Birmingham')
+        );
+    }
+
     public function testResolveSearchFallbackStillThrowsWhenNothingMatchesLocally(): void
     {
         $this->seedRanks();
