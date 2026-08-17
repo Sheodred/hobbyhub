@@ -196,17 +196,20 @@ class BggClient
             // reason to type it) matches neither pass above, since the dump
             // keeps it in the stored name. Strip ':' '-' ',' and spaces from
             // both sides so "Brass Birmingham" meets "Brass: Birmingham".
-            $stripped = str_replace([':', '-', ',', ' '], '', $normalizedQuery);
             $matches = $this->queryRanks(
-                "SELECT bgg_id, name, year_published FROM bgg_ranks WHERE REPLACE(REPLACE(REPLACE(REPLACE(name, ':', ''), '-', ''), ',', ''), ' ', '') = ? ORDER BY users_rated DESC LIMIT 10",
-                $stripped
+                'SELECT bgg_id, name, year_published FROM bgg_ranks WHERE ' . self::strippedNameSql()
+                    . ' = ? ORDER BY users_rated DESC LIMIT 10',
+                self::stripped($normalizedQuery)
             );
         }
 
         if ($matches === []) {
-            // Can't confirm the game doesn't exist - only that we can't see
-            // it. That's an error, not a "not_found" answer.
-            return null;
+            // #92: the dump is BGG's whole catalogue, so if it has rows and
+            // none of them match, "no such game" is an answer we can actually
+            // stand behind - previously this threw and surfaced as a 502.
+            // With an empty dump we still genuinely cannot see, so that stays
+            // an error rather than a confident "not found".
+            return $this->ranksImported() ? ['status' => 'not_found'] : null;
         }
 
         if (count($matches) === 1) {
@@ -242,10 +245,11 @@ class BggClient
         );
 
         if ($matches === []) {
-            $stripped = str_replace([':', '-', ',', ' '], '', $normalized);
+            $stripped = self::stripped($normalized);
             if ($stripped !== '') {
                 $matches = $this->queryRanks(
-                    "SELECT bgg_id, name, year_published FROM bgg_ranks WHERE REPLACE(REPLACE(REPLACE(REPLACE(name, ':', ''), '-', ''), ',', ''), ' ', '') LIKE ? ORDER BY users_rated DESC LIMIT " . $limit,
+                    'SELECT bgg_id, name, year_published FROM bgg_ranks WHERE ' . self::strippedNameSql()
+                        . ' LIKE ? ORDER BY users_rated DESC LIMIT ' . $limit,
                     self::escapeLike($stripped) . '%'
                 );
             }
@@ -256,6 +260,134 @@ class BggClient
             'name' => (string) $row['name'],
             'yearPublished' => $row['year_published'] === null ? null : (int) $row['year_published'],
         ], $matches);
+    }
+
+    /**
+     * "Did you mean" candidates for a query that matched nothing (#92).
+     *
+     * Deliberately not wired into suggest(): that fires per keystroke and
+     * must stay on the index, while this only ever runs after a lookup has
+     * already failed, so it can afford to be expensive.
+     *
+     * @return list<array{bggId:int,name:string,yearPublished:int|null}>
+     */
+    public function didYouMean(string $query, int $limit = 5): array
+    {
+        $normalized = self::stripped(mb_strtolower(trim($query)));
+        if ($normalized === '' || mb_strlen($normalized) > 64) {
+            return [];
+        }
+
+        // Anchor on the first 3 characters so the index does the narrowing;
+        // ranking then only touches a few hundred rows.
+        $prefix = mb_substr($normalized, 0, 3);
+        $rows = $this->queryRanks(
+            'SELECT bgg_id, name, year_published FROM bgg_ranks WHERE ' . self::strippedNameSql()
+                . ' LIKE ? ORDER BY users_rated DESC LIMIT 300',
+            self::escapeLike($prefix) . '%'
+        );
+
+        $ranked = $this->rankByDistance($rows, $normalized, $limit);
+
+        // A typo in those first 3 characters leaves the shortlist empty or
+        // useless, and that is a large slice of real typos. Fall back to the
+        // most-rated games - somebody misspelling a title is overwhelmingly
+        // reaching for one people have heard of.
+        // ponytail: full scan on the miss path only, ~110-140ms measured;
+        // replace with the normalised/trigram index when #91 lands.
+        if ($ranked === [] && mb_strlen($normalized) >= 4) {
+            $rows = db()->query(
+                'SELECT bgg_id, name, year_published FROM bgg_ranks WHERE users_rated IS NOT NULL'
+                    . ' ORDER BY users_rated DESC LIMIT 1000'
+            )->fetchAll();
+            $ranked = $this->rankByDistance($rows, $normalized, $limit);
+        }
+
+        return $ranked;
+    }
+
+    private function rankByDistance(array $rows, string $normalizedQuery, int $limit): array
+    {
+        // Scale the tolerance with the query: 2 edits is generous on a short
+        // word and far too strict on a long title.
+        $threshold = max(2, (int) floor(mb_strlen($normalizedQuery) * 0.4));
+
+        $scored = [];
+        foreach ($rows as $row) {
+            $distance = self::editDistance($normalizedQuery, self::stripped((string) $row['name']));
+            if ($distance <= $threshold) {
+                $scored[] = ['distance' => $distance, 'row' => $row];
+            }
+        }
+
+        // Closest first; the dump's own popularity order breaks ties, which
+        // is why the SQL above already sorted by users_rated.
+        usort($scored, fn(array $a, array $b) => $a['distance'] <=> $b['distance']);
+
+        return array_map(fn(array $s) => [
+            'bggId' => (int) $s['row']['bgg_id'],
+            'name' => (string) $s['row']['name'],
+            'yearPublished' => $s['row']['year_published'] === null ? null : (int) $s['row']['year_published'],
+        ], array_slice($scored, 0, $limit));
+    }
+
+    private function ranksImported(): bool
+    {
+        return (bool) db()->query('SELECT 1 FROM bgg_ranks LIMIT 1')->fetchColumn();
+    }
+
+    // The punctuation a user has no reason to type but the dump still stores.
+    // Both resolveFromRanks() and suggest() hand-rolled this same chain; the
+    // SQL side of it is stripped_name_sql() so the two can never drift.
+    private static function stripped(string $value): string
+    {
+        return str_replace([':', '-', ',', ' '], '', $value);
+    }
+
+    private static function strippedNameSql(): string
+    {
+        return "REPLACE(REPLACE(REPLACE(REPLACE(name, ':', ''), '-', ''), ',', ''), ' ', '')";
+    }
+
+    /**
+     * Optimal String Alignment (Damerau-Levenshtein), over codepoints.
+     *
+     * Not PHP's levenshtein(): that is byte-based, so 'Café' vs 'Cafe' scores
+     * 2 rather than 1 and every accented title in the dump ranks worse than
+     * it should. It also errors above 255 bytes. Transpositions cost 1 here
+     * rather than plain Levenshtein's 2, because a swapped pair is one of the
+     * commonest human typos and the whole point of this path is typos.
+     */
+    private static function editDistance(string $a, string $b): int
+    {
+        $x = preg_split('//u', mb_strtolower($a), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $y = preg_split('//u', mb_strtolower($b), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $m = count($x);
+        $n = count($y);
+        if ($m === 0 || $n === 0) {
+            return max($m, $n);
+        }
+
+        $d = [];
+        for ($i = 0; $i <= $m; $i++) {
+            $d[$i][0] = $i;
+        }
+        for ($j = 0; $j <= $n; $j++) {
+            $d[0][$j] = $j;
+        }
+
+        for ($i = 1; $i <= $m; $i++) {
+            for ($j = 1; $j <= $n; $j++) {
+                $cost = $x[$i - 1] === $y[$j - 1] ? 0 : 1;
+                $d[$i][$j] = min($d[$i - 1][$j] + 1, $d[$i][$j - 1] + 1, $d[$i - 1][$j - 1] + $cost);
+                // The OSA transposition case - adjacent pair swapped.
+                if ($i > 1 && $j > 1 && $x[$i - 1] === $y[$j - 2] && $x[$i - 2] === $y[$j - 1]) {
+                    $d[$i][$j] = min($d[$i][$j], $d[$i - 2][$j - 2] + 1);
+                }
+            }
+        }
+
+        return $d[$m][$n];
     }
 
     // '%' and '_' are LIKE metacharacters, so an unescaped one turns an

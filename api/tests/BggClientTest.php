@@ -242,12 +242,19 @@ final class BggClientTest extends TestCase
         );
     }
 
-    public function testResolveSearchFallbackStillThrowsWhenNothingMatchesLocally(): void
+    public function testResolveSearchFallbackAnswersNotFoundRatherThanThrowingWhenTheDumpIsPopulated(): void
     {
+        // This test asserted a throw until #92. The dump is BGG's whole
+        // catalogue, so with rows present and nothing matching, "no such
+        // game" is a supportable answer - and reporting it as a 502 was the
+        // bug. The genuine can't-see case is covered by
+        // testResolveSearchStillThrowsWhenTheDumpIsEmpty below.
         $this->seedRanks();
 
-        $this->expectException(RuntimeException::class);
-        (new BggClient(fn() => null))->resolveSearch('zzzznonexistentgamezzzz');
+        $this->assertSame(
+            ['status' => 'not_found'],
+            (new BggClient(fn() => null))->resolveSearch('zzzznonexistentgamezzzz')
+        );
     }
 
     public function testConfiguredTokenIsSentAsAnAuthorizationHeader(): void
@@ -401,6 +408,79 @@ final class BggClientTest extends TestCase
         $this->assertSame([], (new BggClient())->suggest('_atan'), '_ must not act as a single-character wildcard');
     }
 
+    public function testResolveSearchReportsNotFoundWhenTheDumpIsPopulatedAndNothingMatches(): void
+    {
+        // #92: while #40 keeps BGG unreachable, every zero-match query threw
+        // and surfaced as a 502 "something went wrong" - a server fault for
+        // what is really "no such game". The dump IS BGG's whole catalogue,
+        // so if it has rows and none of them match, that is an answer.
+        $this->seedRanks();
+
+        $this->assertSame(
+            ['status' => 'not_found'],
+            (new BggClient(fn() => null))->resolveSearch('teasd')
+        );
+    }
+
+    public function testResolveSearchStillThrowsWhenTheDumpIsEmpty(): void
+    {
+        // No local catalogue and no live API means we genuinely cannot see
+        // whether the game exists. That must stay an error, not "not found".
+        $this->expectException(RuntimeException::class);
+        (new BggClient(fn() => null))->resolveSearch('teasd');
+    }
+
+    public function testDidYouMeanRanksATranspositionAsOneEdit(): void
+    {
+        // 'Ctaan' transposes the 'a' and 't' of 'Catan'. Plain Levenshtein
+        // charges that 2 (delete + insert); Damerau-Levenshtein charges 1,
+        // which matters because transposition is one of the commonest human
+        // typos and a 2-cost would push longer titles past the threshold.
+        $this->seedRanks();
+
+        $result = (new BggClient())->didYouMean('Ctaan');
+
+        $this->assertSame(13, $result[0]['bggId'], 'Catan should lead for a single transposition');
+    }
+
+    public function testDidYouMeanComparesAccentedNamesByCharacterNotByte(): void
+    {
+        // PHP's built-in levenshtein() is byte-based, so 'é' (2 bytes in
+        // UTF-8) makes this look like distance 2 and drops out of a
+        // threshold that should comfortably accept it.
+        db()->exec(
+            "INSERT INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion, bgg_rank) VALUES
+             (555, 'Café International', 1989, 6.5, 3000, 0, 900)"
+        );
+
+        $result = (new BggClient())->didYouMean('Cafe International');
+
+        $this->assertSame([555], array_column($result, 'bggId'));
+    }
+
+    public function testDidYouMeanFindsAGameDespiteAFirstCharacterTypo(): void
+    {
+        // A prefix shortlist cannot help here - the first letter is wrong -
+        // so this exercises the popularity fallback.
+        $this->seedRanks();
+
+        $result = (new BggClient())->didYouMean('Watan');
+
+        $this->assertSame(13, $result[0]['bggId']);
+    }
+
+    public function testDidYouMeanReturnsNothingForAQueryLikeNoGameAtAll(): void
+    {
+        $this->seedRanks();
+
+        $this->assertSame([], (new BggClient())->didYouMean('zzzzqqqqxxxx'));
+    }
+
+    public function testDidYouMeanDegradesToEmptyWhenTheDumpIsEmpty(): void
+    {
+        $this->assertSame([], (new BggClient())->didYouMean('catan'));
+    }
+
     public function testResolveSearchFallbackTreatsLikeWildcardsAsLiteral(): void
     {
         // Same metacharacter bug as suggest(): '%' here would scan the whole
@@ -408,7 +488,12 @@ final class BggClientTest extends TestCase
         // the honest "can't see it".
         $this->seedRanks();
 
-        $this->expectException(RuntimeException::class);
-        (new BggClient(fn() => null))->resolveSearch('%');
+        // An unescaped '%' would match every row and answer with an
+        // arbitrary disambiguation list; escaped, it matches nothing and the
+        // honest "no such game" comes back instead.
+        $this->assertSame(
+            ['status' => 'not_found'],
+            (new BggClient(fn() => null))->resolveSearch('%')
+        );
     }
 }
