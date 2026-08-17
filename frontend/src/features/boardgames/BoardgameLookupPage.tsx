@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 import { FadeIn } from "../../components/FadeIn";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
@@ -6,6 +6,7 @@ import { ApiError } from "../../lib/apiClient";
 import {
   lookupBoardgame,
   lookupBoardgameById,
+  suggestBoardgames,
   type Boardgame,
   type BoardgameCandidate,
   type BoardgameLookupResult,
@@ -18,11 +19,27 @@ type ViewState =
   | { kind: "disambiguation"; candidates: BoardgameCandidate[] }
   | { kind: "result"; game: Boardgame };
 
+// 2 chars keeps a single keystroke from firing a request; 200ms is short
+// enough to feel live without hammering the (indexed, but still real)
+// bgg_ranks query on every keystroke.
+const SUGGEST_MIN_LENGTH = 2;
+const SUGGEST_DEBOUNCE_MS = 200;
+
 export function BoardgameLookupPage() {
   useDocumentTitle("Boardgame Lookup");
 
   const [query, setQuery] = useState("");
   const [state, setState] = useState<ViewState>({ kind: "idle" });
+  const [suggestions, setSuggestions] = useState<BoardgameCandidate[]>([]);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => () => clearTimeout(debounceRef.current), []);
+
+  function closeSuggestions() {
+    setSuggestions([]);
+    setActiveIndex(-1);
+  }
 
   function applyResult(result: BoardgameLookupResult) {
     setState(
@@ -38,6 +55,7 @@ export function BoardgameLookupPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    closeSuggestions();
     if (query.trim() === "") return;
     setState({ kind: "loading" });
     try {
@@ -53,6 +71,46 @@ export function BoardgameLookupPage() {
       applyResult(await lookupBoardgameById(bggId));
     } catch (err) {
       fail(err);
+    }
+  }
+
+  function selectSuggestion(candidate: BoardgameCandidate) {
+    setQuery(candidate.name);
+    closeSuggestions();
+    void pick(candidate.bggId);
+  }
+
+  function onQueryChange(value: string) {
+    setQuery(value);
+    clearTimeout(debounceRef.current);
+    const trimmed = value.trim();
+    if (trimmed.length < SUGGEST_MIN_LENGTH) {
+      closeSuggestions();
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      suggestBoardgames(trimmed)
+        .then((results) => {
+          setSuggestions(results);
+          setActiveIndex(-1);
+        })
+        .catch(closeSuggestions);
+    }, SUGGEST_DEBOUNCE_MS);
+  }
+
+  function onSearchKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => (i + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      selectSuggestion(suggestions[activeIndex]);
+    } else if (e.key === "Escape") {
+      closeSuggestions();
     }
   }
 
@@ -76,14 +134,58 @@ export function BoardgameLookupPage() {
         <label htmlFor="boardgame-search" className="sr-only">
           Board game name
         </label>
-        <input
-          id="boardgame-search"
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for a board game, e.g. Catan"
-          className="w-full max-w-md rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-        />
+        <div className="relative w-full max-w-md">
+          <input
+            id="boardgame-search"
+            type="search"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-haspopup="listbox"
+            aria-expanded={suggestions.length > 0}
+            aria-controls="boardgame-search-suggestions"
+            aria-activedescendant={activeIndex >= 0 ? `boardgame-suggestion-${suggestions[activeIndex].bggId}` : undefined}
+            autoComplete="off"
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            onKeyDown={onSearchKeyDown}
+            onBlur={closeSuggestions}
+            placeholder="Search for a board game, e.g. Catan"
+            className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          />
+          {suggestions.length > 0 && (
+            <ul
+              id="boardgame-search-suggestions"
+              role="listbox"
+              aria-label="Suggestions"
+              className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-slate-700 bg-slate-900 shadow-lg"
+            >
+              {suggestions.map((candidate, index) => (
+                // Keyboard operability for this option is provided by the
+                // owning input's onKeyDown (Arrow keys + Enter), per the
+                // ARIA 1.2 combobox pattern - focus never lands on the
+                // option itself, so a keyboard handler here would be dead
+                // code, not a fix.
+                // eslint-disable-next-line jsx-a11y/click-events-have-key-events
+                <li
+                  key={candidate.bggId}
+                  id={`boardgame-suggestion-${candidate.bggId}`}
+                  role="option"
+                  aria-selected={index === activeIndex}
+                  // Keeps focus on the input on click so onBlur doesn't close
+                  // the list before the click's onClick can fire.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => selectSuggestion(candidate)}
+                  className={`cursor-pointer px-3 py-2 text-sm ${
+                    index === activeIndex ? "bg-indigo-600 text-white" : "text-slate-200 hover:bg-slate-800"
+                  }`}
+                >
+                  {candidate.name}
+                  {candidate.yearPublished ? ` (${candidate.yearPublished})` : ""}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <button
           type="submit"
           className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
@@ -95,6 +197,14 @@ export function BoardgameLookupPage() {
       <div className="mt-6">
         <p role="status" className="mb-3 text-sm text-slate-400 empty:mb-0">
           {statusText}
+        </p>
+        {/* Separate from the status region above: that one narrates the
+            lookup outcome, this one narrates the suggestion list, and the
+            two would step on each other if merged. */}
+        <p aria-live="polite" className="sr-only">
+          {suggestions.length > 0
+            ? `${suggestions.length} suggestion${suggestions.length === 1 ? "" : "s"} available`
+            : ""}
         </p>
 
         {state.kind === "error" && (

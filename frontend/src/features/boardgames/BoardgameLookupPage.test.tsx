@@ -29,7 +29,7 @@ describe("BoardgameLookupPage", () => {
     });
 
     render(<BoardgameLookupPage />);
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "catan" } });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
     await waitFor(() => expect(screen.getByText("Catan")).toBeInTheDocument());
@@ -74,7 +74,7 @@ describe("BoardgameLookupPage", () => {
     });
 
     render(<BoardgameLookupPage />);
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "catan" } });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
     const option = await screen.findByRole("button", { name: /Catan \(1995\)/ });
@@ -112,7 +112,7 @@ describe("BoardgameLookupPage", () => {
     });
 
     render(<BoardgameLookupPage />);
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "catan" } });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
     expect(await screen.findByText(/Only the community rating is available/)).toBeInTheDocument();
@@ -141,7 +141,7 @@ describe("BoardgameLookupPage", () => {
     });
 
     render(<BoardgameLookupPage />);
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "catan" } });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
     expect(await screen.findByText("4.7")).toBeInTheDocument();
@@ -171,7 +171,7 @@ describe("BoardgameLookupPage", () => {
     });
 
     render(<BoardgameLookupPage />);
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "cities and knights" } });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "cities and knights" } });
     fireEvent.submit(screen.getByRole("search"));
 
     // One chip per fact, not one dot-separated line.
@@ -199,7 +199,7 @@ describe("BoardgameLookupPage", () => {
     });
 
     render(<BoardgameLookupPage />);
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "catan" } });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
     expect(await screen.findByText("3 - 4 players")).toBeInTheDocument();
@@ -231,7 +231,7 @@ describe("BoardgameLookupPage", () => {
     });
 
     render(<BoardgameLookupPage />);
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "intarsia" } });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "intarsia" } });
     fireEvent.submit(screen.getByRole("search"));
 
     expect(await screen.findByText("3.5")).toBeInTheDocument();
@@ -265,11 +265,108 @@ describe("BoardgameLookupPage", () => {
     const status = screen.getByRole("status");
     expect(status).toBeEmptyDOMElement();
 
-    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "catan" } });
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Catan found"));
     // Same node throughout, not a remount.
     expect(screen.getByRole("status")).toBe(status);
+  });
+
+  it("shows up to 3 suggestions while typing and runs the lookup for the one clicked", async () => {
+    vi.spyOn(api, "suggestBoardgames").mockResolvedValue([
+      { bggId: 13, name: "Catan", yearPublished: 1995 },
+      { bggId: 926, name: "Catan: Cities & Knights", yearPublished: 1998 },
+    ]);
+    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({
+      status: "ok",
+      game: {
+        bggId: 13, name: "Catan", description: "Trade, build, settle.",
+        rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
+        ratings: [], bgq: null, players: null, duration: null, age: null,
+        complexity: null, isExpansion: false, rank: null,
+        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
+      },
+    });
+
+    render(<BoardgameLookupPage />);
+    const input = screen.getByRole("combobox");
+    fireEvent.change(input, { target: { value: "cat" } });
+
+    await waitFor(() => expect(api.suggestBoardgames).toHaveBeenCalledWith("cat"));
+    const options = await screen.findAllByRole("option");
+    expect(options).toHaveLength(2);
+    expect(input).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(options[0]);
+
+    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(13));
+    expect(await screen.findByText("Trade, build, settle.")).toBeInTheDocument();
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
+  });
+
+  it("does not fetch suggestions below the minimum query length", async () => {
+    vi.spyOn(api, "suggestBoardgames").mockResolvedValue([]);
+
+    render(<BoardgameLookupPage />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "c" } });
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(api.suggestBoardgames).not.toHaveBeenCalled();
+  });
+
+  it("supports arrow-key navigation and Enter to pick a suggestion", async () => {
+    vi.spyOn(api, "suggestBoardgames").mockResolvedValue([
+      { bggId: 13, name: "Catan", yearPublished: 1995 },
+      { bggId: 926, name: "Catan: Cities & Knights", yearPublished: 1998 },
+    ]);
+    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({
+      status: "ok",
+      game: {
+        bggId: 926, name: "Catan: Cities & Knights", description: "More Catan.",
+        rating: 7.4, numRatings: 40000, good: null, bad: null, partial: false,
+        ratings: [], bgq: null, players: null, duration: null, age: null,
+        complexity: null, isExpansion: true, rank: null,
+        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/926" },
+      },
+    });
+
+    render(<BoardgameLookupPage />);
+    const input = screen.getByRole("combobox");
+    fireEvent.change(input, { target: { value: "cat" } });
+    await screen.findAllByRole("option");
+
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(input).toHaveAttribute("aria-activedescendant", "boardgame-suggestion-926");
+
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(926));
+    expect(await screen.findByText("More Catan.")).toBeInTheDocument();
+  });
+
+  it("closes the suggestion list on Escape without clearing the typed text", async () => {
+    vi.spyOn(api, "suggestBoardgames").mockResolvedValue([{ bggId: 13, name: "Catan", yearPublished: 1995 }]);
+
+    render(<BoardgameLookupPage />);
+    const input = screen.getByRole("combobox");
+    fireEvent.change(input, { target: { value: "cat" } });
+    await screen.findAllByRole("option");
+
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
+    expect(input).toHaveValue("cat");
+  });
+
+  it("degrades silently when the suggest endpoint errors", async () => {
+    vi.spyOn(api, "suggestBoardgames").mockRejectedValue(new Error("network error"));
+
+    render(<BoardgameLookupPage />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "cat" } });
+
+    await waitFor(() => expect(api.suggestBoardgames).toHaveBeenCalled());
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
   });
 });
