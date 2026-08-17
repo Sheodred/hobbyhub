@@ -31,4 +31,17 @@ describe("HomePage", () => {
     expect(await screen.findByRole("link", { name: /Magic: The Gathering/ })).toHaveAttribute("href", "/mtg");
     expect(screen.getByRole("link", { name: /Chess vs\. AI/ })).toHaveAttribute("href", "/chess");
   });
+
+  it("sets a descriptive document title instead of falling back to the bare site name (#80)", () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <HomePage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(document.title).toBe("MTG cards, chess and board game lookup · Sheodred's Forge");
+  });
 });
