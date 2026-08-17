@@ -1,7 +1,7 @@
 import { FadeIn } from "../../components/FadeIn";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
-const AVATAR_URL = "/Gemini_Generated_Image_nqv19dnqv19dnqv1.jpg";
+const AVATAR_URL = "/avatar.webp";
 
 export function AboutPage() {
   useDocumentTitle("About Me");

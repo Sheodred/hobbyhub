@@ -9,3 +9,44 @@ RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
 RewriteRule ^ index.html [L]
+
+# Compression (#81). The bundle ships 445 KB uncompressed and 141 KB gzipped,
+# so without this every visitor downloads 3.2x more JavaScript than needed.
+# Images and fonts are left out on purpose - they are already compressed
+# formats and re-compressing them costs CPU for no gain.
+<IfModule mod_brotli.c>
+  AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/css text/xml application/javascript application/json image/svg+xml
+</IfModule>
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml application/javascript application/json image/svg+xml
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  # Vite hashes every filename under /assets/, so a changed file is a new
+  # URL and a year-long cache can never serve stale code.
+  <FilesMatch "\.(js|css|woff2?)$">
+    ExpiresDefault "access plus 1 year"
+  </FilesMatch>
+
+  # Unhashed names - a new upload reuses the URL, so these need to expire.
+  <FilesMatch "\.(png|jpe?g|webp|avif|gif|ico|svg)$">
+    ExpiresDefault "access plus 30 days"
+  </FilesMatch>
+
+  # index.html must stay uncached or a deploy never reaches anyone: it is
+  # the one file that points at the newly hashed asset names.
+  <FilesMatch "\.html$">
+    ExpiresDefault "access plus 0 seconds"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css|woff2?)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
