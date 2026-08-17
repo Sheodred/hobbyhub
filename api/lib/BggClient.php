@@ -189,7 +189,7 @@ class BggClient
         // stays obvious when this is debugged at 3am.
         $matches = $this->queryRanks('SELECT bgg_id, name, year_published FROM bgg_ranks WHERE name = ? ORDER BY users_rated DESC LIMIT 10', $normalizedQuery);
         if ($matches === []) {
-            $matches = $this->queryRanks('SELECT bgg_id, name, year_published FROM bgg_ranks WHERE name LIKE ? ORDER BY users_rated DESC LIMIT 10', $normalizedQuery . '%');
+            $matches = $this->queryRanks('SELECT bgg_id, name, year_published FROM bgg_ranks WHERE name LIKE ? ORDER BY users_rated DESC LIMIT 10', self::escapeLike($normalizedQuery) . '%');
         }
         if ($matches === []) {
             // #73: a query with the punctuation dropped (users have no
@@ -238,7 +238,7 @@ class BggClient
 
         $matches = $this->queryRanks(
             'SELECT bgg_id, name, year_published FROM bgg_ranks WHERE name LIKE ? ORDER BY users_rated DESC LIMIT ' . $limit,
-            $normalized . '%'
+            self::escapeLike($normalized) . '%'
         );
 
         if ($matches === []) {
@@ -246,7 +246,7 @@ class BggClient
             if ($stripped !== '') {
                 $matches = $this->queryRanks(
                     "SELECT bgg_id, name, year_published FROM bgg_ranks WHERE REPLACE(REPLACE(REPLACE(REPLACE(name, ':', ''), '-', ''), ',', ''), ' ', '') LIKE ? ORDER BY users_rated DESC LIMIT " . $limit,
-                    $stripped . '%'
+                    self::escapeLike($stripped) . '%'
                 );
             }
         }
@@ -256,6 +256,17 @@ class BggClient
             'name' => (string) $row['name'],
             'yearPublished' => $row['year_published'] === null ? null : (int) $row['year_published'],
         ], $matches);
+    }
+
+    // '%' and '_' are LIKE metacharacters, so an unescaped one turns an
+    // indexed prefix scan into a match-everything scan of the whole 180k-row
+    // dump - on suggest(), which fires per keystroke. Binding the parameter
+    // stops SQL injection but not this: the wildcard is data, and data is
+    // exactly what gets bound. Backslash goes first or it would double-escape
+    // the escapes added after it.
+    private static function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 
     private function queryRanks(string $sql, string $param): array

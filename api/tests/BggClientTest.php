@@ -388,4 +388,27 @@ final class BggClientTest extends TestCase
 
         $this->assertSame([], (new BggClient())->suggest('  '));
     }
+
+    public function testSuggestTreatsLikeWildcardsAsLiteralCharacters(): void
+    {
+        // '%' and '_' are LIKE metacharacters. Unescaped, a single '%' turns
+        // the indexed prefix scan into a match-everything scan of the whole
+        // 180k-row dump - on an endpoint that fires per keystroke. They must
+        // match themselves, and no game is called '%'.
+        $this->seedRanks();
+
+        $this->assertSame([], (new BggClient())->suggest('%'), '% must not match every row');
+        $this->assertSame([], (new BggClient())->suggest('_atan'), '_ must not act as a single-character wildcard');
+    }
+
+    public function testResolveSearchFallbackTreatsLikeWildcardsAsLiteral(): void
+    {
+        // Same metacharacter bug as suggest(): '%' here would scan the whole
+        // dump and answer with an arbitrary disambiguation list rather than
+        // the honest "can't see it".
+        $this->seedRanks();
+
+        $this->expectException(RuntimeException::class);
+        (new BggClient(fn() => null))->resolveSearch('%');
+    }
 }
