@@ -621,6 +621,24 @@ export function BoardgameLookupPage() {
           </FadeIn>
         )}
       </div>
+
+      {/* Required by BGG's XML API terms, not decoration: a public-facing app
+          using the API must show the "Powered by BGG" logo linking back to
+          BoardGameGeek, sized so its text stays legible (#40). It sits outside
+          every result branch on purpose - the top-10 list, the disambiguation
+          list and the answer are all BGG data, so the credit has to be there
+          before a search too. The reversed (light-on-dark) official variant is
+          the one that suits this page. */}
+      <footer className="mt-12 border-t border-slate-800 pt-6">
+        <a
+          href="https://boardgamegeek.com"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-block rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+        >
+          <img src="/powered-by-bgg.svg" alt="Powered by BGG" width={342} height={76} className="h-10 w-auto" />
+        </a>
+      </footer>
     </div>
   );
 }
