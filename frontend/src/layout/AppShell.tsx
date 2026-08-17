@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 
+import { ErrorBoundary } from "../components/ErrorBoundary";
 import { Header } from "./Header";
 import { MobileDrawer } from "./MobileDrawer";
 import { legalNavLinks } from "./navigation";
@@ -8,6 +9,7 @@ import { PageTransition } from "./PageTransition";
 
 export function AppShell() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const location = useLocation();
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-[#140f2c] via-[#0c091c] to-[#060411] text-slate-100">
@@ -78,9 +80,15 @@ export function AppShell() {
           page shows both without a scroll. */}
       <main id="main-content" tabIndex={-1} className="min-h-[calc(100dvh-10.5rem)] overflow-y-auto p-6">
         <div className="mx-auto w-full max-w-7xl">
-          <PageTransition>
-            <Outlet />
-          </PageTransition>
+          {/* Inside the shell, so a failed route loses the page and not
+              the header, nav and footer the user needs to get out of it.
+              Keyed on the path: a caught error otherwise latches and every
+              later navigation keeps rendering the fallback. */}
+          <ErrorBoundary key={location.pathname}>
+            <PageTransition>
+              <Outlet />
+            </PageTransition>
+          </ErrorBoundary>
         </div>
       </main>
       {/* Until this existed the small print and the site map were reachable
