@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { FadeIn } from "../../components/FadeIn";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
@@ -29,14 +30,46 @@ type ViewState =
 const SUGGEST_MIN_LENGTH = 2;
 const SUGGEST_DEBOUNCE_MS = 200;
 
+/**
+ * The link worth sending: bgg_id, never the typed name. Names are ambiguous -
+ * that is what the disambiguation flow exists for - so a shared "?q=brass"
+ * could resolve to a different game for the recipient than for the sender.
+ */
+function shareLink(bggId: number): string {
+  return `${window.location.origin}${window.location.pathname}?bgg_id=${bggId}`;
+}
+
+/** For browsers without the clipboard API, and for any page not on https. */
+function legacyCopy(text: string): boolean {
+  const field = document.createElement("textarea");
+  field.value = text;
+  document.body.appendChild(field);
+  field.select();
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    field.remove();
+  }
+}
+
 export function BoardgameLookupPage() {
   useDocumentTitle("Boardgame Lookup");
 
-  const [query, setQuery] = useState("");
+  // #99: the search lives in the URL, so a result can be linked, bookmarked,
+  // reloaded and reached with Back. The URL is the input to the lookup; the
+  // handlers below only write to it and let the effect do the fetching.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlQuery = searchParams.get("q")?.trim() ?? "";
+  const urlBggId = Number(searchParams.get("bgg_id"));
+
+  const [query, setQuery] = useState(urlQuery);
   const [state, setState] = useState<ViewState>({ kind: "idle" });
   const [suggestions, setSuggestions] = useState<BoardgameCandidate[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [top, setTop] = useState<TopBoardgame[]>([]);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => () => clearTimeout(debounceRef.current), []);
@@ -74,12 +107,8 @@ export function BoardgameLookupPage() {
     setState(errorState(err));
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    closeSuggestions();
-    if (query.trim() === "") return;
+  async function runSearch(term: string) {
     setState({ kind: "loading" });
-    const term = query.trim();
 
     // The dump answers in milliseconds; the full lookup walks four Rating
     // Sources sequentially and measured 4-5s cold in production. Show the
@@ -109,11 +138,7 @@ export function BoardgameLookupPage() {
     }
   }
 
-  // name is set straight into the box: without it, choosing a candidate
-  // leaves the old query on screen next to a different game's result.
-  async function pick(bggId: number, name?: string) {
-    if (name !== undefined) setQuery(name);
-    closeSuggestions();
+  async function runLookupById(bggId: number) {
     setState({ kind: "loading" });
     try {
       applyResult(await lookupBoardgameById(bggId));
@@ -122,10 +147,41 @@ export function BoardgameLookupPage() {
     }
   }
 
+  // The URL drives the lookup. Submitting pushes a new entry (so Back returns
+  // to the previous search); the typeahead deliberately never gets here.
+  useEffect(() => {
+    setCopyState("idle");
+    if (Number.isInteger(urlBggId) && urlBggId > 0) {
+      void runLookupById(urlBggId);
+    } else if (urlQuery !== "") {
+      void runSearch(urlQuery);
+    } else {
+      setState({ kind: "idle" });
+    }
+    // runSearch/runLookupById are redefined every render; the URL is the only
+    // real input here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlQuery, urlBggId]);
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    closeSuggestions();
+    const term = query.trim();
+    if (term === "") return;
+    setSearchParams({ q: term });
+  }
+
+  // name is set straight into the box: without it, choosing a candidate
+  // leaves the old query on screen next to a different game's result.
+  function pick(bggId: number, name?: string) {
+    if (name !== undefined) setQuery(name);
+    closeSuggestions();
+    setSearchParams({ bgg_id: String(bggId) });
+  }
+
   function selectSuggestion(candidate: BoardgameCandidate) {
     setQuery(candidate.name);
-    closeSuggestions();
-    void pick(candidate.bggId);
+    pick(candidate.bggId);
   }
 
   function onQueryChange(value: string) {
@@ -144,6 +200,16 @@ export function BoardgameLookupPage() {
         })
         .catch(closeSuggestions);
     }, SUGGEST_DEBOUNCE_MS);
+  }
+
+  async function copyLink(bggId: number) {
+    const url = shareLink(bggId);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyState("copied");
+    } catch {
+      setCopyState(legacyCopy(url) ? "copied" : "failed");
+    }
   }
 
   function onSearchKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -179,6 +245,10 @@ export function BoardgameLookupPage() {
             state.suggestions.length === 1 ? "" : "s"
           } suggested.`
         : `No board game found for “${state.query}”.`;
+  // Copying is the last thing you did, so it is what the status line should
+  // say. Reuses the region above rather than adding a fourth live region.
+  if (copyState === "copied" && state.kind === "result")
+    statusText = `Link copied — it opens ${state.game.name} for whoever you send it to.`;
 
   return (
     <div>
@@ -209,7 +279,7 @@ export function BoardgameLookupPage() {
             onChange={(e) => onQueryChange(e.target.value)}
             onKeyDown={onSearchKeyDown}
             onBlur={closeSuggestions}
-            placeholder="Search for a board game, e.g. Catan"
+            placeholder="Search for a board game, e.g. Frosthaven"
             className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
           />
           {suggestions.length > 0 && (
@@ -298,14 +368,15 @@ export function BoardgameLookupPage() {
             no combobox owning it and no aria-activedescendant driving it -
             listbox semantics would promise arrow-key navigation that has
             nothing behind it. Announcement goes through the existing
-            role="status" region, not a third live region. */}
+            role="status" region, not a third live region - and since that
+            region is visible, the outcome sentence lives there only. What is
+            left here is the lead-in and the advice; repeating the sentence
+            rendered it twice, stacked (#107). */}
         {state.kind === "not_found" && (
           <FadeIn>
             {state.suggestions.length > 0 ? (
               <>
-                <p className="mb-3 text-slate-300">
-                  No exact match for &ldquo;{state.query}&rdquo;. Did you mean:
-                </p>
+                <p className="mb-3 text-slate-300">Did you mean:</p>
                 <ul className="flex flex-wrap gap-2">
                   {state.suggestions.map((candidate) => (
                     <li key={candidate.bggId}>
@@ -322,10 +393,7 @@ export function BoardgameLookupPage() {
                 </ul>
               </>
             ) : (
-              <p className="text-slate-300">
-                No board game found for &ldquo;{state.query}&rdquo;. Check the spelling, or try a shorter
-                search.
-              </p>
+              <p className="text-slate-300">Check the spelling, or try a shorter search.</p>
             )}
           </FadeIn>
         )}
@@ -515,17 +583,40 @@ export function BoardgameLookupPage() {
                 </div>
               )}
 
-              <p className="mt-6 text-xs text-slate-400">
-                Data via{" "}
-                <a
-                  href={state.game.source.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline hover:text-slate-300"
-                >
-                  {state.game.source.name}
-                </a>
-              </p>
+              {/* #99: the address bar already carries the search, but nobody
+                  expects that to work on a search page, so the card says so.
+                  Confirmation is announced through the status region above. */}
+              <div className="mt-6 flex flex-wrap items-end justify-between gap-3 border-t border-slate-800 pt-4">
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => copyLink(state.game.bggId)}
+                    className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-200 hover:border-indigo-500 hover:text-indigo-400"
+                  >
+                    {copyState === "copied" ? "Link copied" : "Copy a link to this game"}
+                  </button>
+                  <p className="mt-2 text-xs text-slate-400">
+                    Whoever opens it lands on this page, showing {state.game.name}.
+                  </p>
+                  {copyState === "failed" && (
+                    <p className="mt-2 text-xs text-slate-400">
+                      This browser wouldn&apos;t let the page copy for you — the link is{" "}
+                      <code className="break-all text-slate-300">{shareLink(state.game.bggId)}</code>
+                    </p>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400">
+                  Data via{" "}
+                  <a
+                    href={state.game.source.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-slate-300"
+                  >
+                    {state.game.source.name}
+                  </a>
+                </p>
+              </div>
             </article>
           </FadeIn>
         )}

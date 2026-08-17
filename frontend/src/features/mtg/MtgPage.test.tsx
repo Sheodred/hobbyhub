@@ -1,10 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MtgPage } from "./MtgPage";
+
+// #99: the submitted search lives in the URL now, so tests need to see it.
+function LocationProbe() {
+  return <span data-testid="location-search">{useLocation().search}</span>;
+}
 
 function jsonResponse(status: number, body: unknown): Response {
   return { ok: status >= 200 && status < 300, status, json: async () => body } as Response;
@@ -151,5 +156,69 @@ describe("MtgPage", () => {
     await user.click(screen.getByRole("button", { name: /search/i }));
 
     expect(await screen.findByText(/no cards found/i)).toBeInTheDocument();
+  });
+});
+
+// #99: the card search belongs in the URL too, so it survives a reload and
+// can be sent to someone.
+describe("MtgPage — shareable searches", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function renderAt(entry: string) {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[entry]}>
+          <MtgPage />
+          <LocationProbe />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it("puts the submitted search in the URL", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(jsonResponse(200, { cards: [], hasMore: false, totalCards: 0 })),
+    );
+
+    renderAt("/mtg");
+    await user.type(screen.getByLabelText(/search cards/i), "bolt");
+    await user.click(screen.getByRole("button", { name: /search/i }));
+
+    expect(screen.getByTestId("location-search")).toHaveTextContent("?q=bolt");
+  });
+
+  it("runs the search from ?q= on mount", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(200, {
+          cards: [
+            {
+              id: "card-1",
+              name: "Lightning Bolt",
+              manaCost: "{R}",
+              typeLine: "Instant",
+              oracleText: "3 damage.",
+              setName: "Alpha",
+              rarity: "common",
+              imageUrl: "https://img/bolt.jpg",
+              artCropUrl: null,
+            },
+          ],
+          hasMore: false,
+          totalCards: 1,
+        }),
+      ),
+    );
+
+    renderAt("/mtg?q=bolt");
+
+    expect(await screen.findByText("Lightning Bolt")).toBeInTheDocument();
+    expect(screen.getByLabelText(/search cards/i)).toHaveValue("bolt");
   });
 });
