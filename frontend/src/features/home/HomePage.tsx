@@ -1,4 +1,4 @@
-import { useDocumentTitle } from "../../hooks/useDocumentTitle";
+import { HOME_TAGLINE, useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 import { Hero } from "./Hero";
 import { HighlightCard } from "./HighlightCard";
@@ -8,7 +8,7 @@ import { MusicPanel } from "./panels/MusicPanel";
 import { WeatherPanel } from "./panels/WeatherPanel";
 
 export function HomePage() {
-  useDocumentTitle(null);
+  useDocumentTitle(HOME_TAGLINE);
 
   return (
     <div className="mx-auto flex w-full flex-col gap-12">
