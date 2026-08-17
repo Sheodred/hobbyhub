@@ -296,7 +296,19 @@ class BggClient
             return ['status' => 'not_found'];
         }
 
-        return ['status' => 'ok', 'game' => $game + ['rank' => $this->rankFor($resolved['bggId'])]];
+        // Every key the full lookup answers with has to be present, even
+        // though nothing has filled them yet: the instant answer renders
+        // through the same component, so an absent key is undefined.length
+        // in the renderer rather than a quietly emptier card.
+        return ['status' => 'ok', 'game' => $game + [
+            'rank' => $this->rankFor($resolved['bggId']),
+            'ratings' => [],
+            'bgq' => null,
+            'players' => null,
+            'duration' => null,
+            'age' => null,
+            'complexity' => null,
+        ]];
     }
 
     /**

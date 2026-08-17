@@ -451,6 +451,25 @@ final class BggClientTest extends TestCase
         $this->assertSame(566, $result['game']['rank']);
     }
 
+    public function testLookupLocalReturnsEveryFieldTheFullLookupDoes(): void
+    {
+        // The instant answer renders through the same component as the full
+        // one, so a missing key is not "less data" - it is undefined.length
+        // in the renderer, and with no error boundary that blanks the page.
+        // Shipped exactly that way in #91: ratings was absent and every
+        // successful search white-screened.
+        $this->seedRanks();
+
+        $game = (new BggClient(fn() => null))->lookupLocal('catan')['game'];
+
+        foreach (['bggId', 'name', 'description', 'rating', 'numRatings', 'good', 'bad', 'partial',
+                  'ratings', 'bgq', 'players', 'duration', 'age', 'complexity', 'isExpansion', 'rank',
+                  'source'] as $field) {
+            $this->assertArrayHasKey($field, $game, "$field is missing from the instant answer");
+        }
+        $this->assertSame([], $game['ratings'], 'no rating source has been consulted yet, but the key must exist');
+    }
+
     public function testLookupLocalOffersTheSameDisambiguationTheFullLookupWould(): void
     {
         $this->seedRanks();

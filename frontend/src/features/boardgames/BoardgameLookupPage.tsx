@@ -426,11 +426,16 @@ export function BoardgameLookupPage() {
                 </div>
               )}
 
-              {state.game.ratings.length > 0 && (
+              {/* ?. rather than .length despite the type saying this is
+                  always an array: it came from the network, and when the
+                  instant-answer endpoint omitted the key this threw and -
+                  with no error boundary in the app - blanked the page
+                  instead of dropping one section. */}
+              {(state.game.ratings?.length ?? 0) > 0 && (
                 <div className="mt-6 border-t border-slate-800 pt-4">
                   <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Also rated by</h3>
                   <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-                    {state.game.ratings.map((rating) => (
+                    {(state.game.ratings ?? []).map((rating) => (
                       // min-w-0: a grid item defaults to min-width:auto, so
                       // without it the card grows to fit the longest retail
                       // title ("Pegasus Spiele 51896G - Spirit Island

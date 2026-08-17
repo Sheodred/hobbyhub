@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BoardgameLookupPage } from "./BoardgameLookupPage";
 import * as api from "./api";
+import type { Boardgame } from "./api";
 
 describe("BoardgameLookupPage", () => {
   it("shows the game's rating, good/bad snippet, and BGG source credit after a search", async () => {
@@ -540,6 +541,37 @@ describe("BoardgameLookupPage", () => {
     // dump's data when BGG is unreachable.
     await waitFor(() => expect(screen.getByRole("status")).not.toHaveTextContent(/still/i));
     expect(screen.getByText("Catan")).toBeInTheDocument();
+    expect(screen.getByText("7.1")).toBeInTheDocument();
+  });
+  it("survives an instant answer that omits the fields no source has filled yet", async () => {
+    // Deliberately NOT a full Boardgame fixture. This is the exact shape
+    // /api/boardgames/local returned when #91 shipped - the type says
+    // ratings is an array, the network said otherwise, and the renderer
+    // threw undefined.length. With no error boundary in the app that blanked
+    // the entire page on every successful search.
+    vi.spyOn(api, "lookupBoardgameLocal").mockResolvedValue({
+      status: "ok",
+      game: {
+        bggId: 13,
+        name: "Catan",
+        description: "",
+        rating: 7.1,
+        numRatings: 143738,
+        good: null,
+        bad: null,
+        partial: true,
+        isExpansion: false,
+        rank: 627,
+        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
+      } as unknown as Boardgame,
+    });
+    vi.spyOn(api, "lookupBoardgame").mockReturnValue(new Promise(() => {}));
+
+    render(<BoardgameLookupPage />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => expect(screen.getByText("Catan")).toBeInTheDocument());
     expect(screen.getByText("7.1")).toBeInTheDocument();
   });
 });
