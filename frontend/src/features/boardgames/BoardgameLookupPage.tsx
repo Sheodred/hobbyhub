@@ -9,9 +9,11 @@ import {
   lookupBoardgameById,
   lookupBoardgameLocal,
   suggestBoardgames,
+  topBoardgames,
   type Boardgame,
   type BoardgameCandidate,
   type BoardgameLookupResult,
+  type TopBoardgame,
 } from "./api";
 
 type ViewState =
@@ -66,10 +68,21 @@ export function BoardgameLookupPage() {
   const [state, setState] = useState<ViewState>({ kind: "idle" });
   const [suggestions, setSuggestions] = useState<BoardgameCandidate[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [top, setTop] = useState<TopBoardgame[]>([]);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => () => clearTimeout(debounceRef.current), []);
+
+  // A starting point for a visitor with nothing to type yet (#102). Reads
+  // the local ranks dump only, so it costs milliseconds. A failure or an
+  // un-imported dump leaves the list empty and the section unrendered -
+  // never an empty grid, and never an error the page didn't ask for.
+  useEffect(() => {
+    // Nothing to do on failure: the initial state is already "show nothing",
+    // and this is a nice-to-have the page never promised.
+    topBoardgames().then(setTop, () => {});
+  }, []);
 
   function closeSuggestions() {
     setSuggestions([]);
@@ -383,6 +396,39 @@ export function BoardgameLookupPage() {
               <p className="text-slate-300">Check the spelling, or try a shorter search.</p>
             )}
           </FadeIn>
+        )}
+
+        {/* Only before anything has been searched (#102): once a lookup is
+            running or an answer is up, this would push the answer down the
+            page. Real buttons, not clickable cards - each one activates a
+            lookup. Announcement goes through the role="status" region above;
+            this list has a heading and needs no live region of its own. */}
+        {state.kind === "idle" && top.length > 0 && (
+          <section>
+            <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              Top rated on BoardGameGeek
+            </h2>
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {top.map((game) => (
+                <li key={game.bggId}>
+                  <button
+                    type="button"
+                    onClick={() => pick(game.bggId, game.name)}
+                    className="flex w-full min-w-0 items-baseline gap-3 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-left hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                  >
+                    <span className="shrink-0 text-xs font-medium text-indigo-300">#{game.rank}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm text-slate-200">
+                      {game.name}
+                      {game.yearPublished ? ` (${game.yearPublished})` : ""}
+                    </span>
+                    {game.rating !== null && (
+                      <span className="shrink-0 text-xs text-slate-400">{game.rating.toFixed(1)} / 10</span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         {state.kind === "result" && (

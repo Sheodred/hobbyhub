@@ -114,6 +114,24 @@ export function lookupBoardgameLocal(query: string): Promise<BoardgameLocalResul
   return apiFetch<BoardgameLocalResult>(`/api/boardgames/local?${params.toString()}`);
 }
 
+/**
+ * One entry in the pre-search top-10 (#102). Deliberately not a `Boardgame`:
+ * this is a card in a list, not an answer, and it carries only the four
+ * facts the local ranks dump actually holds. No image - see #101.
+ */
+export interface TopBoardgame {
+  bggId: number;
+  name: string;
+  yearPublished: number | null;
+  rank: number;
+  rating: number | null;
+}
+
+/** Empty when the ranks dump has not been imported - render nothing, not an empty grid. */
+export function topBoardgames(): Promise<TopBoardgame[]> {
+  return apiFetch<{ games: TopBoardgame[] }>("/api/boardgames/top").then((res) => res.games);
+}
+
 export function suggestBoardgames(query: string): Promise<BoardgameCandidate[]> {
   const params = new URLSearchParams({ q: query });
   return apiFetch<{ suggestions: BoardgameCandidate[] }>(`/api/boardgames/suggest?${params.toString()}`).then(

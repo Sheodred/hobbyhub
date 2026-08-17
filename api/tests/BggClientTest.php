@@ -487,6 +487,48 @@ final class BggClientTest extends TestCase
         $this->assertSame(['status' => 'unavailable'], (new BggClient(fn() => null))->lookupLocal('catan'));
     }
 
+    public function testTopRankedListsRankedGamesBestFirstAndSkipsUnrankedOnes(): void
+    {
+        $calls = 0;
+        $this->seedRanks();
+
+        $result = (new BggClient(function () use (&$calls) {
+            $calls++;
+            return null;
+        }))->topRanked();
+
+        $this->assertSame(0, $calls, 'the top list must not call BGG at all');
+        $this->assertSame([926, 13], array_column($result, 'bggId'), 'rank 401 leads rank 566');
+        $this->assertSame(
+            ['bggId' => 926, 'name' => 'Catan: Cities & Knights', 'yearPublished' => 1998, 'rank' => 401, 'rating' => 7.4],
+            $result[0]
+        );
+    }
+
+    public function testTopRankedTreatsRankZeroAsUnrankedRatherThanFirst(): void
+    {
+        // 0 is how BGG's export says "unranked"; import_bgg_ranks.php
+        // normalises it to NULL, but a stray 0 would otherwise sort ahead
+        // of the actual number one.
+        $this->seedRanks();
+        db()->exec("INSERT INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion, bgg_rank)
+                    VALUES (999, 'Not Ranked At All', 2020, 9.9, 5, 0, 0)");
+
+        $this->assertSame([926, 13], array_column((new BggClient())->topRanked(), 'bggId'));
+    }
+
+    public function testTopRankedReturnsNothingWhenTheDumpHasNotBeenImported(): void
+    {
+        $this->assertSame([], (new BggClient())->topRanked());
+    }
+
+    public function testTopRankedHonoursItsLimit(): void
+    {
+        $this->seedRanks();
+
+        $this->assertCount(1, (new BggClient())->topRanked(1));
+    }
+
     public function testDidYouMeanRanksATranspositionAsOneEdit(): void
     {
         // 'Ctaan' transposes the 'a' and 't' of 'Catan'. Plain Levenshtein
