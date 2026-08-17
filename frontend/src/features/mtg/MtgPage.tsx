@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { FadeIn } from "../../components/FadeIn";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
@@ -19,9 +19,17 @@ const REFERENCE_CARDS = ["Ashnod's Altar", "Thassa's Oracle"];
 export function MtgPage() {
   useDocumentTitle("Magic: The Gathering");
 
-  const [query, setQuery] = useState("");
-  const [submittedQuery, setSubmittedQuery] = useState("");
+  // #99: the submitted search lives in the URL, so it survives a reload and
+  // can be sent to someone. Pushed rather than replaced, so Back returns to
+  // the previous search instead of leaving the page.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const submittedQuery = searchParams.get("q")?.trim() ?? "";
+
+  const [query, setQuery] = useState(submittedQuery);
   const [page, setPage] = useState(1);
+
+  // A different search starts at page 1 - including one arrived at with Back.
+  useEffect(() => setPage(1), [submittedQuery]);
 
   const { data, isFetching, isError, error } = useQuery({
     queryKey: ["mtg-search", submittedQuery, page],
@@ -35,8 +43,7 @@ export function MtgPage() {
   const { data: metaData } = useQuery({ queryKey: ["mtg-meta"], queryFn: getMtgMeta, enabled: submittedQuery.length === 0 });
 
   function runSearch(q: string) {
-    setPage(1);
-    setSubmittedQuery(q);
+    setSearchParams(q === "" ? {} : { q });
   }
 
   function handleSubmit(e: FormEvent) {
