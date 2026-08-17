@@ -219,6 +219,14 @@ domain, by hotlink or by copy:
 
 #102 ships without images, as that issue already allows.
 
+**One image is out of scope of this decision: the "Powered by BGG" logo**
+(`frontend/public/powered-by-bgg.svg`, added 2026-08-17 with #40). This ADR is
+about *game cover art*, whose rights sit with publishers and which no source
+licenses to us. The attribution logo is the opposite case — BGG's XML API terms
+*require* a public-facing app to display it, linking back to BoardGameGeek, and
+publish the official files for that purpose. "No images" therefore never meant
+"no BGG logo": showing it is a condition of using the API at all.
+
 If a picture is ever genuinely wanted for a specific game, two paths stay
 open and neither needs code: photograph a copy the maintainer owns, or email
 one publisher for press-kit access under terms like the Pegasus wording

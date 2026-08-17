@@ -31,10 +31,11 @@ class BggClient
     }
 
     // BGG rejects unauthenticated calls with 401 since it started requiring
-    // registered applications (#40). The scheme below is the conventional
-    // bearer form - CONFIRM IT against BGG's own docs when the token arrives
-    // (their pages 403 non-browser clients, so it could not be read from
-    // here). If they use a different scheme, this one line is the change.
+    // registered applications (#40). Confirmed against their own docs
+    // (boardgamegeek.com/using_the_xml_api, 2026-08-17): "Bearer", one space,
+    // the token, no colon. Their other stated requirement is already met by
+    // BASE_URL - the host must be boardgamegeek.com with no leading www, or
+    // the token is ignored and the call 401s as if it were absent.
     private function authHeaders(): array
     {
         return $this->apiToken === '' ? [] : ['Authorization: Bearer ' . $this->apiToken];
@@ -69,13 +70,7 @@ class BggClient
     {
         return $this->cached($bggId, function () use ($bggId) {
             $this->throttle();
-            $xml = ($this->httpGetXml)(self::BASE_URL . '/thing?' . http_build_query([
-                'id' => $bggId,
-                'stats' => 1,
-                'comments' => 1,
-                'ratingcomments' => 1,
-                'pagesize' => self::MAX_COMMENTS,
-            ]), 10, $this->authHeaders());
+            $xml = $this->fetchThing($bggId, 1);
             if ($xml === null) {
                 // Failed call, not an answer - see resolveSearch().
                 throw new RuntimeException('BGG thing request failed for id ' . $bggId);
@@ -83,8 +78,46 @@ class BggClient
             if (!isset($xml->item)) {
                 return null; // BGG answered: no game with that id.
             }
-            return $this->mapThing($xml->item);
+            return $this->mapThing($xml->item, $this->bestComments($bggId, $xml->item));
         });
+    }
+
+    // ratingcomments, NOT comments: the two are mutually exclusive at BGG's
+    // end and `comments` wins, which returns every comment with rating="N/A" -
+    // and those get discarded, so good/bad came back null for every game.
+    // Measured on id 13: both flags = 0 of 100 comments usable, ratingcomments
+    // alone = 29. Sending both was invisible until #40 was resolved, because
+    // the call had never once reached BGG.
+    private function fetchThing(int $bggId, int $page): ?SimpleXMLElement
+    {
+        $this->throttle();
+        return ($this->httpGetXml)(self::BASE_URL . '/thing?' . http_build_query([
+            'id' => $bggId,
+            'stats' => 1,
+            'ratingcomments' => 1,
+            'pagesize' => self::MAX_COMMENTS,
+            'page' => $page,
+        ]), 10, $this->authHeaders());
+    }
+
+    // BGG returns rating comments sorted by rating ASCENDING, so page 1 is
+    // nothing but the lowest scores - measured on id 13: all 29 usable
+    // comments on page 1 rated 1, all 7 on the last page rated 10. Reading
+    // "the good" from page 1 does not merely miss it, it prints a scathing
+    // review under a green heading. So the best comments cost a second
+    // request, once per cache miss (14 days per game), throttled like the
+    // first. A failure here costs the snippet, never the lookup.
+    private function bestComments(int $bggId, SimpleXMLElement $item): iterable
+    {
+        $total = (int) ($item->comments['totalitems'] ?? 0);
+        $lastPage = (int) ceil($total / self::MAX_COMMENTS);
+        if ($lastPage <= 1) {
+            return [];
+        }
+
+        $xml = $this->fetchThing($bggId, $lastPage);
+
+        return $xml === null || !isset($xml->item->comments) ? [] : $xml->item->comments->comment;
     }
 
     /**
@@ -499,7 +532,7 @@ class BggClient
         $stmt->execute([$normalizedQuery, $bggId, self::SEARCH_CACHE_TTL_SECONDS]);
     }
 
-    private function mapThing(SimpleXMLElement $item): array
+    private function mapThing(SimpleXMLElement $item, iterable $bestComments = []): array
     {
         $name = '';
         foreach ($item->name as $n) {
@@ -508,7 +541,7 @@ class BggClient
                 break;
             }
         }
-        [$good, $bad] = $this->pickGoodBad($item->comments->comment ?? []);
+        [$good, $bad] = $this->pickGoodBad($item->comments->comment ?? [], $bestComments);
         $bggId = (int) $item['id'];
 
         return [
@@ -527,34 +560,39 @@ class BggClient
         ];
     }
 
-    // Best-effort: picks the highest- and lowest-rated comment from the
-    // single page of up to MAX_COMMENTS returned by the thing endpoint -
-    // NOT a guaranteed global max/min across every rating BGG holds (the
-    // API has no "sort comments by rating" option). Good enough for a
-    // short "good vs. bad" snippet without a second data source or an
-    // LLM call; upgrade to paging through all comments if this proves
-    // too shallow in practice.
-    private function pickGoodBad(iterable $comments): array
+    // The bad snippet comes off the first page (lowest ratings), the good one
+    // off the last (highest) - see bestComments(). $bestPage is empty when
+    // there is only one page of comments or the second request failed, and
+    // then both come off the page we have, which is what this did before.
+    // Still best-effort: the extremes of the pages we read, not of every
+    // rating BGG holds.
+    private function pickGoodBad(iterable $worstPage, iterable $bestPage = []): array
     {
-        $best = null;
-        $worst = null;
+        $best = $this->pickExtreme($bestPage, true) ?? $this->pickExtreme($worstPage, true);
+        $worst = $this->pickExtreme($worstPage, false);
+
+        return [
+            $best ? $this->truncate($best['text']) : null,
+            ($worst && $worst !== $best) ? $this->truncate($worst['text']) : null,
+        ];
+    }
+
+    /** @return array{rating:float,text:string}|null */
+    private function pickExtreme(iterable $comments, bool $highest): ?array
+    {
+        $pick = null;
         foreach ($comments as $comment) {
             $rating = (float) $comment['rating'];
             $text = trim((string) $comment['value']);
             if ($text === '' || $rating <= 0) {
                 continue; // BGG uses a non-numeric rating for comments with no rating
             }
-            if ($best === null || $rating > $best['rating']) {
-                $best = ['rating' => $rating, 'text' => $text];
-            }
-            if ($worst === null || $rating < $worst['rating']) {
-                $worst = ['rating' => $rating, 'text' => $text];
+            if ($pick === null || ($highest ? $rating > $pick['rating'] : $rating < $pick['rating'])) {
+                $pick = ['rating' => $rating, 'text' => $text];
             }
         }
-        return [
-            $best ? $this->truncate($best['text']) : null,
-            ($worst && $worst !== $best) ? $this->truncate($worst['text']) : null,
-        ];
+
+        return $pick;
     }
 
     private function truncate(string $text, int $maxLength = 280): string

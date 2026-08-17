@@ -59,6 +59,75 @@ final class BggClientTest extends TestCase
         $this->assertSame(['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/13'], $result['source']);
     }
 
+    public function testLookupAsksForRatedCommentsOnly(): void
+    {
+        // `comments` and `ratingcomments` are mutually exclusive at BGG's end
+        // and `comments` wins, returning every comment with rating="N/A" -
+        // which pickGoodBad() discards, so good/bad silently stayed null for
+        // every game. Asserting on the request, because no fixture can catch
+        // it: the bug is in what we ask for, not in what we do with the answer.
+        $url = null;
+        $client = new BggClient(function (string $u) use (&$url) {
+            $url = $u;
+            return $this->thingXml('<item id="13"><name type="primary" value="Catan"/></item>');
+        });
+
+        $client->lookup(13);
+
+        $this->assertStringContainsString('ratingcomments=1', $url);
+        // '&comments=1', not 'comments=1' - the latter is a substring of
+        // 'ratingcomments=1' and would fail against a correct URL.
+        $this->assertStringNotContainsString('&comments=1', $url, 'plain comments would override ratingcomments');
+    }
+
+    public function testGoodSnippetComesFromTheLastCommentPage(): void
+    {
+        // BGG sorts rating comments ascending, so page 1 holds only the worst
+        // ones - measured on Catan, all 29 usable page-1 comments rated 1 and
+        // all 7 on the last page rated 10. Reading "the good" off page 1 puts
+        // a 1-star rant under a green "The good" heading, which is worse than
+        // showing nothing.
+        $pages = [];
+        $client = new BggClient(function (string $url) use (&$pages) {
+            parse_str(parse_url($url, PHP_URL_QUERY) ?: '', $q);
+            $pages[] = (int) $q['page'];
+            $comments = (int) $q['page'] === 1
+                ? '<comment username="a" rating="1" value="Roll a dice, get shafted."/>'
+                : '<comment username="z" rating="10" value="The one everyone owns."/>';
+
+            return $this->thingXml(
+                '<item id="13"><name type="primary" value="Catan"/>' .
+                '<comments totalitems="250" page="' . $q['page'] . '">' . $comments . '</comments>' .
+                '</item>'
+            );
+        });
+
+        $result = $client->lookup(13);
+
+        $this->assertSame([1, 3], $pages, 'the second request must ask for the last page: ceil(250/100)');
+        $this->assertSame('The one everyone owns.', $result['good']);
+        $this->assertSame('Roll a dice, get shafted.', $result['bad']);
+    }
+
+    public function testLookupStillAnswersWhenTheLastCommentPageFails(): void
+    {
+        // The extra request buys a nicer snippet; it must never cost the game.
+        $client = new BggClient(fn(string $url) => str_contains($url, 'page=3')
+            ? null
+            : $this->thingXml(
+                '<item id="13"><name type="primary" value="Catan"/>' .
+                '<comments totalitems="250" page="1">' .
+                '<comment username="a" rating="4" value="Fine, dated."/>' .
+                '</comments></item>'
+            ));
+
+        $result = $client->lookup(13);
+
+        $this->assertSame('Catan', $result['name']);
+        $this->assertSame('Fine, dated.', $result['good'], 'falls back to the page we did get');
+        $this->assertNull($result['bad'], 'one comment cannot be both the best and the worst');
+    }
+
     public function testLookupCacheHitDoesNotCallFetcherAgain(): void
     {
         $calls = 0;

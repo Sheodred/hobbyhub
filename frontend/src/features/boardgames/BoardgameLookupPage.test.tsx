@@ -52,6 +52,16 @@ describe("BoardgameLookupPage", () => {
     expect(screen.getByRole("combobox")).toHaveAttribute("placeholder", "Search for a board game, e.g. Frosthaven");
   });
 
+  // BGG's XML API terms require this of any public-facing app using the API,
+  // and it has to be visible before a search too - the top-10 list is BGG data
+  // as well (#40). A missing logo is a licence problem, not a styling one, so
+  // it gets a test rather than trusting nobody deletes it.
+  it("shows the Powered by BGG logo linking back to BoardGameGeek", () => {
+    renderPage();
+    const logo = screen.getByAltText("Powered by BGG");
+    expect(logo.closest("a")).toHaveAttribute("href", "https://boardgamegeek.com");
+  });
+
   it("shows the game's rating, good/bad snippet, and BGG source credit after a search", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "ok",

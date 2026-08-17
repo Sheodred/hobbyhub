@@ -12,8 +12,11 @@ describe("Hero", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("link", { name: "Browse cards" })).toHaveAttribute("href", "/mtg");
+    // Board games lead: the lookup is the newest and most worked-on feature,
+    // so it takes the filled button. "Look up MTG cards" rather than "Browse
+    // cards" because a bare "cards" says nothing about which game.
     expect(screen.getByRole("link", { name: "Look up a board game" })).toHaveAttribute("href", "/boardgames");
+    expect(screen.getByRole("link", { name: "Look up MTG cards" })).toHaveAttribute("href", "/mtg");
     // Chess has its own highlight card below the hero; a button here as well
     // was the same link twice on one screen.
     expect(screen.queryByRole("link", { name: "Play chess" })).not.toBeInTheDocument();

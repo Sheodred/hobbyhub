@@ -517,7 +517,7 @@ export function BoardgameLookupPage() {
               {state.game.partial && !state.game.bgq ? (
                 <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-200/90">
                   Only the community rating is available for this game right now — the description and player
-                  comments come from BoardGameGeek&apos;s live API, which this site can&apos;t reach yet.
+                  comments come from BoardGameGeek&apos;s live API, which didn&apos;t answer for this one.
                 </p>
               ) : (
                 <p className="mt-4 text-slate-300">{state.game.description}</p>
@@ -621,6 +621,24 @@ export function BoardgameLookupPage() {
           </FadeIn>
         )}
       </div>
+
+      {/* Required by BGG's XML API terms, not decoration: a public-facing app
+          using the API must show the "Powered by BGG" logo linking back to
+          BoardGameGeek, sized so its text stays legible (#40). It sits outside
+          every result branch on purpose - the top-10 list, the disambiguation
+          list and the answer are all BGG data, so the credit has to be there
+          before a search too. The reversed (light-on-dark) official variant is
+          the one that suits this page. */}
+      <footer className="mt-12 border-t border-slate-800 pt-6">
+        <a
+          href="https://boardgamegeek.com"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-block rounded focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+        >
+          <img src="/powered-by-bgg.svg" alt="Powered by BGG" width={342} height={76} className="h-10 w-auto" />
+        </a>
+      </footer>
     </div>
   );
 }

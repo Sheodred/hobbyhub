@@ -21,6 +21,10 @@ services:
       - DB_NAME=hobbyhub
       - DB_USER=${DATABASE_USER:-hobbyhub}
       - DB_PASSWORD=${DATABASE_PASSWORD:-hobbyhub}
+      # Real value goes in .env (gitignored), never here. Empty is a working
+      # state: BggClient sends no Authorization header and answers from the
+      # bgg_ranks dump instead. Production sets this in config.local.php.
+      - BGG_API_TOKEN=${BGG_API_TOKEN:-}
     depends_on:
       - mariadb
 
