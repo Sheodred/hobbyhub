@@ -91,10 +91,10 @@ export function Hero() {
           </p>
           <div className="mt-4 flex flex-wrap gap-2 sm:justify-end">
             <Link
-              to="/mtg"
+              to="/boardgames"
               className="group relative inline-flex items-center gap-3 rounded-full bg-indigo-600 py-2.5 pl-6 pr-2.5 text-sm font-medium text-white transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-indigo-700 active:scale-[0.98]"
             >
-              Browse cards
+              Look up a board game
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-[1px] group-hover:translate-x-1 group-hover:scale-105">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                   <path
@@ -112,10 +112,10 @@ export function Hero() {
                 artwork. Three buttons for three features was one restatement
                 too many. */}
             <Link
-              to="/boardgames"
+              to="/mtg"
               className="rounded-full border border-white/15 bg-white/5 px-6 py-2.5 text-sm font-medium text-slate-200 backdrop-blur-md transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 active:scale-[0.98]"
             >
-              Look up a board game
+              Look up MTG cards
             </Link>
           </div>
         </motion.div>
