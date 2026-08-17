@@ -1,14 +1,54 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { BoardgameLookupPage } from "./BoardgameLookupPage";
 import * as api from "./api";
 import type { Boardgame } from "./api";
+
+// The search now lives in the URL (#99), so every render needs a router and
+// most assertions want to see what the address bar ended up holding.
+function LocationProbe() {
+  return <span data-testid="location-search">{useLocation().search}</span>;
+}
+
+function renderPage(initialEntry = "/boardgames") {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <BoardgameLookupPage />
+      <LocationProbe />
+    </MemoryRouter>
+  );
+}
+
+function locationSearch() {
+  return screen.getByTestId("location-search").textContent;
+}
+
+const CATAN: Boardgame = {
+  bggId: 13,
+  name: "Catan",
+  description: "Trade, build, settle.",
+  rating: 7.2,
+  numRatings: 1000,
+  good: null,
+  bad: null,
+  partial: false,
+  ratings: [],
+  bgq: null,
+  players: null,
+  duration: null,
+  age: null,
+  complexity: null,
+  isExpansion: false,
+  rank: null,
+  source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
+};
 
 describe("BoardgameLookupPage", () => {
   // The example is the site's one worked example, so it is pinned: it has to
   // resolve to a single game, not a disambiguation list (#100).
   it("uses a modern hobby game as the search example", () => {
-    render(<BoardgameLookupPage />);
+    renderPage();
     expect(screen.getByRole("combobox")).toHaveAttribute("placeholder", "Search for a board game, e.g. Frosthaven");
   });
 
@@ -36,7 +76,7 @@ describe("BoardgameLookupPage", () => {
       },
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
@@ -81,7 +121,7 @@ describe("BoardgameLookupPage", () => {
       },
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
@@ -119,7 +159,7 @@ describe("BoardgameLookupPage", () => {
       },
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
@@ -148,7 +188,7 @@ describe("BoardgameLookupPage", () => {
       },
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
@@ -178,7 +218,7 @@ describe("BoardgameLookupPage", () => {
       },
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "cities and knights" } });
     fireEvent.submit(screen.getByRole("search"));
 
@@ -206,7 +246,7 @@ describe("BoardgameLookupPage", () => {
       },
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
@@ -238,7 +278,7 @@ describe("BoardgameLookupPage", () => {
       },
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "intarsia" } });
     fireEvent.submit(screen.getByRole("search"));
 
@@ -268,7 +308,7 @@ describe("BoardgameLookupPage", () => {
       },
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
 
     const status = screen.getByRole("status");
     expect(status).toBeEmptyDOMElement();
@@ -297,7 +337,7 @@ describe("BoardgameLookupPage", () => {
       },
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     const input = screen.getByRole("combobox");
     fireEvent.change(input, { target: { value: "cat" } });
 
@@ -316,7 +356,7 @@ describe("BoardgameLookupPage", () => {
   it("does not fetch suggestions below the minimum query length", async () => {
     vi.spyOn(api, "suggestBoardgames").mockResolvedValue([]);
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "c" } });
 
     await new Promise((resolve) => setTimeout(resolve, 300));
@@ -339,7 +379,7 @@ describe("BoardgameLookupPage", () => {
       },
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     const input = screen.getByRole("combobox");
     fireEvent.change(input, { target: { value: "cat" } });
     await screen.findAllByRole("option");
@@ -357,7 +397,7 @@ describe("BoardgameLookupPage", () => {
   it("closes the suggestion list on Escape without clearing the typed text", async () => {
     vi.spyOn(api, "suggestBoardgames").mockResolvedValue([{ bggId: 13, name: "Catan", yearPublished: 1995 }]);
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     const input = screen.getByRole("combobox");
     fireEvent.change(input, { target: { value: "cat" } });
     await screen.findAllByRole("option");
@@ -371,7 +411,7 @@ describe("BoardgameLookupPage", () => {
   it("degrades silently when the suggest endpoint errors", async () => {
     vi.spyOn(api, "suggestBoardgames").mockRejectedValue(new Error("network error"));
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "cat" } });
 
     await waitFor(() => expect(api.suggestBoardgames).toHaveBeenCalled());
@@ -387,7 +427,7 @@ describe("BoardgameLookupPage", () => {
       ],
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "teasd" } });
     fireEvent.submit(screen.getByRole("search"));
 
@@ -405,7 +445,7 @@ describe("BoardgameLookupPage", () => {
       suggestions: [{ bggId: 13, name: "Catan", yearPublished: 1995 }],
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "teasd" } });
     fireEvent.submit(screen.getByRole("search"));
 
@@ -423,7 +463,7 @@ describe("BoardgameLookupPage", () => {
       suggestions: [],
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "zzzzqqqq" } });
     fireEvent.submit(screen.getByRole("search"));
 
@@ -447,7 +487,7 @@ describe("BoardgameLookupPage", () => {
       candidates: [],
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     const box = screen.getByRole("combobox");
     fireEvent.change(box, { target: { value: "ctaan" } });
     fireEvent.submit(screen.getByRole("search"));
@@ -468,7 +508,7 @@ describe("BoardgameLookupPage", () => {
     });
     vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "disambiguation", candidates: [] });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "ctaan" } });
     fireEvent.submit(screen.getByRole("search"));
     fireEvent.click(await screen.findByRole("button", { name: /Catan/ }));
@@ -504,7 +544,7 @@ describe("BoardgameLookupPage", () => {
     // below is necessarily coming from the instant path.
     vi.spyOn(api, "lookupBoardgame").mockReturnValue(new Promise(() => {}));
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
@@ -536,7 +576,7 @@ describe("BoardgameLookupPage", () => {
       },
     });
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
@@ -557,7 +597,7 @@ describe("BoardgameLookupPage", () => {
     });
     vi.spyOn(api, "lookupBoardgame").mockRejectedValue(new Error("upstream down"));
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
@@ -592,11 +632,112 @@ describe("BoardgameLookupPage", () => {
     });
     vi.spyOn(api, "lookupBoardgame").mockReturnValue(new Promise(() => {}));
 
-    render(<BoardgameLookupPage />);
+    renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
     await waitFor(() => expect(screen.getByText("Catan")).toBeInTheDocument());
     expect(screen.getByText("7.1")).toBeInTheDocument();
+  });
+});
+
+// #99: a result you cannot link to might as well not have happened.
+describe("BoardgameLookupPage — shareable searches", () => {
+  it("puts the submitted search in the URL", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => expect(locationSearch()).toBe("?q=catan"));
+  });
+
+  it("runs the lookup from ?q= on mount, so a shared link lands on the result", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+
+    renderPage("/boardgames?q=catan");
+
+    expect(await screen.findByText("Trade, build, settle.")).toBeInTheDocument();
+    expect(api.lookupBoardgame).toHaveBeenCalledWith("catan");
+    // The box shows what is being searched for, not an empty field.
+    expect(screen.getByRole("combobox")).toHaveValue("catan");
+  });
+
+  it("resolves ?bgg_id= from the URL without guessing at a name", async () => {
+    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "ok", game: CATAN });
+    const byName = vi.spyOn(api, "lookupBoardgame");
+
+    renderPage("/boardgames?bgg_id=13");
+
+    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(13));
+    expect(byName).not.toHaveBeenCalled();
+  });
+
+  it("ignores a nonsense bgg_id instead of asking the API about it", () => {
+    const byId = vi.spyOn(api, "lookupBoardgameById");
+
+    renderPage("/boardgames?bgg_id=nope");
+
+    expect(byId).not.toHaveBeenCalled();
+  });
+
+  it("writes bgg_id to the URL when a candidate is picked", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "disambiguation",
+      candidates: [{ bggId: 13, name: "Catan", yearPublished: 1995 }],
+    });
+    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "ok", game: CATAN });
+
+    renderPage("/boardgames?q=catan");
+
+    fireEvent.click(await screen.findByRole("button", { name: /Catan \(1995\)/ }));
+
+    await waitFor(() => expect(locationSearch()).toBe("?bgg_id=13"));
+  });
+
+  it("does not touch the URL while the typeahead runs", async () => {
+    vi.spyOn(api, "suggestBoardgames").mockResolvedValue([
+      { bggId: 13, name: "Catan", yearPublished: 1995 },
+    ]);
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "cat" } });
+
+    expect(await screen.findByRole("option", { name: /Catan/ })).toBeInTheDocument();
+    expect(locationSearch()).toBe("");
+  });
+
+  it("copies a bgg_id link for the resolved game and confirms it", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+
+    renderPage("/boardgames?q=catan");
+
+    fireEvent.click(await screen.findByRole("button", { name: /copy a link to this game/i }));
+
+    // The shared link names the game, not the ambiguous search term.
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining("bgg_id=13")));
+    expect(await screen.findByRole("button", { name: /link copied/i })).toBeInTheDocument();
+    // Announced through the page's existing status region, not a new one.
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/link copied/i));
+    vi.unstubAllGlobals();
+  });
+
+  it("shows the link to copy by hand when the clipboard refuses", async () => {
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      clipboard: { writeText: vi.fn().mockRejectedValue(new Error("nope")) },
+    });
+    // jsdom has no execCommand at all - the same as an old browser refusing.
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+
+    renderPage("/boardgames?q=catan");
+
+    fireEvent.click(await screen.findByRole("button", { name: /copy a link to this game/i }));
+
+    expect(await screen.findByText(/bgg_id=13/)).toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 });
