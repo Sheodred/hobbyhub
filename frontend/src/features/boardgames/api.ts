@@ -91,3 +91,10 @@ export function lookupBoardgameById(bggId: number): Promise<BoardgameLookupResul
   const params = new URLSearchParams({ bgg_id: String(bggId) });
   return apiFetch<BoardgameLookupResult>(`/api/boardgames/lookup?${params.toString()}`);
 }
+
+export function suggestBoardgames(query: string): Promise<BoardgameCandidate[]> {
+  const params = new URLSearchParams({ q: query });
+  return apiFetch<{ suggestions: BoardgameCandidate[] }>(`/api/boardgames/suggest?${params.toString()}`).then(
+    (res) => res.suggestions
+  );
+}
