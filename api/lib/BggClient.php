@@ -263,6 +263,43 @@ class BggClient
     }
 
     /**
+     * The half of a Lookup that costs nothing (#91).
+     *
+     * Reads only the imported ranks dump - no BGG call, no Rating Source, no
+     * throttle - so it answers in milliseconds where a cold full lookup was
+     * measured at 4-5s in production. The caller renders this immediately and
+     * lets the slow half replace it.
+     *
+     * 'unavailable' rather than 'not_found' when the dump is empty: with no
+     * local catalogue we genuinely cannot see, and saying "no such game"
+     * would claim more than we know.
+     *
+     * @return array{status:'ok',game:array}|array{status:'disambiguation',candidates:array}
+     *         |array{status:'not_found'}|array{status:'unavailable'}
+     */
+    public function lookupLocal(string $query): array
+    {
+        if (!$this->ranksImported()) {
+            return ['status' => 'unavailable'];
+        }
+
+        $resolved = $this->resolveFromRanks(strtolower(trim($query)));
+        if ($resolved === null || $resolved['status'] === 'not_found') {
+            return ['status' => 'not_found'];
+        }
+        if ($resolved['status'] === 'disambiguation') {
+            return $resolved;
+        }
+
+        $game = $this->lookupFromRanks($resolved['bggId']);
+        if ($game === null) {
+            return ['status' => 'not_found'];
+        }
+
+        return ['status' => 'ok', 'game' => $game + ['rank' => $this->rankFor($resolved['bggId'])]];
+    }
+
+    /**
      * "Did you mean" candidates for a query that matched nothing (#92).
      *
      * Deliberately not wired into suggest(): that fires per keystroke and

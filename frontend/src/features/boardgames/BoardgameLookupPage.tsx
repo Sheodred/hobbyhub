@@ -6,6 +6,7 @@ import { ApiError } from "../../lib/apiClient";
 import {
   lookupBoardgame,
   lookupBoardgameById,
+  lookupBoardgameLocal,
   suggestBoardgames,
   type Boardgame,
   type BoardgameCandidate,
@@ -18,7 +19,7 @@ type ViewState =
   | { kind: "error"; message: string }
   | { kind: "disambiguation"; candidates: BoardgameCandidate[] }
   | { kind: "not_found"; query: string; suggestions: BoardgameCandidate[] }
-  | { kind: "result"; game: Boardgame };
+  | { kind: "result"; game: Boardgame; enriching: boolean };
 
 // 2 chars keeps a single keystroke from firing a request; 200ms is short
 // enough to feel live without hammering the (indexed, but still real)
@@ -44,7 +45,7 @@ export function BoardgameLookupPage() {
 
   function applyResult(result: BoardgameLookupResult) {
     if (result.status === "ok") {
-      setState({ kind: "result", game: result.game });
+      setState({ kind: "result", game: result.game, enriching: false });
     } else if (result.status === "not_found") {
       setState({ kind: "not_found", query: result.query, suggestions: result.suggestions });
     } else {
@@ -52,8 +53,12 @@ export function BoardgameLookupPage() {
     }
   }
 
+  function errorState(err: unknown): ViewState {
+    return { kind: "error", message: err instanceof ApiError ? err.message : "Something went wrong." };
+  }
+
   function fail(err: unknown) {
-    setState({ kind: "error", message: err instanceof ApiError ? err.message : "Something went wrong." });
+    setState(errorState(err));
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -61,10 +66,33 @@ export function BoardgameLookupPage() {
     closeSuggestions();
     if (query.trim() === "") return;
     setState({ kind: "loading" });
+    const term = query.trim();
+
+    // The dump answers in milliseconds; the full lookup walks four Rating
+    // Sources sequentially and measured 4-5s cold in production. Show the
+    // cheap half straight away rather than holding the page for the slow
+    // one. A failure here is not reported - the full lookup below is still
+    // authoritative and will report its own.
     try {
-      applyResult(await lookupBoardgame(query.trim()));
+      const local = await lookupBoardgameLocal(term);
+      if (local.status === "ok") {
+        setState({ kind: "result", game: local.game, enriching: true });
+      } else if (local.status === "disambiguation") {
+        setState({ kind: "disambiguation", candidates: local.candidates });
+      }
+    } catch {
+      // Fall through to the full lookup.
+    }
+
+    try {
+      applyResult(await lookupBoardgame(term));
     } catch (err) {
-      fail(err);
+      // Keep a good partial answer rather than replacing it with an error:
+      // before #91 the dump's data was all you got when BGG was unreachable,
+      // and discarding it here would be a regression on that.
+      setState((current) =>
+        current.kind === "result" ? { ...current, enriching: false } : errorState(err)
+      );
     }
   }
 
@@ -127,7 +155,10 @@ export function BoardgameLookupPage() {
   let statusText = "";
   if (state.kind === "loading") statusText = "Searching…";
   else if (state.kind === "disambiguation") statusText = "Several games match that name — which one did you mean?";
-  else if (state.kind === "result") statusText = `${state.game.name} found`;
+  else if (state.kind === "result")
+    statusText = state.enriching
+      ? `${state.game.name} found — still checking the other sources`
+      : `${state.game.name} found`;
   else if (state.kind === "not_found")
     statusText =
       state.suggestions.length > 0
