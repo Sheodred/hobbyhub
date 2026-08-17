@@ -517,7 +517,7 @@ export function BoardgameLookupPage() {
               {state.game.partial && !state.game.bgq ? (
                 <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-200/90">
                   Only the community rating is available for this game right now — the description and player
-                  comments come from BoardGameGeek&apos;s live API, which this site can&apos;t reach yet.
+                  comments come from BoardGameGeek&apos;s live API, which didn&apos;t answer for this one.
                 </p>
               ) : (
                 <p className="mt-4 text-slate-300">{state.game.description}</p>
