@@ -14,7 +14,7 @@ interface HeroHotspotProps {
 // Invisible click regions over matching parts of the hero artwork (chess
 // board, sky, MTG table) - a soft ring/glow on hover or keyboard focus is
 // the only visual cue, so the scene stays uncluttered at rest. Percentages
-// are hand-tuned against /hero-background.png's fixed 4:3 composition, so
+// are hand-tuned against /hero-background.webp's fixed 4:3 composition, so
 // they'll drift a little on extreme viewport aspect ratios - acceptable for
 // a decorative shortcut that duplicates the real nav/buttons below. Hidden
 // below sm: at narrow widths the three regions sit too close together and
@@ -48,7 +48,7 @@ export function Hero() {
           <div
             aria-hidden="true"
             className="absolute inset-0 -z-20 bg-cover bg-center motion-safe:animate-[drift-hero_50s_ease-in-out_infinite]"
-            style={{ backgroundImage: "url(/hero-background.png)" }}
+            style={{ backgroundImage: "url(/hero-background.webp)" }}
           />
           {/* Dark gradient anchored to the bottom edge, not covering the image -
               keeps the center/top of the scene fully visible while the hero
