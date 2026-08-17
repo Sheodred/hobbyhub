@@ -11,6 +11,15 @@
         ],
         "createdAt": "2026-08-15T08:57:24.211Z",
         "reason": "Indigo is the site accent, used across 12+ existing files; user confirmed intentional"
+      },
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "frontend/src/features/boardgames/BoardgameLookupPage.tsx"
+        ],
+        "createdAt": "2026-08-17T14:55:45.771Z",
+        "reason": "False positive: the scanner reads both branches of the typeahead option ternary as one combination. text-slate-200 pairs with bg-slate-900/800, bg-indigo-600 pairs with text-white; they never co-render. Measured 14.48:1, 11.87:1 and 6.29:1."
       }
     ]
   }
