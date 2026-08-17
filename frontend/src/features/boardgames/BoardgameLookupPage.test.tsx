@@ -574,4 +574,77 @@ describe("BoardgameLookupPage", () => {
     await waitFor(() => expect(screen.getByText("Catan")).toBeInTheDocument());
     expect(screen.getByText("7.1")).toBeInTheDocument();
   });
+
+  // #102: a way in for someone who has nothing to type yet.
+  const topGames = [
+    { bggId: 224517, name: "Brass: Birmingham", yearPublished: 2018, rank: 1, rating: 8.6 },
+    { bggId: 161936, name: "Pandemic Legacy: Season 1", yearPublished: 2015, rank: 2, rating: 8.5 },
+  ];
+
+  it("offers the top-ranked games before a search and resolves the clicked one by id", async () => {
+    vi.spyOn(api, "topBoardgames").mockResolvedValue(topGames);
+    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({
+      status: "ok",
+      game: {
+        bggId: 224517,
+        name: "Brass: Birmingham",
+        description: "Canals and coal.",
+        rating: 8.6,
+        numRatings: 45000,
+        good: null,
+        bad: null,
+        partial: false,
+        ratings: [],
+        bgq: null,
+        players: null,
+        duration: null,
+        age: null,
+        complexity: null,
+        isExpansion: false,
+        rank: 1,
+        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/224517" },
+      },
+    });
+
+    render(<BoardgameLookupPage />);
+
+    expect(await screen.findByRole("heading", { name: /top .*BoardGameGeek/i })).toBeInTheDocument();
+    const card = await screen.findByRole("button", { name: /Brass: Birmingham/ });
+    expect(card).toHaveAccessibleName(expect.stringContaining("2018"));
+    expect(card).toHaveAccessibleName(expect.stringContaining("8.6"));
+
+    fireEvent.click(card);
+
+    // By id, never by name: a name round-trip can land on the
+    // disambiguation flow, which is absurd for a curated list.
+    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(224517));
+    expect(await screen.findByText("Canals and coal.")).toBeInTheDocument();
+  });
+
+  it("gets out of the way once a result is on screen", async () => {
+    vi.spyOn(api, "topBoardgames").mockResolvedValue(topGames);
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "not_found",
+      query: "zzz",
+      suggestions: [],
+    });
+
+    render(<BoardgameLookupPage />);
+    await screen.findByRole("button", { name: /Brass: Birmingham/ });
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "zzz" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Brass: Birmingham/ })).toBeNull());
+  });
+
+  it("renders nothing at all when the ranks dump is empty", async () => {
+    vi.spyOn(api, "topBoardgames").mockResolvedValue([]);
+
+    render(<BoardgameLookupPage />);
+
+    await waitFor(() => expect(api.topBoardgames).toHaveBeenCalled());
+    expect(screen.queryByRole("heading", { name: /top .*BoardGameGeek/i })).toBeNull();
+    expect(screen.queryByRole("list")).toBeNull();
+  });
 });

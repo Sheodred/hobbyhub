@@ -312,6 +312,40 @@ class BggClient
     }
 
     /**
+     * BGG's own top games, straight from the imported dump (#102).
+     *
+     * A way in for a visitor with no particular game in mind, so it has to
+     * cost what the dump costs: no external call, no cache, no throttle.
+     *
+     * ponytail: bgg_rank is unindexed, so this is a full scan + filesort of
+     * the 180k dump - measured at 21ms against the real import, inside the
+     * ~10-40ms the local endpoints already spend. Add
+     * `INDEX idx_bgg_ranks_rank (bgg_rank)` (a hand-applied migration, this
+     * repo has no migration runner) if that ever stops being true.
+     *
+     * `bgg_rank > 0` rather than IS NOT NULL - 0 is how BGG's export spells
+     * "unranked". import_bgg_ranks.php normalises that to NULL, but this way
+     * a single un-normalised row can't sort ahead of the actual number one.
+     *
+     * @return list<array{bggId:int,name:string,yearPublished:int|null,rank:int,rating:float|null}>
+     */
+    public function topRanked(int $limit = 10): array
+    {
+        $rows = db()->query(
+            'SELECT bgg_id, name, year_published, average, bgg_rank FROM bgg_ranks'
+                . ' WHERE bgg_rank > 0 ORDER BY bgg_rank ASC LIMIT ' . $limit
+        )->fetchAll();
+
+        return array_map(fn(array $row) => [
+            'bggId' => (int) $row['bgg_id'],
+            'name' => (string) $row['name'],
+            'yearPublished' => $row['year_published'] === null ? null : (int) $row['year_published'],
+            'rank' => (int) $row['bgg_rank'],
+            'rating' => $row['average'] === null ? null : round((float) $row['average'], 1),
+        ], $rows);
+    }
+
+    /**
      * "Did you mean" candidates for a query that matched nothing (#92).
      *
      * Deliberately not wired into suggest(): that fires per keystroke and
