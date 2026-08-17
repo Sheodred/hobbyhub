@@ -5,6 +5,13 @@ import * as api from "./api";
 import type { Boardgame } from "./api";
 
 describe("BoardgameLookupPage", () => {
+  // The example is the site's one worked example, so it is pinned: it has to
+  // resolve to a single game, not a disambiguation list (#100).
+  it("uses a modern hobby game as the search example", () => {
+    render(<BoardgameLookupPage />);
+    expect(screen.getByRole("combobox")).toHaveAttribute("placeholder", "Search for a board game, e.g. Frosthaven");
+  });
+
   it("shows the game's rating, good/bad snippet, and BGG source credit after a search", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "ok",
@@ -391,6 +398,24 @@ describe("BoardgameLookupPage", () => {
     expect(screen.getByRole("button", { name: /Catan/ })).toBeInTheDocument();
   });
 
+  it("says 'no exact match' once, in the status region only (#107)", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "not_found",
+      query: "teasd",
+      suggestions: [{ bggId: 13, name: "Catan", yearPublished: 1995 }],
+    });
+
+    render(<BoardgameLookupPage />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "teasd" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    // The status region is visible, so a second paragraph repeating it renders
+    // the same sentence twice, stacked.
+    await waitFor(() => expect(screen.getByText(/did you mean/i)).toBeInTheDocument());
+    expect(screen.getAllByText(/no exact match/i)).toHaveLength(1);
+    expect(screen.getByRole("status")).toHaveTextContent(/no exact match for “teasd”\. 1 similar name suggested\./i);
+  });
+
   it("says so plainly when nothing matches and there is nothing to suggest", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "not_found",
@@ -402,10 +427,10 @@ describe("BoardgameLookupPage", () => {
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "zzzzqqqq" } });
     fireEvent.submit(screen.getByRole("search"));
 
-    // Deliberately not getByText: the wording appears both in the visible
-    // paragraph and in the role="status" announcement, and a bare getByText
-    // throws on the duplicate rather than asserting anything useful.
+    // The status region is visible and carries this sentence on its own; the
+    // paragraph below it only adds the advice (#107).
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/no board game found/i));
+    expect(screen.getAllByText(/no board game found/i)).toHaveLength(1);
     expect(screen.getByText(/check the spelling/i)).toBeInTheDocument();
     expect(screen.queryByText(/did you mean/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
