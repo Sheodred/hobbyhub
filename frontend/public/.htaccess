@@ -14,11 +14,17 @@ RewriteRule ^ index.html [L]
 # so without this every visitor downloads 3.2x more JavaScript than needed.
 # Images and fonts are left out on purpose - they are already compressed
 # formats and re-compressing them costs CPU for no gain.
+#
+# text/javascript is the one that matters and it is easy to miss: IONOS
+# serves .js as text/javascript (now the WHATWG-standard type), NOT
+# application/javascript. The first version of this listed only the
+# application/ spelling, so CSS compressed and the 445 KB bundle silently
+# did not - verified against production. Keep both spellings.
 <IfModule mod_brotli.c>
-  AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/css text/xml application/javascript application/json image/svg+xml
+  AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/css text/xml text/javascript application/javascript application/json image/svg+xml
 </IfModule>
 <IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml application/javascript application/json image/svg+xml
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml text/javascript application/javascript application/json image/svg+xml
 </IfModule>
 
 <IfModule mod_expires.c>
