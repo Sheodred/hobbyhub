@@ -223,6 +223,41 @@ class BggClient
         ];
     }
 
+    // Typeahead for the search box, backed by the same dump resolveFromRanks()
+    // falls back to - never the live API, so this never throttles or throws.
+    // Prefix match on the indexed name column first (same ORDER BY as the
+    // ranks fallback, so the game people meant leads); only when that finds
+    // nothing does it retry with #73's punctuation-stripped comparison, which
+    // can't use the index but only runs on the empty-result path.
+    public function suggest(string $query, int $limit = 3): array
+    {
+        $normalized = strtolower(trim($query));
+        if ($normalized === '') {
+            return [];
+        }
+
+        $matches = $this->queryRanks(
+            'SELECT bgg_id, name, year_published FROM bgg_ranks WHERE name LIKE ? ORDER BY users_rated DESC LIMIT ' . $limit,
+            $normalized . '%'
+        );
+
+        if ($matches === []) {
+            $stripped = str_replace([':', '-', ',', ' '], '', $normalized);
+            if ($stripped !== '') {
+                $matches = $this->queryRanks(
+                    "SELECT bgg_id, name, year_published FROM bgg_ranks WHERE REPLACE(REPLACE(REPLACE(REPLACE(name, ':', ''), '-', ''), ',', ''), ' ', '') LIKE ? ORDER BY users_rated DESC LIMIT " . $limit,
+                    $stripped . '%'
+                );
+            }
+        }
+
+        return array_map(fn(array $row) => [
+            'bggId' => (int) $row['bgg_id'],
+            'name' => (string) $row['name'],
+            'yearPublished' => $row['year_published'] === null ? null : (int) $row['year_published'],
+        ], $matches);
+    }
+
     private function queryRanks(string $sql, string $param): array
     {
         $stmt = db()->prepare($sql);

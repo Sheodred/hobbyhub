@@ -326,4 +326,66 @@ final class BggClientTest extends TestCase
 
         $this->assertSame(['status' => 'not_found'], $client->resolveSearch('zzzznonexistentgamezzzz'));
     }
+
+    public function testSuggestReturnsPrefixMatchesOrderedByUsersRated(): void
+    {
+        $this->seedRanks();
+
+        $result = (new BggClient())->suggest('cat');
+
+        $this->assertSame(
+            [13, 926],
+            array_column($result, 'bggId'),
+            'most-rated first, same as the ranks fallback used for disambiguation'
+        );
+        $this->assertSame(['bggId' => 13, 'name' => 'Catan', 'yearPublished' => 1995], $result[0]);
+    }
+
+    public function testSuggestIsCappedAtThree(): void
+    {
+        db()->exec(
+            "INSERT INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion, bgg_rank) VALUES
+             (1, 'Ark Nova', 2021, 8.5, 400, 0, 3),
+             (2, 'Arkham Horror', 2005, 7.5, 300, 0, 10),
+             (3, 'Arkham Horror: The Card Game', 2016, 8.2, 200, 0, 20),
+             (4, 'Architects of the West Kingdom', 2018, 8.0, 100, 0, 30)"
+        );
+
+        $this->assertCount(3, (new BggClient())->suggest('ar'));
+    }
+
+    public function testSuggestMatchesPunctuationStripped(): void
+    {
+        // Same rule #73 gave resolveFromRanks(): a user has no reason to type
+        // the colon the dump still stores.
+        db()->exec(
+            "INSERT INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion, bgg_rank) VALUES
+             (224517, 'Brass: Birmingham', 2018, 8.6, 50000, 0, 5)"
+        );
+
+        $result = (new BggClient())->suggest('Brass Birm');
+
+        $this->assertSame([224517], array_column($result, 'bggId'));
+    }
+
+    public function testSuggestReturnsEmptyArrayWhenNothingMatches(): void
+    {
+        $this->seedRanks();
+
+        $this->assertSame([], (new BggClient())->suggest('zzzznonexistentzzzz'));
+    }
+
+    public function testSuggestReturnsEmptyArrayWhenRanksTableIsEmpty(): void
+    {
+        // bgg_ranks is a hand-imported dump and may be empty in a fresh
+        // database - suggestions must degrade silently, not error.
+        $this->assertSame([], (new BggClient())->suggest('cat'));
+    }
+
+    public function testSuggestReturnsEmptyArrayForABlankQuery(): void
+    {
+        $this->seedRanks();
+
+        $this->assertSame([], (new BggClient())->suggest('  '));
+    }
 }
