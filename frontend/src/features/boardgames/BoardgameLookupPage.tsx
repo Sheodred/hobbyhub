@@ -266,7 +266,7 @@ export function BoardgameLookupPage() {
             onChange={(e) => onQueryChange(e.target.value)}
             onKeyDown={onSearchKeyDown}
             onBlur={closeSuggestions}
-            placeholder="Search for a board game, e.g. Catan"
+            placeholder="Search for a board game, e.g. Frosthaven"
             className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
           />
           {suggestions.length > 0 && (
@@ -355,14 +355,15 @@ export function BoardgameLookupPage() {
             no combobox owning it and no aria-activedescendant driving it -
             listbox semantics would promise arrow-key navigation that has
             nothing behind it. Announcement goes through the existing
-            role="status" region, not a third live region. */}
+            role="status" region, not a third live region - and since that
+            region is visible, the outcome sentence lives there only. What is
+            left here is the lead-in and the advice; repeating the sentence
+            rendered it twice, stacked (#107). */}
         {state.kind === "not_found" && (
           <FadeIn>
             {state.suggestions.length > 0 ? (
               <>
-                <p className="mb-3 text-slate-300">
-                  No exact match for &ldquo;{state.query}&rdquo;. Did you mean:
-                </p>
+                <p className="mb-3 text-slate-300">Did you mean:</p>
                 <ul className="flex flex-wrap gap-2">
                   {state.suggestions.map((candidate) => (
                     <li key={candidate.bggId}>
@@ -379,10 +380,7 @@ export function BoardgameLookupPage() {
                 </ul>
               </>
             ) : (
-              <p className="text-slate-300">
-                No board game found for &ldquo;{state.query}&rdquo;. Check the spelling, or try a shorter
-                search.
-              </p>
+              <p className="text-slate-300">Check the spelling, or try a shorter search.</p>
             )}
           </FadeIn>
         )}
