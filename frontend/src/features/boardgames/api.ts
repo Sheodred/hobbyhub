@@ -80,7 +80,13 @@ export interface Boardgame {
 
 export type BoardgameLookupResult =
   | { status: "ok"; game: Boardgame }
-  | { status: "disambiguation"; candidates: BoardgameCandidate[] };
+  | { status: "disambiguation"; candidates: BoardgameCandidate[] }
+  /**
+   * The search ran and found nothing - a result, not a failure, so it
+   * arrives as a 200. `suggestions` holds the closest names in the local
+   * catalogue and is empty when even those miss.
+   */
+  | { status: "not_found"; query: string; suggestions: BoardgameCandidate[] };
 
 export function lookupBoardgame(query: string): Promise<BoardgameLookupResult> {
   const params = new URLSearchParams({ q: query });

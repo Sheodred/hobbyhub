@@ -369,4 +369,85 @@ describe("BoardgameLookupPage", () => {
     await waitFor(() => expect(api.suggestBoardgames).toHaveBeenCalled());
     expect(screen.queryByRole("option")).not.toBeInTheDocument();
   });
+  it("offers close names instead of an error when nothing matches (#92)", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "not_found",
+      query: "teasd",
+      suggestions: [
+        { bggId: 13, name: "Catan", yearPublished: 1995 },
+        { bggId: 266192, name: "Wingspan", yearPublished: 2019 },
+      ],
+    });
+
+    render(<BoardgameLookupPage />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "teasd" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    // The old behaviour surfaced a 502 as "Something went wrong looking up
+    // that board game" - a server fault for what is really "no such game".
+    await waitFor(() => expect(screen.getByText(/did you mean/i)).toBeInTheDocument());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Catan/ })).toBeInTheDocument();
+  });
+
+  it("says so plainly when nothing matches and there is nothing to suggest", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "not_found",
+      query: "zzzzqqqq",
+      suggestions: [],
+    });
+
+    render(<BoardgameLookupPage />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "zzzzqqqq" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    // Deliberately not getByText: the wording appears both in the visible
+    // paragraph and in the role="status" announcement, and a bare getByText
+    // throws on the duplicate rather than asserting anything useful.
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(/no board game found/i));
+    expect(screen.getByText(/check the spelling/i)).toBeInTheDocument();
+    expect(screen.queryByText(/did you mean/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("puts the chosen name in the search box when a did-you-mean suggestion is taken", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "not_found",
+      query: "ctaan",
+      suggestions: [{ bggId: 13, name: "Catan", yearPublished: 1995 }],
+    });
+    const byId = vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({
+      status: "disambiguation",
+      candidates: [],
+    });
+
+    render(<BoardgameLookupPage />);
+    const box = screen.getByRole("combobox");
+    fireEvent.change(box, { target: { value: "ctaan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    fireEvent.click(await screen.findByRole("button", { name: /Catan/ }));
+
+    await waitFor(() => expect(byId).toHaveBeenCalledWith(13));
+    // Leaving the typo in the box desyncs what the user sees from what they
+    // got back - the same bug pick() had for disambiguation candidates.
+    expect(box).toHaveValue("Catan");
+  });
+
+  it("does not reopen the typeahead over the result after taking a suggestion", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "not_found",
+      query: "ctaan",
+      suggestions: [{ bggId: 13, name: "Catan", yearPublished: 1995 }],
+    });
+    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "disambiguation", candidates: [] });
+
+    render(<BoardgameLookupPage />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "ctaan" } });
+    fireEvent.submit(screen.getByRole("search"));
+    fireEvent.click(await screen.findByRole("button", { name: /Catan/ }));
+
+    await waitFor(() => expect(screen.getByRole("combobox")).toHaveAttribute("aria-expanded", "false"));
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
 });

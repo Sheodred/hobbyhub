@@ -17,6 +17,7 @@ type ViewState =
   | { kind: "loading" }
   | { kind: "error"; message: string }
   | { kind: "disambiguation"; candidates: BoardgameCandidate[] }
+  | { kind: "not_found"; query: string; suggestions: BoardgameCandidate[] }
   | { kind: "result"; game: Boardgame };
 
 // 2 chars keeps a single keystroke from firing a request; 200ms is short
@@ -42,11 +43,13 @@ export function BoardgameLookupPage() {
   }
 
   function applyResult(result: BoardgameLookupResult) {
-    setState(
-      result.status === "ok"
-        ? { kind: "result", game: result.game }
-        : { kind: "disambiguation", candidates: result.candidates }
-    );
+    if (result.status === "ok") {
+      setState({ kind: "result", game: result.game });
+    } else if (result.status === "not_found") {
+      setState({ kind: "not_found", query: result.query, suggestions: result.suggestions });
+    } else {
+      setState({ kind: "disambiguation", candidates: result.candidates });
+    }
   }
 
   function fail(err: unknown) {
@@ -65,7 +68,11 @@ export function BoardgameLookupPage() {
     }
   }
 
-  async function pick(bggId: number) {
+  // name is set straight into the box: without it, choosing a candidate
+  // leaves the old query on screen next to a different game's result.
+  async function pick(bggId: number, name?: string) {
+    if (name !== undefined) setQuery(name);
+    closeSuggestions();
     setState({ kind: "loading" });
     try {
       applyResult(await lookupBoardgameById(bggId));
@@ -106,7 +113,7 @@ export function BoardgameLookupPage() {
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
-    } else if (e.key === "Enter" && activeIndex >= 0) {
+    } else if (e.key === "Enter" && suggestions[activeIndex]) {
       e.preventDefault();
       selectSuggestion(suggestions[activeIndex]);
     } else if (e.key === "Escape") {
@@ -121,6 +128,13 @@ export function BoardgameLookupPage() {
   if (state.kind === "loading") statusText = "Searching…";
   else if (state.kind === "disambiguation") statusText = "Several games match that name — which one did you mean?";
   else if (state.kind === "result") statusText = `${state.game.name} found`;
+  else if (state.kind === "not_found")
+    statusText =
+      state.suggestions.length > 0
+        ? `No exact match for “${state.query}”. ${state.suggestions.length} similar name${
+            state.suggestions.length === 1 ? "" : "s"
+          } suggested.`
+        : `No board game found for “${state.query}”.`;
 
   return (
     <div>
@@ -143,7 +157,9 @@ export function BoardgameLookupPage() {
             aria-haspopup="listbox"
             aria-expanded={suggestions.length > 0}
             aria-controls="boardgame-search-suggestions"
-            aria-activedescendant={activeIndex >= 0 ? `boardgame-suggestion-${suggestions[activeIndex].bggId}` : undefined}
+            aria-activedescendant={
+              suggestions[activeIndex] ? `boardgame-suggestion-${suggestions[activeIndex].bggId}` : undefined
+            }
             autoComplete="off"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
@@ -220,7 +236,7 @@ export function BoardgameLookupPage() {
                 <li key={candidate.bggId}>
                   <button
                     type="button"
-                    onClick={() => pick(candidate.bggId)}
+                    onClick={() => pick(candidate.bggId, candidate.name)}
                     className="rounded-full border border-slate-700 bg-slate-900 px-4 py-1.5 text-sm text-slate-200 hover:border-indigo-500 hover:text-indigo-400"
                   >
                     {candidate.name}
@@ -229,6 +245,44 @@ export function BoardgameLookupPage() {
                 </li>
               ))}
             </ul>
+          </FadeIn>
+        )}
+
+        {/* Deliberately the same markup as the disambiguation list above: a
+            plain <ul> of buttons, not a second listbox. This appears after a
+            submitted search rather than under a focused input, so there is
+            no combobox owning it and no aria-activedescendant driving it -
+            listbox semantics would promise arrow-key navigation that has
+            nothing behind it. Announcement goes through the existing
+            role="status" region, not a third live region. */}
+        {state.kind === "not_found" && (
+          <FadeIn>
+            {state.suggestions.length > 0 ? (
+              <>
+                <p className="mb-3 text-slate-300">
+                  No exact match for &ldquo;{state.query}&rdquo;. Did you mean:
+                </p>
+                <ul className="flex flex-wrap gap-2">
+                  {state.suggestions.map((candidate) => (
+                    <li key={candidate.bggId}>
+                      <button
+                        type="button"
+                        onClick={() => pick(candidate.bggId, candidate.name)}
+                        className="rounded-full border border-slate-700 bg-slate-900 px-4 py-1.5 text-sm text-slate-200 hover:border-indigo-500 hover:text-indigo-400"
+                      >
+                        {candidate.name}
+                        {candidate.yearPublished ? ` (${candidate.yearPublished})` : ""}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="text-slate-300">
+                No board game found for &ldquo;{state.query}&rdquo;. Check the spelling, or try a shorter
+                search.
+              </p>
+            )}
           </FadeIn>
         )}
 

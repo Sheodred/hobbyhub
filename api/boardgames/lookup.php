@@ -32,7 +32,15 @@ try {
     if ($bggId === null) {
         $resolved = $client->resolveSearch($q);
         if ($resolved['status'] === 'not_found') {
-            error_response('No board game found for that name.', 404);
+            // #92: a search that ran and found nothing is a successful
+            // search with zero results, not a failure - so 200, and carry
+            // the near misses so a typo has somewhere to go. A non-2xx here
+            // would strand them: apiFetch() throws away the body.
+            json_response([
+                'status' => 'not_found',
+                'query' => $q,
+                'suggestions' => $client->didYouMean($q),
+            ]);
         }
         if ($resolved['status'] === 'disambiguation') {
             json_response(['status' => 'disambiguation', 'candidates' => $resolved['candidates']]);
