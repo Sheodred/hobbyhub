@@ -278,7 +278,14 @@ describe("BoardgameLookupPage", () => {
   it("renders BGG mechanic and category tags on the result card (#131)", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, categories: ["Negotiation"], mechanics: ["Dice Rolling", "Trading"] },
+      game: {
+        ...CATAN,
+        categories: [{ id: 1021, name: "Negotiation" }],
+        mechanics: [
+          { id: 2072, name: "Dice Rolling" },
+          { id: 2008, name: "Trading" },
+        ],
+      },
     });
 
     renderPage();
@@ -301,10 +308,34 @@ describe("BoardgameLookupPage", () => {
     ).toBeTruthy();
   });
 
-  it("shows the strategy and family game ranks alongside the overall BGG rank", async () => {
+  it("links each mechanic and category tag to BGG's own page for it", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, rank: 627, strategyRank: 592, familyRank: 206 },
+      game: {
+        ...CATAN,
+        categories: [{ id: 1021, name: "Negotiation" }],
+        mechanics: [{ id: 2072, name: "Dice Rolling" }],
+      },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(await screen.findByText("Negotiation")).toHaveAttribute(
+      "href",
+      "https://boardgamegeek.com/boardgamecategory/1021"
+    );
+    expect(screen.getByText("Dice Rolling")).toHaveAttribute(
+      "href",
+      "https://boardgamegeek.com/boardgamemechanic/2072"
+    );
+  });
+
+  it("shows the strategy, family, and thematic game ranks alongside the overall BGG rank", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, rank: 627, strategyRank: 592, familyRank: 206, thematicRank: 1 },
     });
 
     renderPage();
@@ -314,12 +345,13 @@ describe("BoardgameLookupPage", () => {
     expect(await screen.findByText("BGG rank #627")).toBeInTheDocument();
     expect(screen.getByText("Strategy rank #592")).toBeInTheDocument();
     expect(screen.getByText("Family rank #206")).toBeInTheDocument();
+    expect(screen.getByText("Thematic rank #1")).toBeInTheDocument();
   });
 
-  it("says nothing about a strategy/family rank the game does not have", async () => {
+  it("says nothing about a strategy/family/thematic rank the game does not have", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, rank: 627, strategyRank: null, familyRank: null },
+      game: { ...CATAN, rank: 627, strategyRank: null, familyRank: null, thematicRank: null },
     });
 
     renderPage();
@@ -329,6 +361,7 @@ describe("BoardgameLookupPage", () => {
     await screen.findByText("BGG rank #627");
     expect(screen.queryByText(/Strategy rank/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Family rank/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Thematic rank/)).not.toBeInTheDocument();
   });
 
   it("shows no award badge for a game that isn't in the panel (#117)", async () => {
@@ -464,7 +497,12 @@ describe("BoardgameLookupPage", () => {
         players: "3 - 4",
         duration: "90 Minuten",
         age: "ab 12 Jahren",
-        complexity: { value: 12, max: 20, url: "https://www.brettspiele-report.de/catan-staedte-und-ritter/" },
+        complexity: {
+          value: 12,
+          max: 20,
+          source: "brettspiele-report",
+          url: "https://www.brettspiele-report.de/catan-staedte-und-ritter/",
+        },
         price: null, isExpansion: true,
         rank: 401,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/926" },
@@ -482,7 +520,7 @@ describe("BoardgameLookupPage", () => {
     expect(screen.getByText("BGG rank #401")).toBeInTheDocument();
     expect(screen.getByText("Expansion")).toBeInTheDocument();
     // The scale travels with the number, and the link says whose number it is.
-    expect(screen.getByRole("link", { name: /Komplexität 12 \/ 20/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Komplexität 12 \/ 20 · brettspiele-report/ })).toHaveAttribute(
       "href", "https://www.brettspiele-report.de/catan-staedte-und-ritter/"
     );
   });

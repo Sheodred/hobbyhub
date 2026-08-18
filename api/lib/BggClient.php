@@ -693,34 +693,109 @@ class BggClient
             'isExpansion' => (string) $item['type'] === 'boardgameexpansion',
             // #131: the thing response already carries these as <link> children -
             // mechanics (Worker Placement, Deck Building, ...) and categories
-            // (the theme: Science Fiction, Economic, ...). Surfaced as plain
-            // labels; the dump-backed partial path has neither and omits them.
-            'mechanics' => $this->linkValues($item, 'boardgamemechanic'),
-            'categories' => $this->linkValues($item, 'boardgamecategory'),
+            // (the theme: Science Fiction, Economic, ...). Each carries BGG's
+            // own id so the frontend can link to BGG's page for it without
+            // reproducing their slugging - the dump-backed partial path has
+            // neither and omits them.
+            'mechanics' => $this->linkTags($item, 'boardgamemechanic'),
+            'categories' => $this->linkTags($item, 'boardgamecategory'),
             // Read live from this same response, not the bgg_rank column -
             // see familyRank(). null on the dump-backed partial path.
             'strategyRank' => self::familyRank($item, 'strategygames'),
             'familyRank' => self::familyRank($item, 'familygames'),
+            // BGG's "family" rank named "thematic" - a third league table
+            // alongside strategy/family games, e.g. Pandemic Legacy: Season 1
+            // is #1 thematic and #3 strategy simultaneously (probed live,
+            // 2026-08-18).
+            'thematicRank' => self::familyRank($item, 'thematic'),
+            // H@LL9000's German phrasing ("75 Minuten", "ab 10 Jahren") wins
+            // in lookup.php when that site has an entry; these are the
+            // fallback for the many games it has none for at all - BGG's own
+            // minplayers/maxplayers/playingtime/minage, already sitting in
+            // this same response and unread until now (id 161936, Pandemic
+            // Legacy: Season 1, probed 2026-08-18: no H@LL9000 entry, BGG's
+            // fields present and correct).
+            'players' => self::playerRange($item),
+            'duration' => self::durationRange($item),
+            'age' => self::ageLabel($item),
+            // Same fallback story: brettspiele-report wins when it has an
+            // entry (see lookup.php); BGG's own community weight rating
+            // (averageweight, 1-5, same scale as brettspiele-report's own)
+            // fills the gap otherwise.
+            'complexity' => self::complexityFromBgg($item, $bggId),
             'partial' => false,
             'source' => ['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/' . $bggId],
         ];
     }
 
-    /**
-     * The values of every <link> of one type on a thing (e.g. every
-     * boardgamemechanic), in BGG's own order. Empty when the thing has none.
-     *
-     * @return string[]
-     */
-    private function linkValues(SimpleXMLElement $item, string $type): array
+    // BGG uses 0 for "not set" on these fields, same convention as the
+    // rating comments' non-numeric rating - 0 means absent, not "0 players".
+    private static function playerRange(SimpleXMLElement $item): ?string
     {
-        $values = [];
+        $min = isset($item->minplayers) ? (int) $item->minplayers['value'] : 0;
+        $max = isset($item->maxplayers) ? (int) $item->maxplayers['value'] : 0;
+        if ($min <= 0 && $max <= 0) {
+            return null;
+        }
+        return $min > 0 && $max > 0 && $min !== $max ? "$min - $max" : (string) max($min, $max);
+    }
+
+    private static function durationRange(SimpleXMLElement $item): ?string
+    {
+        $min = isset($item->minplaytime) ? (int) $item->minplaytime['value'] : 0;
+        $max = isset($item->maxplaytime) ? (int) $item->maxplaytime['value'] : 0;
+        if ($min <= 0 && $max <= 0) {
+            return null;
+        }
+        $value = $min > 0 && $max > 0 && $min !== $max ? "$min - $max" : (string) max($min, $max);
+        // German phrasing, matching H@LL9000's own ("75 Minuten") - this is
+        // a fallback for when that site has no entry, not a different
+        // language for the same card.
+        return "$value Minuten";
+    }
+
+    private static function ageLabel(SimpleXMLElement $item): ?string
+    {
+        $age = isset($item->minage) ? (int) $item->minage['value'] : 0;
+        // "ab X Jahren", matching H@LL9000's own phrasing exactly.
+        return $age > 0 ? "ab {$age} Jahren" : null;
+    }
+
+    private static function complexityFromBgg(SimpleXMLElement $item, int $bggId): ?array
+    {
+        if (!isset($item->statistics->ratings->averageweight)) {
+            return null;
+        }
+        $weight = round((float) $item->statistics->ratings->averageweight['value'], 2);
+        if ($weight <= 0) {
+            return null;
+        }
+        return [
+            'value' => $weight,
+            'max' => 5,
+            'source' => 'BoardGameGeek',
+            'url' => 'https://boardgamegeek.com/boardgame/' . $bggId,
+        ];
+    }
+
+    /**
+     * Every <link> of one type on a thing (e.g. every boardgamemechanic), in
+     * BGG's own order, as {id, name} pairs. The id is what lets the frontend
+     * link straight to BGG's own page for the tag (boardgamemechanic/{id})
+     * without reproducing BGG's slug rules - BGG redirects an id-only URL to
+     * the correctly-slugged one itself. Empty when the thing has none.
+     *
+     * @return array<array{id:int,name:string}>
+     */
+    private function linkTags(SimpleXMLElement $item, string $type): array
+    {
+        $tags = [];
         foreach ($item->link as $link) {
             if ((string) $link['type'] === $type) {
-                $values[] = (string) $link['value'];
+                $tags[] = ['id' => (int) $link['id'], 'name' => (string) $link['value']];
             }
         }
-        return $values;
+        return $tags;
     }
 
     // Up to this many snippets per side - matches the panel's own "top 3 /

@@ -246,6 +246,27 @@ final class BggClientTest extends TestCase
         $this->assertSame(206, $result['familyRank']);
     }
 
+    public function testLookupSurfacesTheThematicRank(): void
+    {
+        // A third "family" league table, same shape as strategy/family games -
+        // probed live on Pandemic Legacy: Season 1 (id 161936, 2026-08-18):
+        // #1 thematic and #3 strategy at once.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="161936"><name type="primary" value="Pandemic Legacy: Season 1"/>' .
+            '<statistics><ratings><ranks>' .
+            '<rank type="subtype" name="boardgame" value="3"/>' .
+            '<rank type="family" name="thematic" value="1"/>' .
+            '<rank type="family" name="strategygames" value="3"/>' .
+            '</ranks></ratings></statistics>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(161936);
+
+        $this->assertSame(1, $result['thematicRank']);
+        $this->assertSame(3, $result['strategyRank']);
+    }
+
     public function testStrategyAndFamilyRanksAreNullWhenBggHasNoSuchLeagueTable(): void
     {
         // Most of BGG's catalog carries no family rank at all (party games,
@@ -262,26 +283,118 @@ final class BggClientTest extends TestCase
 
         $this->assertNull($result['strategyRank']);
         $this->assertNull($result['familyRank']);
+        $this->assertNull($result['thematicRank']);
+    }
+
+    public function testLookupSurfacesPlayerCountDurationAndAgeFromBgg(): void
+    {
+        // Real shape from BGG's live thing response (id 161936, probed
+        // 2026-08-18) - fields this project fetched but never read, left
+        // null on every game the German H@LL9000 site has no listing for.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="161936"><name type="primary" value="Pandemic Legacy: Season 1"/>' .
+            '<minplayers value="2"/><maxplayers value="4"/>' .
+            '<minplaytime value="60"/><maxplaytime value="60"/>' .
+            '<minage value="13"/>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(161936);
+
+        $this->assertSame('2 - 4', $result['players']);
+        // German phrasing, matching H@LL9000's own exactly - this is a
+        // fallback for the same card, not a different language for it.
+        $this->assertSame('60 Minuten', $result['duration']);
+        $this->assertSame('ab 13 Jahren', $result['age']);
+    }
+
+    public function testPlayerCountAndDurationCollapseToASingleNumberWhenMinEqualsMax(): void
+    {
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="13"><name type="primary" value="Catan"/>' .
+            '<minplayers value="4"/><maxplayers value="4"/>' .
+            '<minplaytime value="90"/><maxplaytime value="90"/>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(13);
+
+        $this->assertSame('4', $result['players'], 'a range with the same min and max reads worse than a single number');
+        $this->assertSame('90 Minuten', $result['duration']);
+    }
+
+    public function testLookupSurfacesComplexityFromBggsAverageweight(): void
+    {
+        // brettspiele-report wins in lookup.php when it has an entry; this
+        // is the fallback BggClient itself supplies for when it doesn't -
+        // same 1-5 scale, BGG's own community weight poll.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="161936"><name type="primary" value="Pandemic Legacy: Season 1"/>' .
+            '<statistics><ratings><averageweight value="2.8283"/></ratings></statistics>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(161936);
+
+        $this->assertSame(
+            ['value' => 2.83, 'max' => 5, 'source' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/161936'],
+            $result['complexity']
+        );
+    }
+
+    public function testComplexityIsNullWhenBggHasNoWeightVotesYet(): void
+    {
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="13"><name type="primary" value="Catan"/>' .
+            '<statistics><ratings><averageweight value="0"/></ratings></statistics>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(13);
+
+        $this->assertNull($result['complexity']);
+    }
+
+    public function testPlayerCountDurationAndAgeAreNullWhenBggHasNoSuchData(): void
+    {
+        // BGG uses 0, not an absent tag, for "not set" - 0 must not render
+        // as "0 - 0" or "Age: 0+".
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="13"><name type="primary" value="Catan"/>' .
+            '<minplayers value="0"/><maxplayers value="0"/>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(13);
+
+        $this->assertNull($result['players']);
+        $this->assertNull($result['duration']);
+        $this->assertNull($result['age']);
     }
 
     public function testLookupSurfacesMechanicAndCategoryLabels(): void
     {
         // #131: BGG carries mechanics and categories (the theme) as <link>
         // children on the thing - already fetched, now read. Other link types
-        // (designer, publisher, ...) are left out of these two lists.
+        // (designer, publisher, ...) are left out of these two lists. Each
+        // carries BGG's own id (needed to link to BGG's page for the tag).
         $client = new BggClient(fn(string $url) => $this->thingXml(
             '<item id="13"><name type="primary" value="Catan"/>' .
-            '<link type="boardgamecategory" value="Negotiation"/>' .
-            '<link type="boardgamemechanic" value="Dice Rolling"/>' .
-            '<link type="boardgamemechanic" value="Trading"/>' .
-            '<link type="boardgamedesigner" value="Klaus Teuber"/>' .
+            '<link type="boardgamecategory" id="1021" value="Negotiation"/>' .
+            '<link type="boardgamemechanic" id="2072" value="Dice Rolling"/>' .
+            '<link type="boardgamemechanic" id="2008" value="Trading"/>' .
+            '<link type="boardgamedesigner" id="9" value="Klaus Teuber"/>' .
             '</item>'
         ));
 
         $result = $client->lookup(13);
 
-        $this->assertSame(['Negotiation'], $result['categories']);
-        $this->assertSame(['Dice Rolling', 'Trading'], $result['mechanics'], 'BGG order, designer link ignored');
+        $this->assertSame([['id' => 1021, 'name' => 'Negotiation']], $result['categories']);
+        $this->assertSame(
+            [['id' => 2072, 'name' => 'Dice Rolling'], ['id' => 2008, 'name' => 'Trading']],
+            $result['mechanics'],
+            'BGG order, designer link ignored'
+        );
     }
 
     public function testASingleCommentPageStillSuppliesBothSnippets(): void

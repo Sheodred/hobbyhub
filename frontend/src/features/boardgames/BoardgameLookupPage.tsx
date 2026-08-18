@@ -46,6 +46,13 @@ function shareLink(bggId: number): string {
   return `${window.location.origin}${window.location.pathname}?bgg_id=${bggId}`;
 }
 
+// BGG redirects an id-only URL to the correctly-slugged page itself
+// (verified live: /boardgamemechanic/2916 -> /boardgamemechanic/2916/alliances),
+// so there is no slug to reproduce here.
+function bggTagUrl(kind: "boardgamemechanic" | "boardgamecategory", id: number): string {
+  return `https://boardgamegeek.com/${kind}/${id}`;
+}
+
 /** For browsers without the clipboard API, and for any page not on https. */
 function legacyCopy(text: string): boolean {
   const field = document.createElement("textarea");
@@ -109,7 +116,7 @@ function ReviewSnippet({ text }: { text: string }) {
   const clamped = long && !expanded ? `${words.slice(0, REVIEW_WORD_CLAMP).join(" ")}…` : text;
 
   return (
-    <p className="mt-2 text-sm text-slate-300">
+    <p className="break-words py-2 text-sm text-slate-300">
       {clamped}
       {long && (
         <>
@@ -852,6 +859,7 @@ export function BoardgameLookupPage() {
                 state.game.rank !== null ||
                 typeof state.game.strategyRank === "number" ||
                 typeof state.game.familyRank === "number" ||
+                typeof state.game.thematicRank === "number" ||
                 state.game.complexity) && (
                 <p className="mt-3 flex flex-wrap items-center gap-2">
                   {[
@@ -864,6 +872,7 @@ export function BoardgameLookupPage() {
                     // overall and still #592 among strategy games.
                     typeof state.game.strategyRank === "number" && `Strategy rank #${state.game.strategyRank}`,
                     typeof state.game.familyRank === "number" && `Family rank #${state.game.familyRank}`,
+                    typeof state.game.thematicRank === "number" && `Thematic rank #${state.game.thematicRank}`,
                   ]
                     .filter((fact): fact is string => Boolean(fact))
                     .map((fact) => (
@@ -885,7 +894,7 @@ export function BoardgameLookupPage() {
                       rel="noreferrer nofollow"
                       className="rounded-full border border-indigo-400/25 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-100 underline decoration-indigo-300/40 underline-offset-2 hover:border-indigo-400/60 hover:text-white"
                     >
-                      Komplexität {state.game.complexity.value} / {state.game.complexity.max} · brettspiele-report
+                      Komplexität {state.game.complexity.value} / {state.game.complexity.max} · {state.game.complexity.source}
                     </a>
                   )}
                 </p>
@@ -900,12 +909,15 @@ export function BoardgameLookupPage() {
               {(state.game.categories?.length ?? 0) > 0 && (
                 <p className="mt-3 flex flex-wrap items-center gap-2">
                   {(state.game.categories ?? []).map((category) => (
-                    <span
-                      key={category}
-                      className="rounded-full border border-rose-400/25 bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-100"
+                    <a
+                      key={category.id}
+                      href={bggTagUrl("boardgamecategory", category.id)}
+                      target="_blank"
+                      rel="noreferrer nofollow"
+                      className="rounded-full border border-rose-400/25 bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-100 hover:border-rose-400/60 hover:text-white"
                     >
-                      {category}
-                    </span>
+                      {category.name}
+                    </a>
                   ))}
                 </p>
               )}
@@ -956,12 +968,15 @@ export function BoardgameLookupPage() {
               {(state.game.mechanics?.length ?? 0) > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {(state.game.mechanics ?? []).map((mechanic) => (
-                    <span
-                      key={mechanic}
-                      className="rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-xs text-slate-300"
+                    <a
+                      key={mechanic.id}
+                      href={bggTagUrl("boardgamemechanic", mechanic.id)}
+                      target="_blank"
+                      rel="noreferrer nofollow"
+                      className="rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-xs text-slate-300 hover:border-slate-500 hover:text-white"
                     >
-                      {mechanic}
-                    </span>
+                      {mechanic.name}
+                    </a>
                   ))}
                 </div>
               )}
@@ -974,19 +989,25 @@ export function BoardgameLookupPage() {
               {(state.game.good || state.game.bad) && (
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
                   {state.game.good && (
-                    <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
+                    <div className="min-w-0 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
                       <p className="text-xs font-medium uppercase tracking-wide text-emerald-400">The good</p>
-                      {state.game.good.map((text) => (
-                        <ReviewSnippet key={text} text={text} />
-                      ))}
+                      {/* divide-y draws a rule between snippets so up to 3 in
+                          one box read as separate reviews, not one blob. */}
+                      <div className="divide-y divide-emerald-500/10">
+                        {state.game.good.map((text) => (
+                          <ReviewSnippet key={text} text={text} />
+                        ))}
+                      </div>
                     </div>
                   )}
                   {state.game.bad && (
-                    <div className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-4">
+                    <div className="min-w-0 rounded-lg border border-rose-500/30 bg-rose-500/5 p-4">
                       <p className="text-xs font-medium uppercase tracking-wide text-rose-400">The bad</p>
-                      {state.game.bad.map((text) => (
-                        <ReviewSnippet key={text} text={text} />
-                      ))}
+                      <div className="divide-y divide-rose-500/10">
+                        {state.game.bad.map((text) => (
+                          <ReviewSnippet key={text} text={text} />
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
