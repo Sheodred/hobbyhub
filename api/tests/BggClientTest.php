@@ -336,10 +336,7 @@ final class BggClientTest extends TestCase
 
         $result = $client->lookup(161936);
 
-        $this->assertSame(
-            ['value' => 2.83, 'max' => 5, 'source' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/161936'],
-            $result['complexity']
-        );
+        $this->assertSame(['value' => 2.83, 'max' => 5, 'source' => 'BoardGameGeek'], $result['complexity']);
     }
 
     public function testComplexityIsNullWhenBggHasNoWeightVotesYet(): void

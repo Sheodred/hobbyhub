@@ -20,6 +20,7 @@ import {
   type Boardgame,
   type BoardgameCandidate,
   type BoardgameLookupResult,
+  type Complexity,
   type TopBoardgame,
 } from "./api";
 
@@ -66,6 +67,22 @@ function legacyCopy(text: string): boolean {
   } finally {
     field.remove();
   }
+}
+
+// BGG's weight vote is one of these 5 integer labels per voter; the
+// published average is a whole number only by coincidence, so a fractional
+// value's label is whichever whole vote it's closest to - standard
+// rounding, 0.5 as the boundary between two labels. Only meaningful on
+// BGG's own 1-5 scale (max === 5) - brettspiele-report's is 1-20 and has no
+// such labels.
+const WEIGHT_LABELS = ["Light", "Medium Light", "Medium", "Medium Heavy", "Heavy"];
+
+function complexityText(complexity: Complexity): string {
+  if (complexity.max !== 5) {
+    return `${complexity.value} / ${complexity.max}`;
+  }
+  const bucket = Math.min(5, Math.max(1, Math.round(complexity.value)));
+  return `${WEIGHT_LABELS[bucket - 1]} (${complexity.value} / ${complexity.max})`;
 }
 
 // #116: BGG ships one description field, often 1,000+ chars, as a single
@@ -883,19 +900,10 @@ export function BoardgameLookupPage() {
                         {fact}
                       </span>
                     ))}
-                  {/* Their number on their scale, linked to the review that
-                      published it - "4" alone would read as a universal
-                      difficulty rating nobody ever gave. Same chip, underlined,
-                      because this one is the only fact you can click. */}
                   {state.game.complexity && (
-                    <a
-                      href={state.game.complexity.url}
-                      target="_blank"
-                      rel="noreferrer nofollow"
-                      className="rounded-full border border-indigo-400/25 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-100 underline decoration-indigo-300/40 underline-offset-2 hover:border-indigo-400/60 hover:text-white"
-                    >
-                      Komplexität {state.game.complexity.value} / {state.game.complexity.max} · {state.game.complexity.source}
-                    </a>
+                    <span className="rounded-full border border-indigo-400/25 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-100">
+                      Komplexität: {complexityText(state.game.complexity)} · {state.game.complexity.source}
+                    </span>
                   )}
                 </p>
               )}

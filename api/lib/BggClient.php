@@ -722,7 +722,7 @@ class BggClient
             // entry (see lookup.php); BGG's own community weight rating
             // (averageweight, 1-5, same scale as brettspiele-report's own)
             // fills the gap otherwise.
-            'complexity' => self::complexityFromBgg($item, $bggId),
+            'complexity' => self::complexityFromBgg($item),
             'partial' => false,
             'source' => ['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/' . $bggId],
         ];
@@ -761,7 +761,7 @@ class BggClient
         return $age > 0 ? "ab {$age} Jahren" : null;
     }
 
-    private static function complexityFromBgg(SimpleXMLElement $item, int $bggId): ?array
+    private static function complexityFromBgg(SimpleXMLElement $item): ?array
     {
         if (!isset($item->statistics->ratings->averageweight)) {
             return null;
@@ -774,7 +774,6 @@ class BggClient
             'value' => $weight,
             'max' => 5,
             'source' => 'BoardGameGeek',
-            'url' => 'https://boardgamegeek.com/boardgame/' . $bggId,
         ];
     }
 
