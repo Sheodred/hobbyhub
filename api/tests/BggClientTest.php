@@ -124,8 +124,52 @@ final class BggClientTest extends TestCase
         $result = $client->lookup(13);
 
         $this->assertSame('Catan', $result['name']);
-        $this->assertSame('Fine, dated.', $result['good'], 'falls back to the page we did get');
-        $this->assertNull($result['bad'], 'one comment cannot be both the best and the worst');
+        $this->assertNull($result['good'], 'page 1 holds the worst ratings - it cannot supply the best');
+        $this->assertSame('Fine, dated.', $result['bad'], 'the worst still comes off the page we did get');
+    }
+
+    public function testAFailedBestPageNeverPrintsALowRatingAsThePraise(): void
+    {
+        // Rating comments arrive sorted ascending, so page 1 is nothing but
+        // the lowest scores. Falling back to "the highest rating on page 1"
+        // printed a one-star rant under the green heading in production
+        // (id 266192, 2026-08-17) - the very defect the last-page fetch exists
+        // to prevent, reinstated on every transient failure and then cached
+        // for 14 days.
+        $client = new BggClient(fn(string $url) => str_contains($url, 'page=3')
+            ? null
+            : $this->thingXml(
+                '<item id="13"><name type="primary" value="Catan"/>' .
+                '<comments totalitems="250" page="1">' .
+                '<comment username="a" rating="1" value="Terrible, no playtesting."/>' .
+                '<comment username="b" rating="1" value="Dull and slow."/>' .
+                '</comments></item>'
+            ));
+
+        $result = $client->lookup(13);
+
+        $this->assertSame('Catan', $result['name'], 'a missing snippet must never cost the game');
+        $this->assertNull($result['good'], 'no praise beats a one-star rant labelled as praise');
+        $this->assertNotNull($result['bad'], 'the bad snippet is exactly what page 1 can supply');
+    }
+
+    public function testASingleCommentPageStillSuppliesBothSnippets(): void
+    {
+        // Under one page there is no last page to fetch: everything BGG holds
+        // is already in hand, so both extremes come off it. Distinct from a
+        // failed fetch, which must yield no praise at all.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="7"><name type="primary" value="Azul"/>' .
+            '<comments totalitems="2" page="1">' .
+            '<comment username="a" rating="9" value="Beautiful and tight."/>' .
+            '<comment username="b" rating="2" value="Repetitive."/>' .
+            '</comments></item>'
+        ));
+
+        $result = $client->lookup(7);
+
+        $this->assertSame('Beautiful and tight.', $result['good']);
+        $this->assertSame('Repetitive.', $result['bad']);
     }
 
     public function testLookupCacheHitDoesNotCallFetcherAgain(): void
@@ -239,6 +283,84 @@ final class BggClientTest extends TestCase
             '<item type="boardgame" id="13"><name type="primary" value="Catan"/></item>'
         ));
         $this->assertSame(566, $live->lookup(13)['rank']);
+    }
+
+    public function testALiveLookupRefreshesTheDumpsRankFromBggsOwnStats(): void
+    {
+        // The rank travels in the stats block the lookup already fetches, so
+        // keeping the dump current costs no extra request - and it happens on
+        // a cache miss only, once per game per TTL.
+        $this->seedRanks(); // Catan seeded at 566
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="13"><name type="primary" value="Catan"/>' .
+            '<statistics><ratings><ranks>' .
+            '<rank type="subtype" name="boardgame" value="627"/>' .
+            '<rank type="family" name="strategygames" value="49"/>' .
+            '</ranks></ratings></statistics></item>'
+        ));
+
+        $this->assertSame(627, $client->lookup(13)['rank'], 'the served rank is the refreshed one');
+        $this->assertSame(
+            '627',
+            (string) db()->query('SELECT bgg_rank FROM bgg_ranks WHERE bgg_id = 13')->fetchColumn(),
+            'and it is persisted, so every later reader sees it'
+        );
+    }
+
+    public function testTheFamilyRankIsNeverMistakenForTheOverallOne(): void
+    {
+        $this->seedRanks();
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="13"><name type="primary" value="Catan"/>' .
+            '<statistics><ratings><ranks>' .
+            '<rank type="family" name="strategygames" value="49"/>' .
+            '</ranks></ratings></statistics></item>'
+        ));
+
+        $client->lookup(13);
+
+        $this->assertSame(
+            '566',
+            (string) db()->query('SELECT bgg_rank FROM bgg_ranks WHERE bgg_id = 13')->fetchColumn(),
+            'a family rank is a different league table, not an overall position'
+        );
+    }
+
+    public function testAnUnrankedGameDoesNotOverwriteTheDumpsRank(): void
+    {
+        // BGG writes "Not Ranked" for the four fifths of its catalog it does
+        // not rank. Writing that through would blank a rank we already have.
+        $this->seedRanks();
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="13"><name type="primary" value="Catan"/>' .
+            '<statistics><ratings><ranks>' .
+            '<rank type="subtype" name="boardgame" value="Not Ranked"/>' .
+            '</ranks></ratings></statistics></item>'
+        ));
+
+        $client->lookup(13);
+
+        $this->assertSame(
+            '566',
+            (string) db()->query('SELECT bgg_rank FROM bgg_ranks WHERE bgg_id = 13')->fetchColumn()
+        );
+    }
+
+    public function testAGameBggDoesNotHaveIsRememberedRatherThanReAsked(): void
+    {
+        // #72: an id the source has no entry for used to cost a full throttled
+        // request on every single page load. BGG's empty <items/> is an
+        // answer, not a failure - failures still throw and stay uncached.
+        $calls = 0;
+        $fetcher = function () use (&$calls) {
+            $calls++;
+            return $this->thingXml('');
+        };
+
+        $this->assertNull((new BggClient($fetcher))->lookup(999999));
+        $this->assertNull((new BggClient($fetcher))->lookup(999999));
+
+        $this->assertSame(1, $calls, '"no such game" belongs in the cache too');
     }
 
     public function testAnUnrankedGameReportsNoRankRatherThanZero(): void
