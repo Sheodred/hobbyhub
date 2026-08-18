@@ -623,7 +623,17 @@ export function BoardgameLookupPage() {
             or by name when no id is seeded); nominees and the recommendation
             list are name buttons that run a search. */}
         {state.kind === "idle" && (top.length > 0 || awards.length > 0) && (
-          <div className="grid gap-8 lg:grid-cols-2">
+          // grid-cols-1 (not bare `grid`, which leaves columns unset below lg)
+          // matters here specifically: Tailwind's numbered grid-cols utilities
+          // emit minmax(0,1fr) tracks, capping the column's minimum size at 0.
+          // Without it the implicit single column sizes to `auto`, and a flex
+          // container's own min-content contribution to that track ignores
+          // truncate+min-w-0 on its children (a documented flexbox/grid
+          // interaction) - so the longest untruncated game title, e.g.
+          // "Twilight Imperium: Fourth Edition (2017)", set the column's
+          // floor width at ~337px, wider than a 320-375px phone screen, and
+          // pushed both panels off the right edge to be silently clipped.
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             {awards.length > 0 && (
               <section>
                 <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -669,8 +679,14 @@ export function BoardgameLookupPage() {
                 Top rated on BoardGameGeek
               </h2>
               {/* lg:flex-1 + lg:content-between spread the 5 rows to fill the
-                  taller award column beside it, so both blocks end level. */}
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:flex-1 lg:content-between">
+                  taller award column beside it, so both blocks end level.
+                  grid-cols-1 (not bare `grid`) for the same reason as the
+                  outer grid above: below sm this is a single implicit column,
+                  and without an explicit minmax(0,1fr) track a row's
+                  untruncated game title reasserts the same overflow one level
+                  deeper - the outer fix alone left this ul wider than its own
+                  now-correctly-sized <section>, so rows spilled out of it. */}
+            <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex-1 lg:content-between">
               {top.map((game) => (
                 <li key={game.bggId}>
                   <button
