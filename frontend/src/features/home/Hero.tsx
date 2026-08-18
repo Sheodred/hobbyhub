@@ -52,7 +52,7 @@ export function Hero() {
               goes. */}
           <div
             aria-hidden="true"
-            className="absolute inset-0 -z-20 bg-cover bg-center motion-safe:animate-[drift-hero_50s_ease-in-out_infinite]"
+            className="absolute inset-0 -z-20 bg-cover bg-center sm:motion-safe:animate-[drift-hero_50s_ease-in-out_infinite]"
             style={{ backgroundImage: "url(/hero-background.webp)" }}
           />
           {/* Dark gradient anchored to the bottom edge, not covering the image -

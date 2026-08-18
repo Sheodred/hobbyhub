@@ -29,18 +29,18 @@ export function AppShell() {
         <img
           src="/cloud-bg.webp"
           alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-60 mix-blend-screen motion-safe:animate-[drift-nebula_60s_ease-in-out_infinite]"
+          className="absolute inset-0 h-full w-full object-cover opacity-60 mix-blend-screen sm:motion-safe:animate-[drift-nebula_60s_ease-in-out_infinite]"
         />
         <div
-          className="absolute left-1/4 top-[5%] h-[40rem] w-[40rem] rounded-full mix-blend-screen blur-[110px] motion-safe:animate-[drift-a_26s_ease-in-out_infinite]"
+          className="absolute left-1/4 top-[5%] h-[40rem] w-[40rem] rounded-full mix-blend-screen blur-[110px] sm:motion-safe:animate-[drift-a_26s_ease-in-out_infinite]"
           style={{ backgroundImage: "radial-gradient(closest-side, rgba(99,102,241,0.6), transparent)" }}
         />
         <div
-          className="absolute right-0 top-[28%] h-[36rem] w-[36rem] rounded-full mix-blend-screen blur-[110px] motion-safe:animate-[drift-b_32s_ease-in-out_infinite]"
+          className="absolute right-0 top-[28%] h-[36rem] w-[36rem] rounded-full mix-blend-screen blur-[110px] sm:motion-safe:animate-[drift-b_32s_ease-in-out_infinite]"
           style={{ backgroundImage: "radial-gradient(closest-side, rgba(139,92,246,0.55), transparent)" }}
         />
         <div
-          className="absolute left-0 top-[55%] h-[32rem] w-[32rem] rounded-full mix-blend-screen blur-[110px] motion-safe:animate-[drift-a_38s_ease-in-out_infinite_reverse]"
+          className="absolute left-0 top-[55%] h-[32rem] w-[32rem] rounded-full mix-blend-screen blur-[110px] sm:motion-safe:animate-[drift-a_38s_ease-in-out_infinite_reverse]"
           style={{ backgroundImage: "radial-gradient(closest-side, rgba(217,70,239,0.45), transparent)" }}
         />
         {/* center-column fill - the panel grid runs up to max-w-7xl wide, wider
@@ -48,17 +48,17 @@ export function AppShell() {
             middle columns were falling in a gap between orbs and reading flat
             black again below the hero. */}
         <div
-          className="absolute left-1/2 top-[42%] h-[34rem] w-[34rem] -translate-x-1/2 rounded-full mix-blend-screen blur-[110px] motion-safe:animate-[drift-a_34s_ease-in-out_infinite]"
+          className="absolute left-1/2 top-[42%] h-[34rem] w-[34rem] -translate-x-1/2 rounded-full mix-blend-screen blur-[110px] sm:motion-safe:animate-[drift-a_34s_ease-in-out_infinite]"
           style={{ backgroundImage: "radial-gradient(closest-side, rgba(168,85,247,0.5), transparent)" }}
         />
         <div
-          className="absolute right-[10%] top-[80%] h-[30rem] w-[30rem] rounded-full mix-blend-screen blur-[110px] motion-safe:animate-[drift-b_30s_ease-in-out_infinite_reverse]"
+          className="absolute right-[10%] top-[80%] h-[30rem] w-[30rem] rounded-full mix-blend-screen blur-[110px] sm:motion-safe:animate-[drift-b_30s_ease-in-out_infinite_reverse]"
           style={{ backgroundImage: "radial-gradient(closest-side, rgba(129,140,248,0.5), transparent)" }}
         />
         {/* deep-scroll coverage - the news panels (Tagesschau/WotC) can run
             long, pushing total page height well past the fixed 80% mark. */}
         <div
-          className="absolute left-1/4 top-[95%] h-[30rem] w-[30rem] rounded-full mix-blend-screen blur-[110px] motion-safe:animate-[drift-a_36s_ease-in-out_infinite]"
+          className="absolute left-1/4 top-[95%] h-[30rem] w-[30rem] rounded-full mix-blend-screen blur-[110px] sm:motion-safe:animate-[drift-a_36s_ease-in-out_infinite]"
           style={{ backgroundImage: "radial-gradient(closest-side, rgba(99,102,241,0.5), transparent)" }}
         />
       </div>
