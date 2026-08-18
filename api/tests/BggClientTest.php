@@ -718,6 +718,34 @@ final class BggClientTest extends TestCase
         $this->assertSame(['status' => 'unavailable'], (new BggClient(fn() => null))->lookupLocalById(13));
     }
 
+    public function testRandomBggIdOnlyDrawsGamesWorthBeingSurprisedBy(): void
+    {
+        // #120: the draw must exclude expansions (926 here) and never be null
+        // when eligible games exist. seedRanks leaves 13 and 266192 eligible
+        // (not expansions, both rated well above the floor). 25 draws is
+        // enough that a filter that leaked 926 would almost certainly show it.
+        $this->seedRanks();
+        $client = new BggClient(fn() => null);
+
+        for ($i = 0; $i < 25; $i++) {
+            $id = $client->randomBggId();
+            $this->assertContains($id, [13, 266192], 'drew an ineligible game (expansion or below the floor)');
+        }
+    }
+
+    public function testRandomBggIdReturnsNullWhenNothingIsEligible(): void
+    {
+        // Only an expansion and a barely-rated game: neither should ever be
+        // served, so the endpoint has nothing to return and the button hides.
+        db()->exec(
+            "INSERT INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion, bgg_rank) VALUES
+             (500, 'Some Expansion', 2020, 8.0, 50000, 1, NULL),
+             (501, 'Nobody Has Played This', 2021, 6.0, 12, 0, NULL)"
+        );
+
+        $this->assertNull((new BggClient(fn() => null))->randomBggId());
+    }
+
     public function testTopRankedListsRankedGamesBestFirstAndSkipsUnrankedOnes(): void
     {
         $calls = 0;

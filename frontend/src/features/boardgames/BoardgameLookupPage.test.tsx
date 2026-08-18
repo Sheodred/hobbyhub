@@ -787,6 +787,36 @@ describe("BoardgameLookupPage — shareable searches", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/still/i);
   });
 
+  it("navigates to a random game by bgg_id when Surprise me is clicked (#120)", async () => {
+    // The dump is non-empty (top-10 loaded), so the button renders.
+    vi.spyOn(api, "topBoardgames").mockResolvedValue([
+      { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1 },
+    ]);
+    vi.spyOn(api, "randomBoardgame").mockResolvedValue(342942);
+    vi.spyOn(api, "lookupBoardgameLocalById").mockResolvedValue({ status: "not_found" });
+    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "ok", game: CATAN });
+
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: /surprise me/i }));
+
+    // Shareable and back-button-able, exactly like a top-10 click (#99, #120).
+    await waitFor(() => expect(locationSearch()).toBe("?bgg_id=342942"));
+  });
+
+  it("hides Surprise me when the ranks dump is empty (#120)", async () => {
+    vi.spyOn(api, "topBoardgames").mockResolvedValue([]);
+    const random = vi.spyOn(api, "randomBoardgame");
+
+    renderPage();
+
+    // Let the mount fetch settle, then the button must still be absent - a
+    // button that goes nowhere is worse than no button.
+    await waitFor(() => expect(screen.getByRole("button", { name: /^search$/i })).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /surprise me/i })).not.toBeInTheDocument();
+    expect(random).not.toHaveBeenCalled();
+  });
+
   it("writes bgg_id to the URL when a candidate is picked", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "disambiguation",

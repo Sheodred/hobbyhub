@@ -9,6 +9,7 @@ import {
   lookupBoardgameById,
   lookupBoardgameLocal,
   lookupBoardgameLocalById,
+  randomBoardgame,
   suggestBoardgames,
   topBoardgames,
   type Boardgame,
@@ -199,6 +200,20 @@ export function BoardgameLookupPage() {
     pick(candidate.bggId);
   }
 
+  // #120: one random game, straight to its result page. Navigating by bgg_id
+  // means the pick is shareable and back-button-able (#99), and lands on the
+  // #115 fast path - a random game is never cached, so that matters. A failed
+  // draw just does nothing; it is a button you can simply press again, not
+  // something worth an error state.
+  async function surpriseMe() {
+    try {
+      const bggId = await randomBoardgame();
+      if (bggId !== null) pick(bggId);
+    } catch {
+      // No-op: no error surfaced for a button the user can retry.
+    }
+  }
+
   function onQueryChange(value: string) {
     setQuery(value);
     clearTimeout(debounceRef.current);
@@ -337,6 +352,18 @@ export function BoardgameLookupPage() {
         >
           Search
         </button>
+        {/* #120: only when the dump has games to draw from - top.length is the
+            same "dump imported" signal the top-10 list uses, so no extra
+            request just to decide whether to show the button. */}
+        {top.length > 0 && (
+          <button
+            type="button"
+            onClick={surpriseMe}
+            className="rounded-md border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 hover:border-indigo-500 hover:text-indigo-400"
+          >
+            Surprise me
+          </button>
+        )}
       </form>
 
       <div className="mt-6">
