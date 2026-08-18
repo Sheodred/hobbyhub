@@ -171,6 +171,40 @@ describe("BoardgameLookupPage", () => {
     expect(screen.getByRole("img", { name: /Bild zu Catan folgt/ })).toBeInTheDocument();
   });
 
+  it("shows a loading indicator while the first lookup is in flight (#128)", async () => {
+    // Never-resolving lookups keep the page in the loading state.
+    vi.spyOn(api, "lookupBoardgameLocal").mockReturnValue(new Promise(() => {}));
+    vi.spyOn(api, "lookupBoardgame").mockReturnValue(new Promise(() => {}));
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => expect(screen.getByTestId("loading-indicator")).toBeInTheDocument());
+  });
+
+  it("shows an enriching indicator on the card while the slow sources load (#128)", async () => {
+    vi.spyOn(api, "lookupBoardgameLocal").mockResolvedValue({ status: "ok", game: CATAN });
+    let resolveFull!: (r: api.BoardgameLookupResult) => void;
+    vi.spyOn(api, "lookupBoardgame").mockReturnValue(
+      new Promise<api.BoardgameLookupResult>((resolve) => {
+        resolveFull = resolve;
+      })
+    );
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    // The instant local answer is up, but the card flags it's still enriching.
+    await waitFor(() => expect(screen.getByTestId("enriching-indicator")).toBeInTheDocument());
+
+    resolveFull({ status: "ok", game: CATAN });
+
+    // Once the full answer lands, the cue is gone.
+    await waitFor(() => expect(screen.queryByTestId("enriching-indicator")).not.toBeInTheDocument());
+  });
+
   it("shows a disambiguation list and resolves the picked candidate", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "disambiguation",
