@@ -21,6 +21,7 @@ import {
   type BoardgameCandidate,
   type BoardgameLookupResult,
   type Complexity,
+  type Lang,
   type TopBoardgame,
 } from "./api";
 
@@ -37,6 +38,21 @@ type ViewState =
 // bgg_ranks query on every keystroke.
 const SUGGEST_MIN_LENGTH = 2;
 const SUGGEST_DEBOUNCE_MS = 200;
+
+// #130: persisted independently of the URL-driven search state (#99) - this
+// is a standing site preference, not part of any one search, so switching
+// games must not reset it and switching it must not read as a new search
+// in the browser's history.
+const LANG_STORAGE_KEY = "boardgames_lang";
+
+function initialLang(): Lang {
+  const stored = localStorage.getItem(LANG_STORAGE_KEY);
+  if (stored === "de" || stored === "en") return stored;
+  // Site audience is German-leaning - default DE unless the browser clearly
+  // prefers English. navigator.language is usually set, but not guaranteed
+  // (some test/embedded environments leave it undefined).
+  return (navigator.language ?? "").toLowerCase().startsWith("en") ? "en" : "de";
+}
 
 /**
  * The link worth sending: bgg_id, never the typed name. Names are ambiguous -
@@ -216,6 +232,28 @@ function AwardBadge({ bggId, awards, year }: { bggId: number; awards: AwardCateg
   );
 }
 
+// #130: DE/EN toggle - two buttons rather than a <select>, since there are
+// only ever two options and a click beats a dropdown for that.
+function LangToggle({ lang, onChange }: { lang: Lang; onChange: (lang: Lang) => void }) {
+  return (
+    <div role="group" aria-label="Sprache" className="inline-flex rounded-full border border-slate-700 p-0.5 text-xs">
+      {(["de", "en"] as const).map((option) => (
+        <button
+          key={option}
+          type="button"
+          aria-pressed={lang === option}
+          onClick={() => onChange(option)}
+          className={`rounded-full px-2.5 py-1 font-medium transition-colors ${
+            lang === option ? "bg-indigo-500/20 text-indigo-200" : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          {option.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // #128: a small loading ring. motion-safe only, so a prefers-reduced-motion
 // visitor gets a static ring rather than a spinning one; aria-hidden because
 // the role="status" region already announces the wait in words.
@@ -262,7 +300,13 @@ export function BoardgameLookupPage() {
   const [awards, setAwards] = useState<AwardCategory[]>([]);
   const [awardYear, setAwardYear] = useState<number | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const [lang, setLang] = useState<Lang>(initialLang);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  function chooseLang(next: Lang) {
+    setLang(next);
+    localStorage.setItem(LANG_STORAGE_KEY, next);
+  }
 
   useEffect(() => () => clearTimeout(debounceRef.current), []);
 
@@ -314,7 +358,7 @@ export function BoardgameLookupPage() {
     // one. A failure here is not reported - the full lookup below is still
     // authoritative and will report its own.
     try {
-      const local = await lookupBoardgameLocal(term);
+      const local = await lookupBoardgameLocal(term, lang);
       if (local.status === "ok") {
         setState({ kind: "result", game: local.game, enriching: true });
       } else if (local.status === "disambiguation") {
@@ -325,7 +369,7 @@ export function BoardgameLookupPage() {
     }
 
     try {
-      applyResult(await lookupBoardgame(term));
+      applyResult(await lookupBoardgame(term, lang));
     } catch (err) {
       // Keep a good partial answer rather than replacing it with an error:
       // before #91 the dump's data was all you got when BGG was unreachable,
@@ -344,7 +388,7 @@ export function BoardgameLookupPage() {
     // whole time; the dump can answer this id in milliseconds. A failure here
     // is not reported - the full lookup below is authoritative.
     try {
-      const local = await lookupBoardgameLocalById(bggId);
+      const local = await lookupBoardgameLocalById(bggId, lang);
       if (local.status === "ok") {
         setState({ kind: "result", game: local.game, enriching: true });
       }
@@ -353,7 +397,7 @@ export function BoardgameLookupPage() {
     }
 
     try {
-      applyResult(await lookupBoardgameById(bggId));
+      applyResult(await lookupBoardgameById(bggId, lang));
     } catch (err) {
       // Keep a good partial answer rather than replacing it with an error,
       // the same way runSearch does.
@@ -374,10 +418,12 @@ export function BoardgameLookupPage() {
     } else {
       setState({ kind: "idle" });
     }
-    // runSearch/runLookupById are redefined every render; the URL is the only
-    // real input here.
+    // runSearch/runLookupById are redefined every render; the URL and the
+    // language toggle are the only real inputs here - lang is in the deps
+    // so switching DE/EN re-fetches the current result's title, not just
+    // future searches.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlQuery, urlBggId]);
+  }, [urlQuery, urlBggId, lang]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -460,7 +506,7 @@ export function BoardgameLookupPage() {
       return;
     }
     debounceRef.current = setTimeout(() => {
-      suggestBoardgames(trimmed)
+      suggestBoardgames(trimmed, lang)
         .then((results) => {
           setSuggestions(results);
           setActiveIndex(-1);
@@ -632,6 +678,7 @@ export function BoardgameLookupPage() {
             Clear
           </button>
         )}
+        <LangToggle lang={lang} onChange={chooseLang} />
       </form>
 
       <div className="mt-6">

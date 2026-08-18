@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { BoardgameLookupPage } from "./BoardgameLookupPage";
@@ -74,6 +74,11 @@ const AWARDS_2026: api.BoardgameAwards = {
 };
 
 describe("BoardgameLookupPage", () => {
+  // #130: the DE/EN toggle persists to localStorage, which (unlike React
+  // state) survives across tests in the same file run - clear it so one
+  // test's choice can't leak into the next.
+  beforeEach(() => localStorage.clear());
+
   // The example is the site's one worked example, so it is pinned: it has to
   // resolve to a single game, not a disambiguation list (#100).
   it("uses a modern hobby game as the search example", () => {
@@ -89,6 +94,63 @@ describe("BoardgameLookupPage", () => {
     renderPage();
     const logo = screen.getByAltText("Powered by BGG");
     expect(logo.closest("a")).toHaveAttribute("href", "https://boardgamegeek.com");
+  });
+
+  describe("the DE/EN language toggle (#130)", () => {
+    it("defaults from the browser's language when nothing is persisted", () => {
+      // jsdom's own default locale is en-US.
+      renderPage();
+      expect(screen.getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: "DE" })).toHaveAttribute("aria-pressed", "false");
+    });
+
+    it("reads a persisted choice back instead of the browser default", () => {
+      localStorage.setItem("boardgames_lang", "de");
+
+      renderPage();
+
+      expect(screen.getByRole("button", { name: "DE" })).toHaveAttribute("aria-pressed", "true");
+    });
+
+    it("clicking a language switches the pressed state and persists the choice", () => {
+      renderPage();
+
+      fireEvent.click(screen.getByRole("button", { name: "DE" }));
+
+      expect(screen.getByRole("button", { name: "DE" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "false");
+      expect(localStorage.getItem("boardgames_lang")).toBe("de");
+    });
+
+    it("sends the chosen language on every lookup, suggestion, and instant-path call", async () => {
+      vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+      vi.spyOn(api, "lookupBoardgameLocal").mockResolvedValue({ status: "unavailable" });
+
+      renderPage();
+      fireEvent.click(screen.getByRole("button", { name: "DE" }));
+      fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+      fireEvent.submit(screen.getByRole("search"));
+
+      await waitFor(() => expect(api.lookupBoardgame).toHaveBeenCalledWith("catan", "de"));
+      expect(api.lookupBoardgameLocal).toHaveBeenCalledWith("catan", "de");
+    });
+
+    it("re-fetches the current result under its new title when the language is switched mid-result", async () => {
+      // First call (EN, on load) resolves under the primary name; the second
+      // (after clicking DE) resolves under the German alias - proving the
+      // toggle re-runs the lookup rather than only affecting future searches.
+      vi.spyOn(api, "lookupBoardgame")
+        .mockResolvedValueOnce({ status: "ok", game: CATAN })
+        .mockResolvedValueOnce({ status: "ok", game: { ...CATAN, name: "Die Siedler von Catan" } });
+      vi.spyOn(api, "lookupBoardgameLocal").mockResolvedValue({ status: "unavailable" });
+
+      renderPage("/boardgames?q=catan");
+      await screen.findByText("Catan");
+
+      fireEvent.click(screen.getByRole("button", { name: "DE" }));
+
+      expect(await screen.findByText("Die Siedler von Catan")).toBeInTheDocument();
+    });
   });
 
   it("shows the game's rating, good/bad snippet, and BGG source credit after a search", async () => {
@@ -414,7 +476,7 @@ describe("BoardgameLookupPage", () => {
     const option = await screen.findByRole("button", { name: /Catan \(1995\)/ });
     fireEvent.click(option);
 
-    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(13));
+    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(13, "en"));
     expect(await screen.findByText("Trade, build, settle.")).toBeInTheDocument();
   });
 
@@ -640,14 +702,14 @@ describe("BoardgameLookupPage", () => {
     const input = screen.getByRole("combobox");
     fireEvent.change(input, { target: { value: "cat" } });
 
-    await waitFor(() => expect(api.suggestBoardgames).toHaveBeenCalledWith("cat"));
+    await waitFor(() => expect(api.suggestBoardgames).toHaveBeenCalledWith("cat", "en"));
     const options = await screen.findAllByRole("option");
     expect(options).toHaveLength(2);
     expect(input).toHaveAttribute("aria-expanded", "true");
 
     fireEvent.click(options[0]);
 
-    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(13));
+    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(13, "en"));
     expect(await screen.findByText("Trade, build, settle.")).toBeInTheDocument();
     expect(screen.queryByRole("option")).not.toBeInTheDocument();
   });
@@ -689,7 +751,7 @@ describe("BoardgameLookupPage", () => {
 
     fireEvent.keyDown(input, { key: "Enter" });
 
-    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(926));
+    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(926, "en"));
     expect(await screen.findByText("More Catan.")).toBeInTheDocument();
   });
 
@@ -793,7 +855,7 @@ describe("BoardgameLookupPage", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /Catan/ }));
 
-    await waitFor(() => expect(byId).toHaveBeenCalledWith(13));
+    await waitFor(() => expect(byId).toHaveBeenCalledWith(13, "en"));
     // Leaving the typo in the box desyncs what the user sees from what they
     // got back - the same bug pick() had for disambiguation candidates.
     expect(box).toHaveValue("Catan");
@@ -981,7 +1043,7 @@ describe("BoardgameLookupPage", () => {
 
     // By id, never by name: a name round-trip can land on the
     // disambiguation flow, which is absurd for a curated list.
-    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(224517));
+    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(224517, "en"));
     expect(await screen.findByText("Canals and coal.")).toBeInTheDocument();
   });
 
@@ -1114,7 +1176,7 @@ describe("BoardgameLookupPage — shareable searches", () => {
     renderPage("/boardgames?q=catan");
 
     expect(await screen.findByText("Trade, build, settle.")).toBeInTheDocument();
-    expect(api.lookupBoardgame).toHaveBeenCalledWith("catan");
+    expect(api.lookupBoardgame).toHaveBeenCalledWith("catan", "en");
     // The box shows what is being searched for, not an empty field.
     expect(screen.getByRole("combobox")).toHaveValue("catan");
   });
@@ -1125,7 +1187,7 @@ describe("BoardgameLookupPage — shareable searches", () => {
 
     renderPage("/boardgames?bgg_id=13");
 
-    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(13));
+    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(13, "en"));
     expect(byName).not.toHaveBeenCalled();
   });
 
@@ -1153,7 +1215,7 @@ describe("BoardgameLookupPage — shareable searches", () => {
 
     renderPage("/boardgames?bgg_id=13");
 
-    await waitFor(() => expect(api.lookupBoardgameLocalById).toHaveBeenCalledWith(13));
+    await waitFor(() => expect(api.lookupBoardgameLocalById).toHaveBeenCalledWith(13, "en"));
     expect(screen.getByText("Catan")).toBeInTheDocument();
     expect(screen.getByText("7.1")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent(/still/i);

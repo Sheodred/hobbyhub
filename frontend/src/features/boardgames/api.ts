@@ -133,13 +133,25 @@ export type BoardgameLookupResult =
    */
   | { status: "not_found"; query: string; suggestions: BoardgameCandidate[] };
 
-export function lookupBoardgame(query: string): Promise<BoardgameLookupResult> {
-  const params = new URLSearchParams({ q: query });
+/**
+ * #130: which name to display - the German alias where one exists ("Die
+ * Siedler von Catan"), or BGG's own primary name for "en" (today's
+ * behaviour). Never affects which game is found, only what its name reads
+ * as once found.
+ */
+export type Lang = "de" | "en";
+
+function withLang(base: Record<string, string>, lang?: Lang): URLSearchParams {
+  return new URLSearchParams(lang ? { ...base, lang } : base);
+}
+
+export function lookupBoardgame(query: string, lang?: Lang): Promise<BoardgameLookupResult> {
+  const params = withLang({ q: query }, lang);
   return apiFetch<BoardgameLookupResult>(`/api/boardgames/lookup?${params.toString()}`);
 }
 
-export function lookupBoardgameById(bggId: number): Promise<BoardgameLookupResult> {
-  const params = new URLSearchParams({ bgg_id: String(bggId) });
+export function lookupBoardgameById(bggId: number, lang?: Lang): Promise<BoardgameLookupResult> {
+  const params = withLang({ bgg_id: String(bggId) }, lang);
   return apiFetch<BoardgameLookupResult>(`/api/boardgames/lookup?${params.toString()}`);
 }
 
@@ -154,8 +166,8 @@ export type BoardgameLocalResult =
   | { status: "not_found" }
   | { status: "unavailable" };
 
-export function lookupBoardgameLocal(query: string): Promise<BoardgameLocalResult> {
-  const params = new URLSearchParams({ q: query });
+export function lookupBoardgameLocal(query: string, lang?: Lang): Promise<BoardgameLocalResult> {
+  const params = withLang({ q: query }, lang);
   return apiFetch<BoardgameLocalResult>(`/api/boardgames/local?${params.toString()}`);
 }
 
@@ -165,8 +177,8 @@ export function lookupBoardgameLocal(query: string): Promise<BoardgameLocalResul
  * lookup - but it wants the same millisecond dump answer before the cold full
  * lookup lands, instead of a blank page.
  */
-export function lookupBoardgameLocalById(bggId: number): Promise<BoardgameLocalResult> {
-  const params = new URLSearchParams({ bgg_id: String(bggId) });
+export function lookupBoardgameLocalById(bggId: number, lang?: Lang): Promise<BoardgameLocalResult> {
+  const params = withLang({ bgg_id: String(bggId) }, lang);
   return apiFetch<BoardgameLocalResult>(`/api/boardgames/local?${params.toString()}`);
 }
 
@@ -229,8 +241,8 @@ export function randomBoardgame(): Promise<number | null> {
   return apiFetch<{ bggId: number | null }>("/api/boardgames/random").then((res) => res.bggId);
 }
 
-export function suggestBoardgames(query: string): Promise<BoardgameCandidate[]> {
-  const params = new URLSearchParams({ q: query });
+export function suggestBoardgames(query: string, lang?: Lang): Promise<BoardgameCandidate[]> {
+  const params = withLang({ q: query }, lang);
   return apiFetch<{ suggestions: BoardgameCandidate[] }>(`/api/boardgames/suggest?${params.toString()}`).then(
     (res) => res.suggestions
   );

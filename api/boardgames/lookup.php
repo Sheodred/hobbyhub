@@ -13,6 +13,9 @@ $bggId = ctype_digit((string) $bggIdParam) ? (int) $bggIdParam : null;
 if ($q === '' && $bggId === null) {
     error_response('q or bgg_id is required', 400);
 }
+// #130: only 'de' is ever meaningful today - anything else (missing, 'en',
+// garbage) is today's existing behaviour, BGG's own primary name.
+$lang = ($_GET['lang'] ?? '') === 'de' ? 'de' : null;
 
 // Best-Effort applies to the prose and player counts too, not just to
 // ratings - collect_ratings() covers the rating half.
@@ -39,7 +42,7 @@ try {
             json_response([
                 'status' => 'not_found',
                 'query' => $q,
-                'suggestions' => $client->didYouMean($q),
+                'suggestions' => $client->didYouMean($q, 5, $lang),
             ]);
         }
         if ($resolved['status'] === 'disambiguation') {
@@ -51,6 +54,10 @@ try {
     $game = $client->lookup($bggId);
     if ($game === null) {
         error_response('That board game could not be found on BoardGameGeek.', 404);
+    }
+    // #130: the result-card title.
+    if ($lang !== null) {
+        $game['name'] = $client->preferredName($bggId, $lang) ?? $game['name'];
     }
 
     $amazonClient = new AmazonRatingClient();

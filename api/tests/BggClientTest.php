@@ -743,6 +743,76 @@ final class BggClientTest extends TestCase
         $this->assertSame(['status' => 'ok', 'bggId' => 13], $result, 'UNION must collapse the identical row, not offer a false disambiguation');
     }
 
+    public function testSuggestPrefersTheGermanAliasEvenWhenTheQueryMatchedThePrimaryName(): void
+    {
+        // #130: typing "Catan" (matches the primary name, not the alias)
+        // with DE active must still show "Die Siedler von Catan" - display
+        // preference is a separate concern from what the query matched.
+        $this->seedRanks();
+        $this->seedAlias(13, 'Die Siedler von Catan');
+
+        $suggestions = (new BggClient(fn() => null))->suggest('Catan', 3, 'de');
+
+        $this->assertSame('Die Siedler von Catan', $suggestions[0]['name']);
+    }
+
+    public function testSuggestIgnoresLangWhenNoAliasExistsInThatLanguage(): void
+    {
+        $this->seedRanks();
+
+        $suggestions = (new BggClient(fn() => null))->suggest('Catan', 3, 'de');
+
+        $this->assertSame('Catan', $suggestions[0]['name'], 'falls back to the primary name, not blank or an error');
+    }
+
+    public function testSuggestUsesThePrimaryNameWhenLangIsNull(): void
+    {
+        $this->seedRanks();
+        $this->seedAlias(13, 'Die Siedler von Catan');
+
+        $suggestions = (new BggClient(fn() => null))->suggest('Catan');
+
+        $this->assertSame('Catan', $suggestions[0]['name'], "today's behaviour, unchanged when lang is not requested");
+    }
+
+    public function testDidYouMeanAlsoPrefersTheGermanAlias(): void
+    {
+        $this->seedRanks();
+        $this->seedAlias(13, 'Die Siedler von Catan');
+
+        // A typo close enough to "Catan" to surface it as a suggestion.
+        $suggestions = (new BggClient(fn() => null))->didYouMean('Catn', 5, 'de');
+
+        $this->assertSame('Die Siedler von Catan', $suggestions[0]['name']);
+    }
+
+    public function testLocalLookupTitlePrefersTheGermanAlias(): void
+    {
+        $this->seedRanks();
+        $this->seedAlias(13, 'Die Siedler von Catan');
+
+        $result = (new BggClient(fn() => null))->lookupLocal('Catan', 'de');
+
+        $this->assertSame('Die Siedler von Catan', $result['game']['name']);
+    }
+
+    public function testLocalLookupByIdTitlePrefersTheGermanAlias(): void
+    {
+        $this->seedRanks();
+        $this->seedAlias(266192, 'Flügelschlag');
+
+        $result = (new BggClient(fn() => null))->lookupLocalById(266192, 'de');
+
+        $this->assertSame('Flügelschlag', $result['game']['name']);
+    }
+
+    public function testPreferredNameIsNullWhenNoAliasExistsInThatLanguage(): void
+    {
+        $this->seedRanks();
+
+        $this->assertNull((new BggClient(fn() => null))->preferredName(13, 'de'));
+    }
+
     public function testResolveSearchFallbackAnswersNotFoundRatherThanThrowingWhenTheDumpIsPopulated(): void
     {
         // This test asserted a throw until #92. The dump is BGG's whole
