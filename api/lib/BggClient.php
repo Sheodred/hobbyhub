@@ -24,6 +24,13 @@ class BggClient
     private const THROTTLE_MIN_INTERVAL_MS = 500; // ~2 req/sec
     private const BASE_URL = 'https://boardgamegeek.com/xmlapi2';
     private const MAX_COMMENTS = 100; // one page - see pickGoodBad()
+    // ponytail: a flat cap, not a "show more" - #108's own measurement found
+    // 75 raw matches for "Die Siedler von Catan", almost all obscure
+    // regional/anniversary editions nobody is searching for. Once sorted
+    // (see rankCandidates()) the game meant is reliably in the first few;
+    // raise this or add pagination if a real query's target ever lands
+    // outside it.
+    private const MAX_DISAMBIGUATION_CANDIDATES = 20;
 
     /** @var callable */
     private $httpGetXml;
@@ -243,7 +250,58 @@ class BggClient
         // bgg_id to store against bgg_search_cache's one-id-per-query
         // shape, and the disambiguation list itself is cheap to
         // re-fetch (it's only shown once per genuinely ambiguous title).
-        return ['status' => 'disambiguation', 'candidates' => $candidates];
+        return [
+            'status' => 'disambiguation',
+            'candidates' => array_slice($this->rankCandidates($candidates), 0, self::MAX_DISAMBIGUATION_CANDIDATES),
+        ];
+    }
+
+    /**
+     * #108: BGG's search ranking freely interleaves the base game with its
+     * own expansions, regional editions and card-game spin-offs - "Die
+     * Siedler von Catan" returns 75 matches with the base game nowhere near
+     * the top. The search response's own type="boardgame" is the request's
+     * subtype filter, the same on every item, so it cannot tell a base game
+     * from an expansion. bgg_ranks (already imported) can: known base games
+     * sort before known expansions, then by users_rated - popularity is a
+     * good proxy for "the game this query almost certainly meant". Games
+     * this dump has never ranked (obscure regional editions, mostly) sort
+     * last, keeping their relative order (usort() is stable since PHP 8.0).
+     *
+     * @param array<array{bggId:int,name:string,yearPublished:?int}> $candidates
+     * @return array<array{bggId:int,name:string,yearPublished:?int}>
+     */
+    private function rankCandidates(array $candidates): array
+    {
+        if ($candidates === []) {
+            return $candidates;
+        }
+
+        $ids = array_column($candidates, 'bggId');
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = db()->prepare("SELECT bgg_id, is_expansion, users_rated FROM bgg_ranks WHERE bgg_id IN ($placeholders)");
+        $stmt->execute($ids);
+        $known = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $known[(int) $row['bgg_id']] = [
+                'isExpansion' => (bool) $row['is_expansion'],
+                'usersRated' => (int) $row['users_rated'],
+            ];
+        }
+
+        usort($candidates, function (array $a, array $b) use ($known) {
+            $ka = $known[$a['bggId']] ?? null;
+            $kb = $known[$b['bggId']] ?? null;
+            if ($ka === null || $kb === null) {
+                return ($ka === null ? 1 : 0) <=> ($kb === null ? 1 : 0);
+            }
+            if ($ka['isExpansion'] !== $kb['isExpansion']) {
+                return $ka['isExpansion'] ? 1 : -1;
+            }
+            return $kb['usersRated'] <=> $ka['usersRated'];
+        });
+
+        return $candidates;
     }
 
     // --- Local fallback, backed by the imported boardgames_ranks.csv -------

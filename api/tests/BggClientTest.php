@@ -769,6 +769,49 @@ final class BggClientTest extends TestCase
         $this->assertSame(2, $calls, 'an ambiguous query must not be cached - it should re-search every time until resolved');
     }
 
+    public function testResolveSearchSortsTheBaseGameAboveItsOwnExpansion(): void
+    {
+        // #108: BGG's own search order is not trustworthy - put the
+        // expansion first in the raw response and confirm the known base
+        // game (bgg_ranks.is_expansion = 0) still sorts to the top.
+        $this->seedRanks();
+        $client = new BggClient(fn() => $this->searchXml(
+            '<item id="926" type="boardgame"><name type="primary" value="Catan: Cities &amp; Knights"/><yearpublished value="1998"/></item>' .
+            '<item id="13" type="boardgame"><name type="primary" value="Catan"/><yearpublished value="1995"/></item>'
+        ));
+
+        $result = $client->resolveSearch('catan');
+
+        $this->assertSame([13, 926], array_column($result['candidates'], 'bggId'));
+    }
+
+    public function testResolveSearchSortsUnknownGamesLastKeepingBggsOrderAmongThem(): void
+    {
+        // Nothing here is in bgg_ranks - no known base game to prefer, so
+        // BGG's own order should survive untouched.
+        $client = new BggClient(fn() => $this->searchXml(
+            '<item id="501" type="boardgame"><name type="primary" value="Obscure Edition A"/></item>' .
+            '<item id="502" type="boardgame"><name type="primary" value="Obscure Edition B"/></item>'
+        ));
+
+        $result = $client->resolveSearch('obscure');
+
+        $this->assertSame([501, 502], array_column($result['candidates'], 'bggId'));
+    }
+
+    public function testResolveSearchCapsTheCandidateListAtAScannableLength(): void
+    {
+        $items = '';
+        for ($id = 1; $id <= 30; $id++) {
+            $items .= '<item id="' . $id . '" type="boardgame"><name type="primary" value="Game ' . $id . '"/></item>';
+        }
+        $client = new BggClient(fn() => $this->searchXml($items));
+
+        $result = $client->resolveSearch('game');
+
+        $this->assertCount(20, $result['candidates'], 'BGG can return dozens of matches - the list must stay scannable');
+    }
+
     public function testResolveSearchNoMatchesReturnsNotFound(): void
     {
         $client = new BggClient(fn() => $this->searchXml(''));
