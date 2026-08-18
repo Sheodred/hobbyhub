@@ -128,6 +128,39 @@ function GameDescription({ text }: { text: string }) {
   );
 }
 
+// #105: nominees and recommendations render as inline buttons, comma-
+// separated, each running a name search on click. Styled as text links so the
+// line still reads as prose, not a button row.
+function AwardNames({
+  label,
+  names,
+  className,
+  onPick,
+}: {
+  label: string;
+  names: string[];
+  className: string;
+  onPick: (name: string) => void;
+}) {
+  return (
+    <p className={`${className} text-xs text-slate-300`}>
+      <span className="text-slate-400">{label}:</span>{" "}
+      {names.map((name, i) => (
+        <span key={name}>
+          {i > 0 ? ", " : ""}
+          <button
+            type="button"
+            onClick={() => onPick(name)}
+            className="rounded underline decoration-slate-400 underline-offset-2 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          >
+            {name}
+          </button>
+        </span>
+      ))}
+    </p>
+  );
+}
+
 export function BoardgameLookupPage() {
   useDocumentTitle("Boardgame Lookup");
 
@@ -265,6 +298,15 @@ export function BoardgameLookupPage() {
     if (name !== undefined) setQuery(name);
     closeSuggestions();
     setSearchParams({ bgg_id: String(bggId) });
+  }
+
+  // #105: award nominees/recommendations have no seeded bgg_id, so a click
+  // runs a name search - exactly what typing the title and submitting does.
+  // German titles may disambiguate or miss, same as any typed search.
+  function searchByName(name: string) {
+    setQuery(name);
+    closeSuggestions();
+    setSearchParams({ q: name });
   }
 
   function selectSuggestion(candidate: BoardgameCandidate) {
@@ -522,7 +564,7 @@ export function BoardgameLookupPage() {
             real buttons that activate a lookup; nominees and the recommendation
             list are display-only names (#105 comment on the seed). */}
         {state.kind === "idle" && top.length > 0 && (
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+          <div className="grid gap-8 lg:grid-cols-2">
             <section>
               <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 Spiel des Jahres {AWARD_YEAR}
@@ -545,25 +587,28 @@ export function BoardgameLookupPage() {
                       <span className="min-w-0 flex-1 truncate text-sm text-slate-200">{cat.winner.title}</span>
                     </button>
                     {cat.nominees.length > 0 && (
-                      <p className="mt-2 text-xs text-slate-300">
-                        <span className="text-slate-400">Nominiert:</span> {cat.nominees.join(", ")}
-                      </p>
+                      <AwardNames label="Nominiert" names={cat.nominees} className="mt-2" onPick={searchByName} />
                     )}
                     {cat.recommended.length > 0 && (
-                      <p className="mt-1 text-xs text-slate-300">
-                        <span className="text-slate-400">Empfehlungsliste:</span> {cat.recommended.join(", ")}
-                      </p>
+                      <AwardNames
+                        label="Empfehlungsliste"
+                        names={cat.recommended}
+                        className="mt-1"
+                        onPick={searchByName}
+                      />
                     )}
                   </li>
                 ))}
               </ul>
             </section>
 
-            <section>
+            <section className="lg:flex lg:flex-col">
               <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 Top rated on BoardGameGeek
               </h2>
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {/* lg:flex-1 + lg:content-between spread the 5 rows to fill the
+                  taller award column beside it, so both blocks end level. */}
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:flex-1 lg:content-between">
               {top.map((game) => (
                 <li key={game.bggId}>
                   <button

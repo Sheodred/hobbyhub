@@ -857,16 +857,30 @@ describe("BoardgameLookupPage — shareable searches", () => {
     expect(screen.getByText("Kennerspiel des Jahres 2026")).toBeInTheDocument();
     expect(screen.getByText("Kinderspiel des Jahres 2026")).toBeInTheDocument();
 
-    // Nominees and the recommendation list are shown but display-only - no
-    // per-game bgg_id is seeded for them, so they are text, not buttons.
-    expect(screen.getByText(/Cozy Sticker Ville/)).toBeInTheDocument();
-    expect(screen.getByText(/Wilmot's Warehouse/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Cozy Sticker Ville/ })).not.toBeInTheDocument();
+    // Nominees and the recommendation list show as clickable buttons (they
+    // have no seeded bgg_id, so a click runs a name search instead).
+    expect(screen.getByRole("button", { name: "Cozy Sticker Ville" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Wilmot's Warehouse" })).toBeInTheDocument();
 
     fireEvent.click(dito);
 
     // Shareable/back-button-able, exactly like a top-10 click (#99, #105).
     await waitFor(() => expect(locationSearch()).toBe("?bgg_id=400495"));
+  });
+
+  it("runs a name search when a nominee or recommendation is clicked (#105)", async () => {
+    vi.spyOn(api, "topBoardgames").mockResolvedValue([
+      { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1 },
+    ]);
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "not_found", query: "Cozy Sticker Ville", suggestions: [] });
+
+    renderPage();
+
+    const cozy = await screen.findByRole("button", { name: "Cozy Sticker Ville" });
+    fireEvent.click(cozy);
+
+    // A name click drops into the same ?q= search path as typing the title.
+    await waitFor(() => expect(locationSearch()).toBe("?q=Cozy+Sticker+Ville"));
   });
 
   it("hides the award list when the ranks dump is empty (#105/#102)", async () => {
