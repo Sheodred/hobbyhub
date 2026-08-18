@@ -426,6 +426,37 @@ describe("BoardgameLookupPage", () => {
     expect(screen.queryByText(/Thematic rank/)).not.toBeInTheDocument();
   });
 
+  it.each([
+    ["cooperative", "Cooperative"],
+    ["one-vs-all", "One vs. All"],
+    ["competitive", "Competitive"],
+  ] as const)("shows the interaction type %s as %s (#131)", async (interaction, label) => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, interaction },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(await screen.findByText(label)).toBeInTheDocument();
+  });
+
+  it("shows nothing for interaction type rather than guessing when it's null", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, interaction: null },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await screen.findByText("Catan");
+    expect(screen.queryByText(/Competitive|Cooperative|One vs\. All/)).not.toBeInTheDocument();
+  });
+
   it("shows no award badge for a game that isn't in the panel (#117)", async () => {
     vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN }); // bggId 13

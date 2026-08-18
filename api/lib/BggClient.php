@@ -845,6 +845,17 @@ class BggClient
             // neither and omits them.
             'mechanics' => $this->linkTags($item, 'boardgamemechanic'),
             'categories' => $this->linkTags($item, 'boardgamecategory'),
+            // #131: competitive/cooperative/one-vs-all, from the mechanics
+            // already in hand - no extra call, no description/LLM. Verified
+            // live against 3 real games (2026-08-19): Mansions of Madness 2E
+            // carries both Cooperative Game and Traitor Game (traitor wins,
+            // one-vs-all is the honest read of a coop game with a hidden
+            // enemy); Chronicles of Crime carries only Cooperative Game;
+            // Wingspan carries neither (competitive). null only when the
+            // thing has no mechanics at all (the dump-backed partial path) -
+            // "show nothing rather than guess" per #131, not "assume
+            // competitive" when there is simply no data to read.
+            'interaction' => self::interactionType($item),
             // Read live from this same response, not the bgg_rank column -
             // see familyRank(). null on the dump-backed partial path.
             'strategyRank' => self::familyRank($item, 'strategygames'),
@@ -921,6 +932,26 @@ class BggClient
             'max' => 5,
             'source' => 'BoardGameGeek',
         ];
+    }
+
+    private static function interactionType(SimpleXMLElement $item): ?string
+    {
+        $mechanics = [];
+        foreach ($item->link as $link) {
+            if ((string) $link['type'] === 'boardgamemechanic') {
+                $mechanics[] = (string) $link['value'];
+            }
+        }
+        if ($mechanics === []) {
+            return null;
+        }
+        if (in_array('Semi-Cooperative Game', $mechanics, true) || in_array('Traitor Game', $mechanics, true)) {
+            return 'one-vs-all';
+        }
+        if (in_array('Cooperative Game', $mechanics, true)) {
+            return 'cooperative';
+        }
+        return 'competitive';
     }
 
     /**
