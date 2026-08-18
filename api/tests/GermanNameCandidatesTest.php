@@ -8,15 +8,21 @@ class GermanNameCandidatesTest extends TestCase
 {
     // The reproduction from #122: Catan finds nothing on any of the four
     // German sources because they are all handed BGG's English primary name.
-    // These are the real alternates from thing id 13.
+    // These are the real alternates from thing id 13, in BGG's own (unranked)
+    // order - "Die Siedler von Catan", the only one that actually resolves on
+    // H@LL9000 (verified live), sits behind three other candidates that also
+    // score above zero. An unranked "take the first few" version of this
+    // function drops it from a capped list; only scoring-then-ranking keeps it.
     private const CATAN_NAMES = [
         'Catan',
-        'Catan: Das Spiel',
-        'Catan telepesei',
         'Catan (Колонизаторы)',
+        'Catan telepesei',
+        'Catan: Das Spiel',
+        'Catan: Die Bordspel',
         'De Kolonisten van Catan',
-        'Die Siedler von Catan',
         'Les Colons de Catane',
+        'Les Colons de Katäne',
+        'Die Siedler von Catan',
         'The Settlers of Catan',
     ];
 
@@ -25,6 +31,19 @@ class GermanNameCandidatesTest extends TestCase
         $candidates = german_name_candidates(self::CATAN_NAMES, 'Catan');
 
         $this->assertContains('Die Siedler von Catan', $candidates);
+    }
+
+    // The regression this issue actually shipped once, mid-session: an
+    // earlier version took candidates in BGG's own document order and
+    // capped the list, which silently dropped "Die Siedler von Catan"
+    // behind "Catan: Das Spiel" and "Catan: Die Bordspel" (Dutch, but
+    // "Die" is a marker word too) - fixing nothing, since neither of those
+    // resolves on any real source.
+    public function testRanksTheStrongestCandidateFirstEvenWhenItAppearsLastOnBgg(): void
+    {
+        $candidates = german_name_candidates(self::CATAN_NAMES, 'Catan');
+
+        $this->assertSame('Die Siedler von Catan', $candidates[0]);
     }
 
     public function testDropsOtherLanguagesThatLookSuperficiallySimilar(): void
@@ -59,7 +78,7 @@ class GermanNameCandidatesTest extends TestCase
 
     public function testEszettCounts(): void
     {
-        $this->assertTrue(looks_german('Straße nach Indien'));
+        $this->assertGreaterThan(0, german_name_score('Straße nach Indien'));
     }
 
     public function testCapsTheListSoACacheMissStaysCheap(): void

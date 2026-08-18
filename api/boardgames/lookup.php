@@ -70,6 +70,9 @@ try {
     // the same cached miss as the others, which is cheaper than teaching this
     // call site which sources speak which language.
     $searchNames = array_merge([$game['name']], $game['germanNames'] ?? []);
+    // Search-only, and cached inside bgg_lookup_cache under BggClient's own
+    // key - not a field this API has ever published, so it does not start now.
+    unset($game['germanNames']);
 
     $game['ratings'] = collect_ratings([
         new AmazonRatingClient(),
