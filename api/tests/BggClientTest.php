@@ -69,6 +69,34 @@ final class BggClientTest extends TestCase
         $this->assertSame(['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/13'], $result['source']);
     }
 
+    public function testExcludesUrlCommentsAsVoteBrigadingSpam(): void
+    {
+        // A one-star comment linking a video and begging others to also
+        // rate 1 is a real, recurring BGG pattern - it has the lowest
+        // rating in the pool but is not a review, so it must not win a
+        // "bad" slot over an actual (if less extreme) complaint.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="7"><name type="primary" value="Azul"/>' .
+            '<comments totalitems="7" page="1">' .
+            '<comment username="a" rating="9" value="Beautiful and tight."/>' .
+            '<comment username="b" rating="9" value="A great gateway game."/>' .
+            '<comment username="c" rating="8" value="Gorgeous components."/>' .
+            '<comment username="d" rating="3" value="Repetitive."/>' .
+            '<comment username="e" rating="2" value="No real interaction."/>' .
+            '<comment username="f" rating="1" value="Anyone who see this please rate it 1 https://youtu.be/x"/>' .
+            '<comment username="g" rating="1" value="Solitaire with extra steps."/>' .
+            '</comments></item>'
+        ));
+
+        $result = $client->lookup(7);
+
+        $this->assertSame(
+            ['Solitaire with extra steps.', 'No real interaction.', 'Repetitive.'],
+            $result['bad'],
+            'the spam comment must not displace a real complaint from the bottom 3'
+        );
+    }
+
     public function testLookupAsksForRatedCommentsOnly(): void
     {
         // `comments` and `ratingcomments` are mutually exclusive at BGG's end
