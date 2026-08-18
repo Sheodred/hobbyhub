@@ -708,9 +708,48 @@ class BggClient
             // is #1 thematic and #3 strategy simultaneously (probed live,
             // 2026-08-18).
             'thematicRank' => self::familyRank($item, 'thematic'),
+            // H@LL9000's German phrasing ("75 Minuten", "ab 10 Jahren") wins
+            // in lookup.php when that site has an entry; these are the
+            // fallback for the many games it has none for at all - BGG's own
+            // minplayers/maxplayers/playingtime/minage, already sitting in
+            // this same response and unread until now (id 161936, Pandemic
+            // Legacy: Season 1, probed 2026-08-18: no H@LL9000 entry, BGG's
+            // fields present and correct).
+            'players' => self::playerRange($item),
+            'duration' => self::durationRange($item),
+            'age' => self::ageLabel($item),
             'partial' => false,
             'source' => ['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/' . $bggId],
         ];
+    }
+
+    // BGG uses 0 for "not set" on these fields, same convention as the
+    // rating comments' non-numeric rating - 0 means absent, not "0 players".
+    private static function playerRange(SimpleXMLElement $item): ?string
+    {
+        $min = isset($item->minplayers) ? (int) $item->minplayers['value'] : 0;
+        $max = isset($item->maxplayers) ? (int) $item->maxplayers['value'] : 0;
+        if ($min <= 0 && $max <= 0) {
+            return null;
+        }
+        return $min > 0 && $max > 0 && $min !== $max ? "$min - $max" : (string) max($min, $max);
+    }
+
+    private static function durationRange(SimpleXMLElement $item): ?string
+    {
+        $min = isset($item->minplaytime) ? (int) $item->minplaytime['value'] : 0;
+        $max = isset($item->maxplaytime) ? (int) $item->maxplaytime['value'] : 0;
+        if ($min <= 0 && $max <= 0) {
+            return null;
+        }
+        $value = $min > 0 && $max > 0 && $min !== $max ? "$min - $max" : (string) max($min, $max);
+        return "$value min";
+    }
+
+    private static function ageLabel(SimpleXMLElement $item): ?string
+    {
+        $age = isset($item->minage) ? (int) $item->minage['value'] : 0;
+        return $age > 0 ? "Age: {$age}+" : null;
     }
 
     /**

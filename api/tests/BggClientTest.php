@@ -286,6 +286,58 @@ final class BggClientTest extends TestCase
         $this->assertNull($result['thematicRank']);
     }
 
+    public function testLookupSurfacesPlayerCountDurationAndAgeFromBgg(): void
+    {
+        // Real shape from BGG's live thing response (id 161936, probed
+        // 2026-08-18) - fields this project fetched but never read, left
+        // null on every game the German H@LL9000 site has no listing for.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="161936"><name type="primary" value="Pandemic Legacy: Season 1"/>' .
+            '<minplayers value="2"/><maxplayers value="4"/>' .
+            '<minplaytime value="60"/><maxplaytime value="60"/>' .
+            '<minage value="13"/>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(161936);
+
+        $this->assertSame('2 - 4', $result['players']);
+        $this->assertSame('60 min', $result['duration']);
+        $this->assertSame('Age: 13+', $result['age']);
+    }
+
+    public function testPlayerCountAndDurationCollapseToASingleNumberWhenMinEqualsMax(): void
+    {
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="13"><name type="primary" value="Catan"/>' .
+            '<minplayers value="4"/><maxplayers value="4"/>' .
+            '<minplaytime value="90"/><maxplaytime value="90"/>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(13);
+
+        $this->assertSame('4', $result['players'], 'a range with the same min and max reads worse than a single number');
+        $this->assertSame('90 min', $result['duration']);
+    }
+
+    public function testPlayerCountDurationAndAgeAreNullWhenBggHasNoSuchData(): void
+    {
+        // BGG uses 0, not an absent tag, for "not set" - 0 must not render
+        // as "0 - 0" or "Age: 0+".
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="13"><name type="primary" value="Catan"/>' .
+            '<minplayers value="0"/><maxplayers value="0"/>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(13);
+
+        $this->assertNull($result['players']);
+        $this->assertNull($result['duration']);
+        $this->assertNull($result['age']);
+    }
+
     public function testLookupSurfacesMechanicAndCategoryLabels(): void
     {
         // #131: BGG carries mechanics and categories (the theme) as <link>

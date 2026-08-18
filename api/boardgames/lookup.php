@@ -102,12 +102,13 @@ try {
         $game['bad'] ??= $bgq['misses'] === [] ? null : $bgq['misses'];
     }
 
-    // Player count, duration and minimum age are only ever known from
-    // H@LL9000 today; when BGG's own fields come back (#40) they should win
-    // here and these should fill the gaps, the way $game['good'] does above.
-    $game['players'] = $hall['players'] ?? null;
-    $game['duration'] = $hall['duration'] ?? null;
-    $game['age'] = $hall['age'] ?? null;
+    // H@LL9000's German phrasing ("75 Minuten", "ab 10 Jahren") wins when it
+    // has an entry; BGG's own minplayers/maxplayers/playingtime/minage
+    // (already set on $game by BggClient::mapThing()) fill the gap for the
+    // many games this small German site has no listing for at all.
+    $game['players'] = $hall['players'] ?? $game['players'] ?? null;
+    $game['duration'] = $hall['duration'] ?? $game['duration'] ?? null;
+    $game['age'] = $hall['age'] ?? $game['age'] ?? null;
 
     // Not a rating - see BrettspieleReportClient. Carries its own scale for
     // the same reason the ratings do.
