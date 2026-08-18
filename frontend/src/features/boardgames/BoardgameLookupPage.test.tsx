@@ -50,20 +50,25 @@ const AWARDS_2026: api.BoardgameAwards = {
     {
       category: "Spiel des Jahres",
       winner: { bggId: 400495, name: "DITO!" },
-      nominees: ["Cozy Sticker Ville", "Morty Sorty Magic Shop"],
-      recommended: ["Hot Streak", "Wilmot's Warehouse"],
+      // Cozy Stickerville carries an id (resolves directly); the rest are
+      // id-less (a click runs a name search).
+      nominees: [
+        { bggId: 456440, name: "Cozy Stickerville" },
+        { bggId: null, name: "Morty Sorty Magic Shop" },
+      ],
+      recommended: [{ bggId: null, name: "Wilmot's Warehouse" }],
     },
     {
       category: "Kennerspiel des Jahres",
       winner: { bggId: 417197, name: "Rebirth" },
-      nominees: ["Boss Fighters: QR"],
-      recommended: ["Artengarten"],
+      nominees: [{ bggId: null, name: "Boss Fighters: QR" }],
+      recommended: [{ bggId: null, name: "Artengarten" }],
     },
     {
       category: "Kinderspiel des Jahres",
       winner: { bggId: 435346, name: "Die Insel der Mookies" },
-      nominees: ["Buh Party"],
-      recommended: ["Paleolino"],
+      nominees: [{ bggId: null, name: "Buh Party" }],
+      recommended: [{ bggId: null, name: "Paleolino" }],
     },
   ],
 };
@@ -927,9 +932,8 @@ describe("BoardgameLookupPage — shareable searches", () => {
     expect(screen.getByText("Kennerspiel des Jahres 2026")).toBeInTheDocument();
     expect(screen.getByText("Kinderspiel des Jahres 2026")).toBeInTheDocument();
 
-    // Nominees and the recommendation list show as clickable buttons (they
-    // have no seeded bgg_id, so a click runs a name search instead).
-    expect(screen.getByRole("button", { name: "Cozy Sticker Ville" })).toBeInTheDocument();
+    // Nominees and the recommendation list show as clickable buttons.
+    expect(screen.getByRole("button", { name: "Cozy Stickerville" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Wilmot's Warehouse" })).toBeInTheDocument();
 
     fireEvent.click(dito);
@@ -938,17 +942,35 @@ describe("BoardgameLookupPage — shareable searches", () => {
     await waitFor(() => expect(locationSearch()).toBe("?bgg_id=400495"));
   });
 
-  it("runs a name search when a nominee or recommendation is clicked (#105)", async () => {
+  it("resolves a nominee with a seeded id directly by bgg_id (#105)", async () => {
     vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "not_found", query: "Cozy Sticker Ville", suggestions: [] });
+    vi.spyOn(api, "lookupBoardgameLocalById").mockResolvedValue({ status: "not_found" });
+    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "ok", game: CATAN });
 
     renderPage();
 
-    const cozy = await screen.findByRole("button", { name: "Cozy Sticker Ville" });
-    fireEvent.click(cozy);
+    // Cozy Stickerville has a bgg_id in the fixture, so a click resolves it
+    // directly instead of running a name search.
+    fireEvent.click(await screen.findByRole("button", { name: "Cozy Stickerville" }));
 
-    // A name click drops into the same ?q= search path as typing the title.
-    await waitFor(() => expect(locationSearch()).toBe("?q=Cozy+Sticker+Ville"));
+    await waitFor(() => expect(locationSearch()).toBe("?bgg_id=456440"));
+  });
+
+  it("runs a name search for an id-less nominee or recommendation (#105)", async () => {
+    vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "not_found",
+      query: "Wilmot's Warehouse",
+      suggestions: [],
+    });
+
+    renderPage();
+
+    // Wilmot's Warehouse has no seeded id, so a click drops into the ?q= search
+    // path, the same as typing the title.
+    fireEvent.click(await screen.findByRole("button", { name: "Wilmot's Warehouse" }));
+
+    await waitFor(() => expect(new URLSearchParams(locationSearch() ?? "").get("q")).toBe("Wilmot's Warehouse"));
   });
 
   it("hides the award panel when no awards are seeded (#105)", async () => {

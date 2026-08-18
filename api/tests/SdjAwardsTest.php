@@ -16,7 +16,7 @@ final class SdjAwardsTest extends TestCase
         db()->exec(
             "INSERT INTO sdj_awards (award_year, category, kind, name, bgg_id, sort_order) VALUES
              (2026, 'Spiel des Jahres', 'winner', 'DITO!', 400495, 0),
-             (2026, 'Spiel des Jahres', 'nominee', 'Cozy Sticker Ville', NULL, 1),
+             (2026, 'Spiel des Jahres', 'nominee', 'Cozy Stickerville', 456440, 1),
              (2026, 'Spiel des Jahres', 'nominee', 'Morty Sorty Magic Shop', NULL, 2),
              (2026, 'Spiel des Jahres', 'recommended', 'Hot Streak', NULL, 3),
              (2026, 'Kinderspiel des Jahres', 'winner', 'Die Insel der Mookies', 435346, 10)"
@@ -36,8 +36,13 @@ final class SdjAwardsTest extends TestCase
         $spiel = $result['categories'][0];
         $this->assertSame('Spiel des Jahres', $spiel['category']);
         $this->assertSame(['bggId' => 400495, 'name' => 'DITO!'], $spiel['winner']);
-        $this->assertSame(['Cozy Sticker Ville', 'Morty Sorty Magic Shop'], $spiel['nominees']);
-        $this->assertSame(['Hot Streak'], $spiel['recommended']);
+        // Every nominee/recommendation is an entry with an optional bgg_id: the
+        // seeded one carries its id, the id-less one comes back with null.
+        $this->assertSame([
+            ['bggId' => 456440, 'name' => 'Cozy Stickerville'],
+            ['bggId' => null, 'name' => 'Morty Sorty Magic Shop'],
+        ], $spiel['nominees']);
+        $this->assertSame([['bggId' => null, 'name' => 'Hot Streak']], $spiel['recommended']);
 
         // A nominee/recommendation-less pot is still valid as long as it has a
         // winner; its lists come back empty, not missing.

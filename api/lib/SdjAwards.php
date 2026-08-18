@@ -18,8 +18,8 @@ final class SdjAwards
      *   ['year' => 2026, 'categories' => [
      *       ['category' => 'Spiel des Jahres',
      *        'winner' => ['bggId' => 400495, 'name' => 'DITO!'],
-     *        'nominees' => ['Cozy Sticker Ville', ...],
-     *        'recommended' => ['Hot Streak', ...]],
+     *        'nominees' => [['bggId' => 456440, 'name' => 'Cozy Stickerville'], ...],
+     *        'recommended' => [['bggId' => null, 'name' => 'Hot Streak'], ...]],
      *       ...
      *   ]]
      * An un-seeded table returns ['year' => null, 'categories' => []] so the
@@ -53,19 +53,22 @@ final class SdjAwards
                     'recommended' => [],
                 ];
             }
-            $name = (string) $row['name'];
+            // Every entry carries an optional bgg_id: a click resolves the game
+            // directly when one is set, and falls back to a name search when it
+            // is NULL. Winners always have one; nominees/recommendations may.
+            $entry = [
+                'bggId' => $row['bgg_id'] === null ? null : (int) $row['bgg_id'],
+                'name' => (string) $row['name'],
+            ];
             switch ((string) $row['kind']) {
                 case 'winner':
-                    $categories[$cat]['winner'] = [
-                        'bggId' => $row['bgg_id'] === null ? null : (int) $row['bgg_id'],
-                        'name' => $name,
-                    ];
+                    $categories[$cat]['winner'] = $entry;
                     break;
                 case 'nominee':
-                    $categories[$cat]['nominees'][] = $name;
+                    $categories[$cat]['nominees'][] = $entry;
                     break;
                 case 'recommended':
-                    $categories[$cat]['recommended'][] = $name;
+                    $categories[$cat]['recommended'][] = $entry;
                     break;
             }
         }

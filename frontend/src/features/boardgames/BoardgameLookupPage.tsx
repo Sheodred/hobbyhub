@@ -14,6 +14,7 @@ import {
   suggestBoardgames,
   topBoardgames,
   type AwardCategory,
+  type AwardEntry,
   type Boardgame,
   type BoardgameCandidate,
   type BoardgameLookupResult,
@@ -98,27 +99,27 @@ function GameDescription({ text }: { text: string }) {
 // line still reads as prose, not a button row.
 function AwardNames({
   label,
-  names,
+  entries,
   className,
-  onPick,
+  onSelect,
 }: {
   label: string;
-  names: string[];
+  entries: AwardEntry[];
   className: string;
-  onPick: (name: string) => void;
+  onSelect: (entry: AwardEntry) => void;
 }) {
   return (
     <p className={`${className} text-xs text-slate-300`}>
       <span className="text-slate-400">{label}:</span>{" "}
-      {names.map((name, i) => (
-        <span key={name}>
+      {entries.map((entry, i) => (
+        <span key={entry.name}>
           {i > 0 ? ", " : ""}
           <button
             type="button"
-            onClick={() => onPick(name)}
+            onClick={() => onSelect(entry)}
             className="rounded underline decoration-slate-400 underline-offset-2 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
           >
-            {name}
+            {entry.name}
           </button>
         </span>
       ))}
@@ -304,13 +305,21 @@ export function BoardgameLookupPage() {
     setSearchParams({ bgg_id: String(bggId) });
   }
 
-  // #105: award nominees/recommendations have no seeded bgg_id, so a click
-  // runs a name search - exactly what typing the title and submitting does.
-  // German titles may disambiguate or miss, same as any typed search.
+  // #105: award nominees/recommendations run a name search on click - exactly
+  // what typing the title and submitting does. German titles may disambiguate
+  // or miss, same as any typed search.
   function searchByName(name: string) {
     setQuery(name);
     closeSuggestions();
     setSearchParams({ q: name });
+  }
+
+  // #105: an award entry resolves directly by bgg_id when one is seeded, and
+  // falls back to a name search when it is null - so every entry is clickable
+  // and the id stays optional per row (winners always have one, the rest may).
+  function selectAward(entry: AwardEntry) {
+    if (entry.bggId !== null) pick(entry.bggId, entry.name);
+    else searchByName(entry.name);
   }
 
   function selectSuggestion(candidate: BoardgameCandidate) {
@@ -600,25 +609,21 @@ export function BoardgameLookupPage() {
                       </p>
                       <button
                         type="button"
-                        onClick={() =>
-                          cat.winner.bggId !== null
-                            ? pick(cat.winner.bggId, cat.winner.name)
-                            : searchByName(cat.winner.name)
-                        }
+                        onClick={() => selectAward(cat.winner)}
                         className="mt-1.5 flex w-full min-w-0 items-baseline gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-left hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                       >
                         <span aria-hidden="true" className="shrink-0 text-xs">🏆</span>
                         <span className="min-w-0 flex-1 truncate text-sm text-slate-200">{cat.winner.name}</span>
                       </button>
                       {cat.nominees.length > 0 && (
-                        <AwardNames label="Nominiert" names={cat.nominees} className="mt-2" onPick={searchByName} />
+                        <AwardNames label="Nominiert" entries={cat.nominees} className="mt-2" onSelect={selectAward} />
                       )}
                       {cat.recommended.length > 0 && (
                         <AwardNames
                           label="Empfehlungsliste"
-                          names={cat.recommended}
+                          entries={cat.recommended}
                           className="mt-1"
-                          onPick={searchByName}
+                          onSelect={selectAward}
                         />
                       )}
                     </li>
