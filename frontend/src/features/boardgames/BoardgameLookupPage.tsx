@@ -535,7 +535,13 @@ export function BoardgameLookupPage() {
                   comments come from BoardGameGeek&apos;s live API, which didn&apos;t answer for this one.
                 </p>
               ) : (
-                <p className="mt-4 text-slate-300">{state.game.description}</p>
+                // #116: BGG's description carries the publisher's own paragraph
+                // breaks as \n\n, which a plain <p> collapses into one wall of
+                // text. whitespace-pre-line honours them without splitting the
+                // string; max-w-prose caps the measure so it reads as prose,
+                // not a slab. (Only the full answer reaches here - the partial
+                // dump path has description:"" and shows the notice above.)
+                <p className="mt-4 max-w-prose whitespace-pre-line text-slate-300">{state.game.description}</p>
               )}
 
               {(state.game.good || state.game.bad) && (
