@@ -143,6 +143,15 @@ export function topBoardgames(): Promise<TopBoardgame[]> {
   return apiFetch<{ games: TopBoardgame[] }>("/api/boardgames/top").then((res) => res.games);
 }
 
+/**
+ * One random game for the "Surprise me" button (#120). null when the dump
+ * has no eligible game (empty or un-imported) - the caller hides the button
+ * rather than offering one that goes nowhere.
+ */
+export function randomBoardgame(): Promise<number | null> {
+  return apiFetch<{ bggId: number | null }>("/api/boardgames/random").then((res) => res.bggId);
+}
+
 export function suggestBoardgames(query: string): Promise<BoardgameCandidate[]> {
   const params = new URLSearchParams({ q: query });
   return apiFetch<{ suggestions: BoardgameCandidate[] }>(`/api/boardgames/suggest?${params.toString()}`).then(

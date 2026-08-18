@@ -450,6 +450,41 @@ class BggClient
     }
 
     /**
+     * A random game for the "Surprise me" button (#120).
+     *
+     * Draws only from games worth being surprised by: not an expansion (those
+     * presuppose a base game) and rated by at least $ratingsFloor people,
+     * which is what separates an obscure gem from something nobody has ever
+     * played - a uniform pick over the whole 180k dump would mostly serve
+     * unrated, near-empty result pages. ~5k candidates at the 1000 floor on
+     * the real dump.
+     *
+     * COUNT + a random OFFSET, never ORDER BY RAND(): that would sort the
+     * whole filtered set on every click, worse than the filesort topRanked
+     * already pays once. Both interpolated values are integers this code
+     * controls, the same way topRanked interpolates its LIMIT.
+     *
+     * null means no eligible game (empty or un-imported dump); the caller
+     * hides the button rather than letting it error.
+     */
+    public function randomBggId(int $ratingsFloor = 1000): ?int
+    {
+        $floor = max(0, $ratingsFloor);
+        $where = 'WHERE is_expansion = 0 AND users_rated >= ' . $floor;
+
+        $count = (int) db()->query('SELECT COUNT(*) FROM bgg_ranks ' . $where)->fetchColumn();
+        if ($count === 0) {
+            return null;
+        }
+
+        $id = db()->query(
+            'SELECT bgg_id FROM bgg_ranks ' . $where . ' LIMIT 1 OFFSET ' . random_int(0, $count - 1)
+        )->fetchColumn();
+
+        return $id === false ? null : (int) $id;
+    }
+
+    /**
      * "Did you mean" candidates for a query that matched nothing (#92).
      *
      * Deliberately not wired into suggest(): that fires per keystroke and
