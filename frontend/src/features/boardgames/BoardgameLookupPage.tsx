@@ -679,8 +679,14 @@ export function BoardgameLookupPage() {
                 Top rated on BoardGameGeek
               </h2>
               {/* lg:flex-1 + lg:content-between spread the 5 rows to fill the
-                  taller award column beside it, so both blocks end level. */}
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:flex-1 lg:content-between">
+                  taller award column beside it, so both blocks end level.
+                  grid-cols-1 (not bare `grid`) for the same reason as the
+                  outer grid above: below sm this is a single implicit column,
+                  and without an explicit minmax(0,1fr) track a row's
+                  untruncated game title reasserts the same overflow one level
+                  deeper - the outer fix alone left this ul wider than its own
+                  now-correctly-sized <section>, so rows spilled out of it. */}
+            <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex-1 lg:content-between">
               {top.map((game) => (
                 <li key={game.bggId}>
                   <button
