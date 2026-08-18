@@ -342,19 +342,23 @@ class BggClient
     {
         // Exact name first, then a prefix search - two plain queries rather
         // than one ranked query, because "which one did it actually match"
-        // stays obvious when this is debugged at 3am.
-        $matches = $this->queryRanks('SELECT bgg_id, name, year_published FROM bgg_ranks WHERE name = ? ORDER BY users_rated DESC LIMIT 10', $normalizedQuery);
+        // stays obvious when this is debugged at 3am. Each tier also checks
+        // game_aliases (#132), so "Die Siedler von Catan" resolves on this
+        // (instant/fallback) path the same way it already can on the live
+        // BGG search path.
+        $matches = $this->queryRanksWithAliases('name = ?', 'ga.name = ?', $normalizedQuery);
         if ($matches === []) {
-            $matches = $this->queryRanks('SELECT bgg_id, name, year_published FROM bgg_ranks WHERE name LIKE ? ORDER BY users_rated DESC LIMIT 10', self::escapeLike($normalizedQuery) . '%');
+            $like = self::escapeLike($normalizedQuery) . '%';
+            $matches = $this->queryRanksWithAliases('name LIKE ?', 'ga.name LIKE ?', $like);
         }
         if ($matches === []) {
             // #73: a query with the punctuation dropped (users have no
             // reason to type it) matches neither pass above, since the dump
             // keeps it in the stored name. Strip ':' '-' ',' and spaces from
             // both sides so "Brass Birmingham" meets "Brass: Birmingham".
-            $matches = $this->queryRanks(
-                'SELECT bgg_id, name, year_published FROM bgg_ranks WHERE ' . self::strippedNameSql()
-                    . ' = ? ORDER BY users_rated DESC LIMIT 10',
+            $matches = $this->queryRanksWithAliases(
+                self::strippedNameSql('name') . ' = ?',
+                self::strippedNameSql('ga.name') . ' = ?',
                 self::stripped($normalizedQuery)
             );
         }
@@ -395,18 +399,20 @@ class BggClient
             return [];
         }
 
-        $matches = $this->queryRanks(
-            'SELECT bgg_id, name, year_published FROM bgg_ranks WHERE name LIKE ? ORDER BY users_rated DESC LIMIT ' . $limit,
-            self::escapeLike($normalized) . '%'
+        // #132: also matches game_aliases, so a German title suggests
+        // itself the same way its BGG primary name already does.
+        $matches = $this->queryRanksWithAliases(
+            'name LIKE ?', 'ga.name LIKE ?', self::escapeLike($normalized) . '%', $limit
         );
 
         if ($matches === []) {
             $stripped = self::stripped($normalized);
             if ($stripped !== '') {
-                $matches = $this->queryRanks(
-                    'SELECT bgg_id, name, year_published FROM bgg_ranks WHERE ' . self::strippedNameSql()
-                        . ' LIKE ? ORDER BY users_rated DESC LIMIT ' . $limit,
-                    self::escapeLike($stripped) . '%'
+                $matches = $this->queryRanksWithAliases(
+                    self::strippedNameSql('name') . ' LIKE ?',
+                    self::strippedNameSql('ga.name') . ' LIKE ?',
+                    self::escapeLike($stripped) . '%',
+                    $limit
                 );
             }
         }
@@ -644,9 +650,9 @@ class BggClient
         return str_replace([':', '-', ',', ' '], '', $value);
     }
 
-    private static function strippedNameSql(): string
+    private static function strippedNameSql(string $column = 'name'): string
     {
-        return "REPLACE(REPLACE(REPLACE(REPLACE(name, ':', ''), '-', ''), ',', ''), ' ', '')";
+        return "REPLACE(REPLACE(REPLACE(REPLACE($column, ':', ''), '-', ''), ',', ''), ' ', '')";
     }
 
     /**
@@ -705,6 +711,32 @@ class BggClient
     {
         $stmt = db()->prepare($sql);
         $stmt->execute([$param]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * bgg_ranks matches UNIONed with game_aliases matches (#132), mapped to
+     * the same shape. An alias hit carries its own name, not the primary -
+     * "Die Siedler von Catan" is what the query actually matched, not
+     * "Catan" - so a query landing on both a real title (a different game)
+     * and an alias surfaces as disambiguation rather than silently picking
+     * one, per #108's "an alias must resolve to one bgg_id" requirement.
+     * UNION (not UNION ALL) naturally collapses the degenerate case of an
+     * alias identical to its own game's primary name.
+     *
+     * $rankWhere/$aliasWhere are trusted SQL fragments built only from the
+     * call sites in this file, never from request input.
+     */
+    private function queryRanksWithAliases(string $rankWhere, string $aliasWhere, string $param, int $limit = 10): array
+    {
+        $stmt = db()->prepare(
+            "SELECT bgg_id, name, year_published, users_rated FROM bgg_ranks WHERE $rankWhere
+             UNION
+             SELECT r.bgg_id, ga.name, r.year_published, r.users_rated FROM game_aliases ga
+                 JOIN bgg_ranks r ON r.bgg_id = ga.bgg_id WHERE $aliasWhere
+             ORDER BY users_rated DESC LIMIT $limit"
+        );
+        $stmt->execute([$param, $param]);
         return $stmt->fetchAll();
     }
 
