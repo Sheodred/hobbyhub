@@ -5,6 +5,7 @@ import { FadeIn } from "../../components/FadeIn";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { ApiError } from "../../lib/apiClient";
 import {
+  boardgameAwards,
   lookupBoardgame,
   lookupBoardgameById,
   lookupBoardgameLocal,
@@ -12,6 +13,7 @@ import {
   randomBoardgame,
   suggestBoardgames,
   topBoardgames,
+  type AwardCategory,
   type Boardgame,
   type BoardgameCandidate,
   type BoardgameLookupResult,
@@ -55,43 +57,6 @@ function legacyCopy(text: string): boolean {
     field.remove();
   }
 }
-
-// #105: this year's Spiel-des-Jahres results as pre-search entry points, a
-// sibling to #102's top 10 - "what's current" next to "what's best all-time".
-// Hand-seeded once a summer from spiel-des-jahres.de/preistraeger<year>: the
-// facts (which game won/was nominated/recommended) are not copyrightable, so
-// this is the same cheap hand-seed as the Moxfield and WotC-news fallbacks,
-// not a scrape of their prose or images. Winners carry BGG's id (the dump
-// stores only BGG's primary name, e.g. "JinxO" for DITO!) so a click resolves
-// the real game; nominees and the recommendation list are display-only names,
-// which keeps the yearly job to typing titles rather than hunting ~19 ids.
-// Winner ids verified present in the dump 2026-08-18. Refresh each summer.
-const AWARD_YEAR = 2026;
-const SPIEL_DES_JAHRES: ReadonlyArray<{
-  category: string;
-  winner: { bggId: number; title: string };
-  nominees: string[];
-  recommended: string[];
-}> = [
-  {
-    category: "Spiel des Jahres",
-    winner: { bggId: 400495, title: "DITO!" },
-    nominees: ["Cozy Sticker Ville", "Morty Sorty Magic Shop"],
-    recommended: ["Hot Streak", "Meister Makatsu", "Take Time", "Toriki", "Toy Battle", "Wilmot's Warehouse"],
-  },
-  {
-    category: "Kennerspiel des Jahres",
-    winner: { bggId: 417197, title: "Rebirth" },
-    nominees: ["Boss Fighters: QR", "Moon Colony Bloodbath"],
-    recommended: ["Artengarten", "Frosted Blooms", "Grundstein von Metropolis", "Tag Team"],
-  },
-  {
-    category: "Kinderspiel des Jahres",
-    winner: { bggId: 435346, title: "Die Insel der Mookies" },
-    nominees: ["Buh Party", "Verflixt verzaubert"],
-    recommended: ["Kleiner Stinker", "Magische Spiegel", "Paleolino"],
-  },
-];
 
 // #116: BGG ships one description field, often 1,000+ chars, as a single
 // slab. whitespace-pre-line honours its paragraph breaks; this clamps the
@@ -161,9 +126,9 @@ function AwardNames({
   );
 }
 
-// Thumbnail placeholder: marks where the game's cover image will sit once
-// BGG's <thumbnail>/<image> is wired (tracked as its own issue). The parent
-// flex puts it right of the text on desktop and above it on mobile.
+// Thumbnail placeholder (#135): marks where the game's cover image will sit
+// once BGG's <thumbnail>/<image> is wired. The parent flex puts it right of
+// the text on desktop and above it on mobile.
 function ThumbnailPlaceholder({ name }: { name: string }) {
   return (
     <div
@@ -191,6 +156,8 @@ export function BoardgameLookupPage() {
   const [suggestions, setSuggestions] = useState<BoardgameCandidate[]>([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [top, setTop] = useState<TopBoardgame[]>([]);
+  const [awards, setAwards] = useState<AwardCategory[]>([]);
+  const [awardYear, setAwardYear] = useState<number | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -204,6 +171,16 @@ export function BoardgameLookupPage() {
     // Nothing to do on failure: the initial state is already "show nothing",
     // and this is a nice-to-have the page never promised.
     topBoardgames().then(setTop, () => {});
+    // #105: the award panel's own source (sdj_awards table), independent of the
+    // ranks dump. Same fail-quiet contract - an un-seeded table or a failed
+    // fetch leaves the panel unrendered.
+    boardgameAwards().then(
+      (result) => {
+        setAwards(result.categories);
+        setAwardYear(result.year);
+      },
+      () => {}
+    );
   }, []);
 
   function closeSuggestions() {
@@ -571,52 +548,59 @@ export function BoardgameLookupPage() {
 
         {/* Only before anything has been searched (#102): once a lookup is
             running or an answer is up, this would push the answers down the
-            page. #105: the current award results sit beside the all-time top
-            10 - side by side on desktop (lg:grid-cols-2), stacked on mobile,
-            award first (current before classic). lg:items-start keeps the
-            shorter column from stretching; both share the idle + non-empty-
-            dump gate so the empty-dump case behaves identically. Winners are
-            real buttons that activate a lookup; nominees and the recommendation
-            list are display-only names (#105 comment on the seed). */}
-        {state.kind === "idle" && top.length > 0 && (
+            page. #105: the current award results (sdj_awards table) sit beside
+            the all-time top 10 - side by side on desktop (lg:grid-cols-2),
+            stacked on mobile, award first (current before classic). Each block
+            renders only when its own source has data, so either can stand
+            alone. Winners are real buttons that activate a lookup (by bgg_id,
+            or by name when no id is seeded); nominees and the recommendation
+            list are name buttons that run a search. */}
+        {state.kind === "idle" && (top.length > 0 || awards.length > 0) && (
           <div className="grid gap-8 lg:grid-cols-2">
-            <section>
-              <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                Spiel des Jahres {AWARD_YEAR}
-              </h2>
-              <ul className="mt-3 space-y-3">
-                {SPIEL_DES_JAHRES.map((cat) => (
-                  <li
-                    key={cat.category}
-                    className="rounded-lg border border-slate-800 bg-slate-900/40 p-3"
-                  >
-                    <p className="text-xs font-medium text-indigo-300">
-                      {cat.category} {AWARD_YEAR}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => pick(cat.winner.bggId, cat.winner.title)}
-                      className="mt-1.5 flex w-full min-w-0 items-baseline gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-left hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            {awards.length > 0 && (
+              <section>
+                <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Spiel des Jahres {awardYear}
+                </h2>
+                <ul className="mt-3 space-y-3">
+                  {awards.map((cat) => (
+                    <li
+                      key={cat.category}
+                      className="rounded-lg border border-slate-800 bg-slate-900/40 p-3"
                     >
-                      <span aria-hidden="true" className="shrink-0 text-xs">🏆</span>
-                      <span className="min-w-0 flex-1 truncate text-sm text-slate-200">{cat.winner.title}</span>
-                    </button>
-                    {cat.nominees.length > 0 && (
-                      <AwardNames label="Nominiert" names={cat.nominees} className="mt-2" onPick={searchByName} />
-                    )}
-                    {cat.recommended.length > 0 && (
-                      <AwardNames
-                        label="Empfehlungsliste"
-                        names={cat.recommended}
-                        className="mt-1"
-                        onPick={searchByName}
-                      />
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
+                      <p className="text-xs font-medium text-indigo-300">
+                        {cat.category} {awardYear}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          cat.winner.bggId !== null
+                            ? pick(cat.winner.bggId, cat.winner.name)
+                            : searchByName(cat.winner.name)
+                        }
+                        className="mt-1.5 flex w-full min-w-0 items-baseline gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-left hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                      >
+                        <span aria-hidden="true" className="shrink-0 text-xs">🏆</span>
+                        <span className="min-w-0 flex-1 truncate text-sm text-slate-200">{cat.winner.name}</span>
+                      </button>
+                      {cat.nominees.length > 0 && (
+                        <AwardNames label="Nominiert" names={cat.nominees} className="mt-2" onPick={searchByName} />
+                      )}
+                      {cat.recommended.length > 0 && (
+                        <AwardNames
+                          label="Empfehlungsliste"
+                          names={cat.recommended}
+                          className="mt-1"
+                          onPick={searchByName}
+                        />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
+            {top.length > 0 && (
             <section className="lg:flex lg:flex-col">
               <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 Top rated on BoardGameGeek
@@ -644,6 +628,7 @@ export function BoardgameLookupPage() {
               ))}
             </ul>
           </section>
+            )}
           </div>
         )}
 

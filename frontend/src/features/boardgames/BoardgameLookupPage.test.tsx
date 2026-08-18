@@ -44,6 +44,30 @@ const CATAN: Boardgame = {
   source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
 };
 
+const AWARDS_2026: api.BoardgameAwards = {
+  year: 2026,
+  categories: [
+    {
+      category: "Spiel des Jahres",
+      winner: { bggId: 400495, name: "DITO!" },
+      nominees: ["Cozy Sticker Ville", "Morty Sorty Magic Shop"],
+      recommended: ["Hot Streak", "Wilmot's Warehouse"],
+    },
+    {
+      category: "Kennerspiel des Jahres",
+      winner: { bggId: 417197, name: "Rebirth" },
+      nominees: ["Boss Fighters: QR"],
+      recommended: ["Artengarten"],
+    },
+    {
+      category: "Kinderspiel des Jahres",
+      winner: { bggId: 435346, name: "Die Insel der Mookies" },
+      nominees: ["Buh Party"],
+      recommended: ["Paleolino"],
+    },
+  ],
+};
+
 describe("BoardgameLookupPage", () => {
   // The example is the site's one worked example, so it is pinned: it has to
   // resolve to a single game, not a disambiguation list (#100).
@@ -852,10 +876,11 @@ describe("BoardgameLookupPage — shareable searches", () => {
   });
 
   it("offers this year's Spiel-des-Jahres results as entry points and resolves a winner click by bgg_id (#105)", async () => {
-    // The dump must be non-empty for the pre-search lists to show (#102 gate).
     vi.spyOn(api, "topBoardgames").mockResolvedValue([
       { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1 },
     ]);
+    // The award panel reads its own source (sdj_awards), not the ranks dump.
+    vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
     vi.spyOn(api, "lookupBoardgameLocalById").mockResolvedValue({ status: "not_found" });
     vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "ok", game: CATAN });
 
@@ -880,9 +905,7 @@ describe("BoardgameLookupPage — shareable searches", () => {
   });
 
   it("runs a name search when a nominee or recommendation is clicked (#105)", async () => {
-    vi.spyOn(api, "topBoardgames").mockResolvedValue([
-      { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1 },
-    ]);
+    vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "not_found", query: "Cozy Sticker Ville", suggestions: [] });
 
     renderPage();
@@ -894,8 +917,9 @@ describe("BoardgameLookupPage — shareable searches", () => {
     await waitFor(() => expect(locationSearch()).toBe("?q=Cozy+Sticker+Ville"));
   });
 
-  it("hides the award list when the ranks dump is empty (#105/#102)", async () => {
+  it("hides the award panel when no awards are seeded (#105)", async () => {
     vi.spyOn(api, "topBoardgames").mockResolvedValue([]);
+    vi.spyOn(api, "boardgameAwards").mockResolvedValue({ year: null, categories: [] });
 
     renderPage();
 
