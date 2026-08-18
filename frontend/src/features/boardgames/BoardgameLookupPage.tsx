@@ -126,6 +126,18 @@ function AwardNames({
   );
 }
 
+// #128: a small loading ring. motion-safe only, so a prefers-reduced-motion
+// visitor gets a static ring rather than a spinning one; aria-hidden because
+// the role="status" region already announces the wait in words.
+function Spinner() {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-block h-4 w-4 shrink-0 rounded-full border-2 border-slate-600 border-t-indigo-400 motion-safe:animate-spin"
+    />
+  );
+}
+
 // Thumbnail placeholder (#135): marks where the game's cover image will sit
 // once BGG's <thumbnail>/<image> is wired. The parent flex puts it right of
 // the text on desktop and above it on mobile.
@@ -485,6 +497,21 @@ export function BoardgameLookupPage() {
             : ""}
         </p>
 
+        {/* #128: a visible spinner while the first answer is in flight, so a
+            sighted visitor sees the app working, not just the status line (which
+            stays, for screen readers). aria-hidden - the status region narrates
+            it already. */}
+        {state.kind === "loading" && (
+          <div
+            data-testid="loading-indicator"
+            aria-hidden="true"
+            className="flex items-center gap-3 text-sm text-slate-400"
+          >
+            <Spinner />
+            <span>Searching…</span>
+          </div>
+        )}
+
         {state.kind === "error" && (
           <p role="alert" className="text-rose-400">
             {state.message}
@@ -657,6 +684,21 @@ export function BoardgameLookupPage() {
                   </p>
                 )}
               </div>
+
+              {/* #128: a subtle "still loading the other sources" cue on the
+                  card while the slow half of the lookup runs, so a partial
+                  answer doesn't read as final. aria-hidden - the status region
+                  narrates it. */}
+              {state.enriching && (
+                <p
+                  data-testid="enriching-indicator"
+                  aria-hidden="true"
+                  className="mt-3 flex items-center gap-2 text-xs text-slate-400"
+                >
+                  <Spinner />
+                  <span>Loading the other sources…</span>
+                </p>
+              )}
 
               {/* One chip per fact rather than a dot-separated line: these are
                   the facts that decide whether a game suits your table, and as
