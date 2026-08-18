@@ -782,6 +782,23 @@ export function BoardgameLookupPage() {
                 </p>
               )}
 
+              {/* #131: BGG's own theme (categories) + mechanic labels, as plain
+                  tags. Neutral slate chips so they read as classification, not
+                  as the indigo facts or the amber award badge above. Absent on
+                  the dump-backed partial answer. */}
+              {((state.game.categories?.length ?? 0) > 0 || (state.game.mechanics?.length ?? 0) > 0) && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {[...(state.game.categories ?? []), ...(state.game.mechanics ?? [])].map((tag, i) => (
+                    <span
+                      key={`${tag}-${i}`}
+                      className="rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-xs text-slate-300"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               {state.game.bgq && (
                 <section className="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-4">
                   <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">How it plays</h3>

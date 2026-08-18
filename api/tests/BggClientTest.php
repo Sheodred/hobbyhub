@@ -153,6 +153,26 @@ final class BggClientTest extends TestCase
         $this->assertNotNull($result['bad'], 'the bad snippet is exactly what page 1 can supply');
     }
 
+    public function testLookupSurfacesMechanicAndCategoryLabels(): void
+    {
+        // #131: BGG carries mechanics and categories (the theme) as <link>
+        // children on the thing - already fetched, now read. Other link types
+        // (designer, publisher, ...) are left out of these two lists.
+        $client = new BggClient(fn(string $url) => $this->thingXml(
+            '<item id="13"><name type="primary" value="Catan"/>' .
+            '<link type="boardgamecategory" value="Negotiation"/>' .
+            '<link type="boardgamemechanic" value="Dice Rolling"/>' .
+            '<link type="boardgamemechanic" value="Trading"/>' .
+            '<link type="boardgamedesigner" value="Klaus Teuber"/>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(13);
+
+        $this->assertSame(['Negotiation'], $result['categories']);
+        $this->assertSame(['Dice Rolling', 'Trading'], $result['mechanics'], 'BGG order, designer link ignored');
+    }
+
     public function testASingleCommentPageStillSuppliesBothSnippets(): void
     {
         // Under one page there is no last page to fetch: everything BGG holds

@@ -75,6 +75,13 @@ export interface Boardgame {
    * don't rank at all - never 0, which is how their export says "unranked".
    */
   rank: number | null;
+  /**
+   * #131: BGG's own mechanic and category (theme) links, as plain labels.
+   * Absent on the dump-backed partial answer, which has neither - treat a
+   * missing field as an empty list.
+   */
+  mechanics?: string[];
+  categories?: string[];
   source: BoardgameSource;
 }
 
