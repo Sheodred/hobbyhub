@@ -56,6 +56,21 @@ function legacyCopy(text: string): boolean {
   }
 }
 
+// #105: this year's Spiel des Jahres winners as pre-search entry points, a
+// sibling to #102's top 10 - "what's current" next to "what's best all-time".
+// Hand-seeded, three lines a year (the award announces three winners each
+// summer) - far cheaper than a scraper for three strings, the same call this
+// project made for Moxfield and the WotC news fallback. The label is the
+// German award title because that is what a visitor recognises as the winner;
+// the id is BGG's (the dump stores only BGG's primary name, e.g. "JinxO" for
+// DITO!), so a click resolves to the real game. All three ids verified present
+// in the dump 2026-08-18. Refresh these three lines each summer.
+const AWARD_WINNERS: ReadonlyArray<{ bggId: number; title: string; award: string }> = [
+  { bggId: 400495, title: "DITO!", award: "Spiel des Jahres 2026" },
+  { bggId: 417197, title: "Rebirth", award: "Kennerspiel des Jahres 2026" },
+  { bggId: 435346, title: "Die Insel der Mookies", award: "Kinderspiel des Jahres 2026" },
+];
+
 export function BoardgameLookupPage() {
   useDocumentTitle("Boardgame Lookup");
 
@@ -445,6 +460,32 @@ export function BoardgameLookupPage() {
             page. Real buttons, not clickable cards - each one activates a
             lookup. Announcement goes through the role="status" region above;
             this list has a heading and needs no live region of its own. */}
+        {/* #105: this year's award winners, above the all-time top 10 (current
+            before classic). Same idle-only, top.length>0 gate as the top-10
+            list so the empty-dump case behaves identically (#102); same
+            heading + list-of-buttons pattern and no live region of its own. */}
+        {state.kind === "idle" && top.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              This year&apos;s award winners
+            </h2>
+            <ul className="mt-3 grid gap-2 sm:grid-cols-3">
+              {AWARD_WINNERS.map((winner) => (
+                <li key={winner.bggId}>
+                  <button
+                    type="button"
+                    onClick={() => pick(winner.bggId, winner.title)}
+                    className="flex w-full min-w-0 flex-col rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-left hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                  >
+                    <span className="truncate text-sm text-slate-200">{winner.title}</span>
+                    <span className="truncate text-xs text-indigo-300">{winner.award}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {state.kind === "idle" && top.length > 0 && (
           <section>
             <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">

@@ -804,6 +804,37 @@ describe("BoardgameLookupPage — shareable searches", () => {
     await waitFor(() => expect(locationSearch()).toBe("?bgg_id=342942"));
   });
 
+  it("offers this year's award winners as entry points and resolves a click by bgg_id (#105)", async () => {
+    // The dump must be non-empty for the pre-search lists to show (#102 gate).
+    vi.spyOn(api, "topBoardgames").mockResolvedValue([
+      { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1 },
+    ]);
+    vi.spyOn(api, "lookupBoardgameLocalById").mockResolvedValue({ status: "not_found" });
+    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "ok", game: CATAN });
+
+    renderPage();
+
+    // Labelled by the German award title a visitor recognises, not the BGG
+    // primary name the dump stores.
+    const dito = await screen.findByRole("button", { name: /DITO!/ });
+    expect(screen.getByText("Spiel des Jahres 2026")).toBeInTheDocument();
+    expect(screen.getByText("Kinderspiel des Jahres 2026")).toBeInTheDocument();
+
+    fireEvent.click(dito);
+
+    // Shareable/back-button-able, exactly like a top-10 click (#99, #105).
+    await waitFor(() => expect(locationSearch()).toBe("?bgg_id=400495"));
+  });
+
+  it("hides the award list when the ranks dump is empty (#105/#102)", async () => {
+    vi.spyOn(api, "topBoardgames").mockResolvedValue([]);
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /^search$/i })).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /DITO!/ })).not.toBeInTheDocument();
+  });
+
   it("hides Surprise me when the ranks dump is empty (#120)", async () => {
     vi.spyOn(api, "topBoardgames").mockResolvedValue([]);
     const random = vi.spyOn(api, "randomBoardgame");
