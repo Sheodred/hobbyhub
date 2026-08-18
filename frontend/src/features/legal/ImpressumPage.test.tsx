@@ -12,4 +12,13 @@ describe("ImpressumPage", () => {
     expect(screen.getByRole("heading", { name: /responsible for content/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /odr/i })).toHaveAttribute("href", "https://ec.europa.eu/consumers/odr/");
   });
+
+  it("makes the contact email a clickable mailto: link (#155)", () => {
+    render(<ImpressumPage />);
+
+    expect(screen.getByRole("link", { name: "kluge@sheoforge.de" })).toHaveAttribute(
+      "href",
+      "mailto:kluge@sheoforge.de"
+    );
+  });
 });

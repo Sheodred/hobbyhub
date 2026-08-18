@@ -19,7 +19,12 @@ export function ImpressumPage() {
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Contact</h2>
-      <p className="mt-2">Email: kluge@sheoforge.de</p>
+      <p className="mt-2">
+        Email:{" "}
+        <a href="mailto:kluge@sheoforge.de" className="text-indigo-400 hover:text-indigo-300 hover:underline">
+          kluge@sheoforge.de
+        </a>
+      </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Commercial register</h2>
       <p className="mt-2">
