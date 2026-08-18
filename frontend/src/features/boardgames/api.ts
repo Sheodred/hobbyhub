@@ -60,8 +60,10 @@ export interface Boardgame {
   description: string;
   rating: number | null;
   numRatings: number | null;
-  good: string | null;
-  bad: string | null;
+  /** Up to 3 snippets, best/most-cited first. null when nothing qualified. */
+  good: string[] | null;
+  /** Same shape as `good`, worst first. */
+  bad: string[] | null;
   /**
    * True when the answer came from the imported BGG ranks dump rather than
    * the live API - rating and name only, no description or comments. The
@@ -97,6 +99,15 @@ export interface Boardgame {
    */
   mechanics?: string[];
   categories?: string[];
+  /**
+   * BGG's "family" league tables alongside the overall rank - a game's
+   * position among strategy games / family games specifically, not a
+   * separate rank of a different kind. Absent on the dump-backed partial
+   * answer, same convention as mechanics/categories; null (present but no
+   * such table) for a game BGG has not placed in that family at all.
+   */
+  strategyRank?: number | null;
+  familyRank?: number | null;
   source: BoardgameSource;
 }
 

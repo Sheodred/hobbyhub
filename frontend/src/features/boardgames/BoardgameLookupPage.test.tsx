@@ -100,8 +100,8 @@ describe("BoardgameLookupPage", () => {
         description: "Trade, build, settle.",
         rating: 7.2,
         numRatings: 1000,
-        good: "Great trading game.",
-        bad: "Too much luck.",
+        good: ["Great trading game."],
+        bad: ["Too much luck."],
         partial: false,
         ratings: [],
         bgq: null,
@@ -163,6 +163,55 @@ describe("BoardgameLookupPage", () => {
 
     await screen.findByText("Trade, build, settle.");
     expect(screen.queryByRole("button", { name: /Show more|Show less/ })).not.toBeInTheDocument();
+  });
+
+  it("shows up to 3 good and 3 bad snippets, each independently", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: {
+        ...CATAN,
+        good: ["Great trading game.", "A modern classic.", "Still holds up."],
+        bad: ["Too much luck.", "Rolled badly, lost badly.", "Boring after round two."],
+      },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(await screen.findByText("Great trading game.")).toBeInTheDocument();
+    expect(screen.getByText("A modern classic.")).toBeInTheDocument();
+    expect(screen.getByText("Still holds up.")).toBeInTheDocument();
+    expect(screen.getByText("Too much luck.")).toBeInTheDocument();
+    expect(screen.getByText("Rolled badly, lost badly.")).toBeInTheDocument();
+    expect(screen.getByText("Boring after round two.")).toBeInTheDocument();
+  });
+
+  // #90-batch: a review is prose someone else wrote, capped so three of them
+  // side by side don't dominate the card - independently, so reading one in
+  // full doesn't force the others open too.
+  it("clamps a review snippet past 35 words behind its own Show more", async () => {
+    const longReview = Array.from({ length: 50 }, (_, i) => `word${i}`).join(" ");
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, good: [longReview, "Short one."], bad: null },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    const toggles = await screen.findAllByRole("button", { name: "Show more" });
+    // Only the long snippet gets a toggle - "Short one." is nowhere near 35
+    // words and must not grow one of its own.
+    expect(toggles).toHaveLength(1);
+    expect(screen.getByText("Short one.")).toBeInTheDocument();
+    expect(screen.getByText(/word0 word1/)).toBeInTheDocument();
+    expect(screen.queryByText(/word49/)).not.toBeInTheDocument();
+
+    fireEvent.click(toggles[0]);
+    expect(screen.getByRole("button", { name: "Show less" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText(/word49/)).toBeInTheDocument();
   });
 
   it("shows a cover-image placeholder on the result card", async () => {
@@ -240,6 +289,46 @@ describe("BoardgameLookupPage", () => {
     expect(screen.getByText("Negotiation")).toBeInTheDocument();
     expect(screen.getByText("Dice Rolling")).toBeInTheDocument();
     expect(screen.getByText("Trading")).toBeInTheDocument();
+    // Category stays up near the facts row; mechanics moved below the
+    // description, so the two must not land in the same DOM position.
+    const description = screen.getByText("Trade, build, settle.");
+    // compareDocumentPosition bit 4 = Node.DOCUMENT_POSITION_FOLLOWING.
+    expect(
+      description.compareDocumentPosition(screen.getByText("Negotiation")) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBe(0);
+    expect(
+      description.compareDocumentPosition(screen.getByText("Dice Rolling")) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it("shows the strategy and family game ranks alongside the overall BGG rank", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, rank: 627, strategyRank: 592, familyRank: 206 },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    expect(await screen.findByText("BGG rank #627")).toBeInTheDocument();
+    expect(screen.getByText("Strategy rank #592")).toBeInTheDocument();
+    expect(screen.getByText("Family rank #206")).toBeInTheDocument();
+  });
+
+  it("says nothing about a strategy/family rank the game does not have", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, rank: 627, strategyRank: null, familyRank: null },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await screen.findByText("BGG rank #627");
+    expect(screen.queryByText(/Strategy rank/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Family rank/)).not.toBeInTheDocument();
   });
 
   it("shows no award badge for a game that isn't in the panel (#117)", async () => {
@@ -426,7 +515,7 @@ describe("BoardgameLookupPage", () => {
       status: "ok",
       game: {
         bggId: 331106, name: "Intarsia", description: "", rating: 7.2, numRatings: 900,
-        good: "Beautiful production", bad: "Lacking replay value", partial: true, players: "2 - 4", duration: "30 - 45 Minuten",
+        good: ["Beautiful production"], bad: ["Lacking replay value"], partial: true, players: "2 - 4", duration: "30 - 45 Minuten",
         age: null, complexity: null, price: null, isExpansion: false, rank: null,
         ratings: [
           { source: "Board Game Quest", value: 3.5, max: 5, count: null, title: "Intarsia Review", url: "https://www.boardgamequest.com/intarsia-review/" },
@@ -733,7 +822,7 @@ describe("BoardgameLookupPage", () => {
       status: "ok",
       game: {
         bggId: 13, name: "Catan", description: "Trade, build, settle.", rating: 7.2,
-        numRatings: 1000, good: "Great trading game.", bad: "Too much luck.",
+        numRatings: 1000, good: ["Great trading game."], bad: ["Too much luck."],
         partial: false, ratings: [], bgq: null, players: "3-4", duration: null,
         age: null, complexity: null, price: null, isExpansion: false, rank: 566,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },

@@ -96,6 +96,38 @@ function GameDescription({ text }: { text: string }) {
   );
 }
 
+// A word count, not a character count, since these are excerpts of prose
+// review text where a character clamp routinely cuts mid-word - the
+// description above is BGG's own formatted text and keeps its char-based
+// clamp, this is short user comments where a word count reads more evenly.
+const REVIEW_WORD_CLAMP = 35;
+
+function ReviewSnippet({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const words = text.split(/\s+/);
+  const long = words.length > REVIEW_WORD_CLAMP;
+  const clamped = long && !expanded ? `${words.slice(0, REVIEW_WORD_CLAMP).join(" ")}…` : text;
+
+  return (
+    <p className="mt-2 text-sm text-slate-300">
+      {clamped}
+      {long && (
+        <>
+          {" "}
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            className="text-xs text-slate-400 underline hover:text-slate-300"
+          >
+            {expanded ? "Show less" : "Show more"}
+          </button>
+        </>
+      )}
+    </p>
+  );
+}
+
 // #105: nominees and recommendations render as inline buttons, comma-
 // separated, each running a name search on click. Styled as text links so the
 // line still reads as prose, not a button row.
@@ -818,6 +850,8 @@ export function BoardgameLookupPage() {
                 state.game.duration ||
                 state.game.age ||
                 state.game.rank !== null ||
+                typeof state.game.strategyRank === "number" ||
+                typeof state.game.familyRank === "number" ||
                 state.game.complexity) && (
                 <p className="mt-3 flex flex-wrap items-center gap-2">
                   {[
@@ -825,6 +859,11 @@ export function BoardgameLookupPage() {
                     state.game.duration,
                     state.game.age,
                     state.game.rank !== null && `BGG rank #${state.game.rank}`,
+                    // #131-style family league tables, alongside the overall
+                    // rank rather than replacing it - a game can be #627
+                    // overall and still #592 among strategy games.
+                    typeof state.game.strategyRank === "number" && `Strategy rank #${state.game.strategyRank}`,
+                    typeof state.game.familyRank === "number" && `Family rank #${state.game.familyRank}`,
                   ]
                     .filter((fact): fact is string => Boolean(fact))
                     .map((fact) => (
@@ -852,21 +891,24 @@ export function BoardgameLookupPage() {
                 </p>
               )}
 
-              {/* #131: BGG's own theme (categories) + mechanic labels, as plain
-                  tags. Neutral slate chips so they read as classification, not
-                  as the indigo facts or the amber award badge above. Absent on
-                  the dump-backed partial answer. */}
-              {((state.game.categories?.length ?? 0) > 0 || (state.game.mechanics?.length ?? 0) > 0) && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {[...(state.game.categories ?? []), ...(state.game.mechanics ?? [])].map((tag, i) => (
+              {/* #131: BGG's category (theme) links, e.g. "Economic",
+                  "Negotiation" - kept at the top beside the facts row rather
+                  than moved down with mechanics, and given a distinct rose
+                  tint (not the indigo facts, not the neutral mechanic tags
+                  below the description) so it reads as its own kind of fact:
+                  what KIND of game this is, not a stat about it. */}
+              {(state.game.categories?.length ?? 0) > 0 && (
+                <p className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-medium uppercase tracking-wide text-rose-400/90">Category</span>
+                  {(state.game.categories ?? []).map((category) => (
                     <span
-                      key={`${tag}-${i}`}
-                      className="rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-xs text-slate-300"
+                      key={category}
+                      className="rounded-full border border-rose-400/25 bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-100"
                     >
-                      {tag}
+                      {category}
                     </span>
                   ))}
-                </div>
+                </p>
               )}
 
               {state.game.bgq && (
@@ -904,18 +946,48 @@ export function BoardgameLookupPage() {
                 </div>
               </div>
 
+              {/* #131: BGG's mechanic labels, as plain tags - moved below the
+                  description (was between the facts row and the description,
+                  which made the top of the card too loaded before anyone had
+                  read a word about the game). Categories stayed in the facts
+                  row above, rose-tinted, as their own kind of fact. Neutral
+                  slate chips so mechanics read as classification, not as the
+                  indigo facts or the amber award badge above. Absent on the
+                  dump-backed partial answer. */}
+              {(state.game.mechanics?.length ?? 0) > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {(state.game.mechanics ?? []).map((mechanic) => (
+                    <span
+                      key={mechanic}
+                      className="rounded-full border border-slate-700 bg-slate-800/60 px-2.5 py-1 text-xs text-slate-300"
+                    >
+                      {mechanic}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Up to 3 snippets a side now (top-3 best / bottom-3 worst BGG
+                  comments, or Board Game Quest's whole hit/miss list as a
+                  fallback - see lookup.php), each independently clamped to
+                  35 words with its own "Show more" rather than one clamp for
+                  the whole box. */}
               {(state.game.good || state.game.bad) && (
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
                   {state.game.good && (
                     <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
                       <p className="text-xs font-medium uppercase tracking-wide text-emerald-400">The good</p>
-                      <p className="mt-2 text-sm text-slate-300">{state.game.good}</p>
+                      {state.game.good.map((text) => (
+                        <ReviewSnippet key={text} text={text} />
+                      ))}
                     </div>
                   )}
                   {state.game.bad && (
                     <div className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-4">
                       <p className="text-xs font-medium uppercase tracking-wide text-rose-400">The bad</p>
-                      <p className="mt-2 text-sm text-slate-300">{state.game.bad}</p>
+                      {state.game.bad.map((text) => (
+                        <ReviewSnippet key={text} text={text} />
+                      ))}
                     </div>
                   )}
                 </div>
