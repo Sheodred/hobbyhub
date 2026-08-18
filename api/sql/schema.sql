@@ -113,6 +113,29 @@ CREATE TABLE bgg_ranks (
     INDEX idx_bgg_ranks_name (name)
 );
 
+-- Curated alternate names (#132) - "local knowledge layered over a
+-- read-only BGG mirror", the same shape as bgg_ranks but kept in its own
+-- table so bgg_ranks' REPLACE INTO re-imports never touch it (#109). Lets a
+-- German title ("Die Siedler von Catan") resolve on the instant/local path
+-- and autocomplete (bgg_ranks stores BGG's primary name only, usually
+-- English), not just the live BGG search, which already handles some
+-- German titles on its own. Hand-curated for now, verified against BGG's
+-- own live <name type="alternate"> data one game at a time - not a bulk
+-- crawl of BGG's version endpoint, which is future work if this proves
+-- worth scaling (see #132's own proposal).
+CREATE TABLE game_aliases (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    bgg_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    -- NULL until something populates it - #130's DE/EN toggle is the first
+    -- planned consumer. Every row seeded so far happens to be German.
+    lang VARCHAR(8) NULL,
+    -- An alias must resolve to exactly one bgg_id (#108) - enforced here,
+    -- not merely by convention.
+    UNIQUE KEY uniq_game_aliases_name (name),
+    INDEX idx_game_aliases_bgg_id (bgg_id)
+);
+
 -- Single row, mirrors scryfall_throttle - spaces outbound BGG requests
 -- per the ~2 req/sec community-observed convention (BggClient::throttle()).
 CREATE TABLE bgg_throttle (

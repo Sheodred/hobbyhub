@@ -11,6 +11,7 @@ final class BggClientTest extends TestCase
         db()->exec('DELETE FROM bgg_lookup_cache');
         db()->exec('DELETE FROM bgg_search_cache');
         db()->exec('DELETE FROM bgg_ranks');
+        db()->exec('DELETE FROM game_aliases');
     }
 
     private function seedRanks(): void
@@ -23,6 +24,12 @@ final class BggClientTest extends TestCase
              (926, 'Catan: Cities & Knights', 1998, 7.4, 40000, 1, 401),
              (266192, 'Wingspan', 2019, 8.1, 120000, 0, NULL)"
         );
+    }
+
+    private function seedAlias(int $bggId, string $name, ?string $lang = 'de'): void
+    {
+        $stmt = db()->prepare('INSERT INTO game_aliases (bgg_id, name, lang) VALUES (?, ?, ?)');
+        $stmt->execute([$bggId, $name, $lang]);
     }
 
     private function thingXml(string $inner): SimpleXMLElement
@@ -682,6 +689,58 @@ final class BggClientTest extends TestCase
             ['status' => 'ok', 'bggId' => 224517],
             (new BggClient(fn() => null))->resolveSearch('Brass Birmingham')
         );
+    }
+
+    public function testResolveSearchFallbackResolvesAGermanAliasToItsGame(): void
+    {
+        // #132: the local/instant path had zero German-name knowledge before
+        // this - only bgg_ranks.name (BGG's primary name), which is why the
+        // live BGG search resolving a German title was not "enough".
+        $this->seedRanks();
+        $this->seedAlias(13, 'Die Siedler von Catan');
+
+        $this->assertSame(
+            ['status' => 'ok', 'bggId' => 13],
+            (new BggClient(fn() => null))->resolveSearch('Die Siedler von Catan')
+        );
+    }
+
+    public function testSuggestOffersAGameByItsGermanAlias(): void
+    {
+        $this->seedRanks();
+        $this->seedAlias(266192, 'Flügelschlag');
+
+        $suggestions = (new BggClient(fn() => null))->suggest('Flügel');
+
+        $this->assertSame([266192], array_column($suggestions, 'bggId'));
+        $this->assertSame('Flügelschlag', $suggestions[0]['name'], 'shows the name the query actually matched, not the primary');
+    }
+
+    public function testAnAliasCollidingWithAnUnrelatedGamesRealNameIsDisambiguationNotAGuess(): void
+    {
+        // #108's own requirement: an alias must never silently shadow a real
+        // BGG title for a different game.
+        $this->seedRanks();
+        db()->exec(
+            "INSERT INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion, bgg_rank) VALUES
+             (999, 'Catan Legacy', 2024, 8.0, 5000, 0, 100)"
+        );
+        $this->seedAlias(13, 'Catan Legacy');
+
+        $result = (new BggClient(fn() => null))->resolveSearch('Catan Legacy');
+
+        $this->assertSame('disambiguation', $result['status']);
+        $this->assertEqualsCanonicalizing([999, 13], array_column($result['candidates'], 'bggId'));
+    }
+
+    public function testAnAliasIdenticalToItsOwnGamesPrimaryNameDoesNotDuplicateIt(): void
+    {
+        $this->seedRanks();
+        $this->seedAlias(13, 'Catan');
+
+        $result = (new BggClient(fn() => null))->resolveSearch('Catan');
+
+        $this->assertSame(['status' => 'ok', 'bggId' => 13], $result, 'UNION must collapse the identical row, not offer a false disambiguation');
     }
 
     public function testResolveSearchFallbackAnswersNotFoundRatherThanThrowingWhenTheDumpIsPopulated(): void
