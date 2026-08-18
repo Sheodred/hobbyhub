@@ -112,7 +112,7 @@ function GameDescription({ text }: { text: string }) {
     long && !expanded ? `${text.slice(0, cut > 0 ? cut : DESCRIPTION_CLAMP)}…` : text;
 
   return (
-    <div className="mt-4 max-w-prose">
+    <div className="max-w-prose">
       <p className="whitespace-pre-line text-slate-300">{clamped}</p>
       {long && (
         <button
@@ -158,6 +158,21 @@ function AwardNames({
         </span>
       ))}
     </p>
+  );
+}
+
+// Thumbnail placeholder: marks where the game's cover image will sit once
+// BGG's <thumbnail>/<image> is wired (tracked as its own issue). The parent
+// flex puts it right of the text on desktop and above it on mobile.
+function ThumbnailPlaceholder({ name }: { name: string }) {
+  return (
+    <div
+      role="img"
+      aria-label={`Bild zu ${name} folgt`}
+      className="flex h-40 w-40 shrink-0 items-center justify-center rounded-xl border border-dashed border-slate-700 bg-slate-800/40 text-xs text-slate-400"
+    >
+      Bild folgt
+    </div>
   );
 }
 
@@ -715,17 +730,25 @@ export function BoardgameLookupPage() {
                 </section>
               )}
 
-              {state.game.partial && !state.game.bgq ? (
-                <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-200/90">
-                  Only the community rating is available for this game right now — the description and player
-                  comments come from BoardGameGeek&apos;s live API, which didn&apos;t answer for this one.
-                </p>
-              ) : (
-                // #116: honour BGG's paragraph breaks and clamp the long ones.
-                // (Only the full answer reaches here - the partial dump path
-                // has description:"" and shows the notice above.)
-                <GameDescription text={state.game.description} />
-              )}
+              {/* Description text with the cover-image placeholder beside it:
+                  image on the right on desktop, above the text on mobile
+                  (flex-col reversed to flex-row-reverse at md). */}
+              <div className="mt-4 flex flex-col gap-4 md:flex-row-reverse md:items-start">
+                <ThumbnailPlaceholder name={state.game.name} />
+                <div className="min-w-0 flex-1">
+                  {state.game.partial && !state.game.bgq ? (
+                    <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-200/90">
+                      Only the community rating is available for this game right now — the description and player
+                      comments come from BoardGameGeek&apos;s live API, which didn&apos;t answer for this one.
+                    </p>
+                  ) : (
+                    // #116: honour BGG's paragraph breaks and clamp the long ones.
+                    // (Only the full answer reaches here - the partial dump path
+                    // has description:"" and shows the notice above.)
+                    <GameDescription text={state.game.description} />
+                  )}
+                </div>
+              </div>
 
               {(state.game.good || state.game.bad) && (
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">

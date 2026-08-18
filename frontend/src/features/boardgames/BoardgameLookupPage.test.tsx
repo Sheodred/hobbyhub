@@ -136,6 +136,17 @@ describe("BoardgameLookupPage", () => {
     expect(screen.queryByRole("button", { name: /Show more|Show less/ })).not.toBeInTheDocument();
   });
 
+  it("shows a cover-image placeholder on the result card", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => expect(screen.getByText("Catan")).toBeInTheDocument());
+    expect(screen.getByRole("img", { name: /Bild zu Catan folgt/ })).toBeInTheDocument();
+  });
+
   it("shows a disambiguation list and resolves the picked candidate", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "disambiguation",
