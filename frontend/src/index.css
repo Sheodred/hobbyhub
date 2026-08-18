@@ -48,7 +48,10 @@ main:focus-visible {
 
 /* Slow ambient drift for the AppShell background orbs - transform/opacity
    only so it's GPU-cheap, and gated by motion-safe: in the className so it
-   never runs under prefers-reduced-motion. */
+   never runs under prefers-reduced-motion. The classNames also gate it to
+   sm: (#118): these animated scale/translate transforms shimmered against the
+   browser's own pinch-zoom transform on phones, so mobile gets a static
+   backdrop and only >=640px keeps the ambient motion. */
 @keyframes drift-a {
   0%, 100% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(4%, 6%) scale(1.08); }
