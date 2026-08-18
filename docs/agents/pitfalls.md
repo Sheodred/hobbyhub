@@ -28,6 +28,33 @@ file that simply isn't collected ("No tests executed!").
 **Verification is only evidence if the artifact under test is the artifact you
 changed.** That applies to results that pass, not just ones that fail.
 
+## The frontend dev container serves stale code too
+
+Same trap as the PHP container, different mechanism. The `frontend` compose
+service bind-mounts `./frontend` and runs Vite's dev server, so edits are
+*supposed* to hot-reload. On Docker Desktop for Windows they often don't:
+Vite's file watcher (inotify) doesn't fire on the bind mount, so Vite never
+invalidates its in-memory transform and keeps serving a copy from whenever it
+last read the file.
+
+This cost real time on #116: the rendered `<p>` kept its old `className`, and
+the module fetched straight from Vite (`/src/.../BoardgameLookupPage.tsx`)
+lacked *both* the change under test and the previous PR's change — even though
+the file on disk was correct on `main`. It read as "the edit didn't apply."
+
+A browser hard reload does not help — the staleness is server-side, in Vite's
+module graph, not in the browser cache. Restart the container so Vite re-reads
+from disk:
+
+```bash
+docker compose restart frontend
+```
+
+It re-runs `npm ci && npm run dev`; poll `http://localhost:5173/src/<path>` for
+the change before trusting the browser. The vitest suite runs on the host, not
+in this container, so it never saw the stale copy — a green `npx vitest run`
+next to a stale-looking browser is this bug, not a contradiction.
+
 ## Never point the suite at a real database
 
 Several tests `DELETE FROM` the tables they exercise in `setUp()`. Pointing
