@@ -39,7 +39,7 @@ const CATAN: Boardgame = {
   duration: null,
   age: null,
   complexity: null,
-  isExpansion: false,
+  price: null, isExpansion: false,
   rank: null,
   source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
 };
@@ -109,7 +109,7 @@ describe("BoardgameLookupPage", () => {
         duration: null,
         age: null,
         complexity: null,
-        isExpansion: false,
+        price: null, isExpansion: false,
         rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
@@ -279,7 +279,7 @@ describe("BoardgameLookupPage", () => {
         duration: null,
         age: null,
         complexity: null,
-        isExpansion: false,
+        price: null, isExpansion: false,
         rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
@@ -317,7 +317,7 @@ describe("BoardgameLookupPage", () => {
         duration: "30 - 45 Minuten",
         age: null,
         complexity: null,
-        isExpansion: false,
+        price: null, isExpansion: false,
         rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
@@ -346,7 +346,7 @@ describe("BoardgameLookupPage", () => {
         duration: "30 - 45 Minuten",
         age: null,
         complexity: null,
-        isExpansion: false,
+        price: null, isExpansion: false,
         rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
@@ -376,7 +376,7 @@ describe("BoardgameLookupPage", () => {
         duration: "90 Minuten",
         age: "ab 12 Jahren",
         complexity: { value: 12, max: 20, url: "https://www.brettspiele-report.de/catan-staedte-und-ritter/" },
-        isExpansion: true,
+        price: null, isExpansion: true,
         rank: 401,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/926" },
       },
@@ -405,7 +405,7 @@ describe("BoardgameLookupPage", () => {
         bggId: 13, name: "Catan", description: "Trade, build, settle.",
         rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
         ratings: [], bgq: null,
-        players: "3 - 4", duration: null, age: null, complexity: null, isExpansion: false, rank: null,
+        players: "3 - 4", duration: null, age: null, complexity: null, price: null, isExpansion: false, rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -427,7 +427,7 @@ describe("BoardgameLookupPage", () => {
       game: {
         bggId: 331106, name: "Intarsia", description: "", rating: 7.2, numRatings: 900,
         good: "Beautiful production", bad: "Lacking replay value", partial: true, players: "2 - 4", duration: "30 - 45 Minuten",
-        age: null, complexity: null, isExpansion: false, rank: null,
+        age: null, complexity: null, price: null, isExpansion: false, rank: null,
         ratings: [
           { source: "Board Game Quest", value: 3.5, max: 5, count: null, title: "Intarsia Review", url: "https://www.boardgamequest.com/intarsia-review/" },
           { source: "brettspiele-report", value: 15, max: 20, count: null, title: "Intarsia", url: "https://www.brettspiele-report.de/intarsia/" },
@@ -467,7 +467,7 @@ describe("BoardgameLookupPage", () => {
         bggId: 13, name: "Catan", description: "Trade, build, settle.",
         rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
         ratings: [], bgq: null, players: null, duration: null, age: null,
-        complexity: null, isExpansion: false, rank: null,
+        complexity: null, price: null, isExpansion: false, rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -496,7 +496,7 @@ describe("BoardgameLookupPage", () => {
         bggId: 13, name: "Catan", description: "Trade, build, settle.",
         rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
         ratings: [], bgq: null, players: null, duration: null, age: null,
-        complexity: null, isExpansion: false, rank: null,
+        complexity: null, price: null, isExpansion: false, rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -538,7 +538,7 @@ describe("BoardgameLookupPage", () => {
         bggId: 926, name: "Catan: Cities & Knights", description: "More Catan.",
         rating: 7.4, numRatings: 40000, good: null, bad: null, partial: false,
         ratings: [], bgq: null, players: null, duration: null, age: null,
-        complexity: null, isExpansion: true, rank: null,
+        complexity: null, price: null, isExpansion: true, rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/926" },
       },
     });
@@ -698,7 +698,7 @@ describe("BoardgameLookupPage", () => {
         duration: null,
         age: null,
         complexity: null,
-        isExpansion: false,
+        price: null, isExpansion: false,
         rank: 566,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
@@ -725,7 +725,7 @@ describe("BoardgameLookupPage", () => {
       game: {
         bggId: 13, name: "Catan", description: "", rating: 7.1, numRatings: 143738,
         good: null, bad: null, partial: true, ratings: [], bgq: null, players: null,
-        duration: null, age: null, complexity: null, isExpansion: false, rank: 566,
+        duration: null, age: null, complexity: null, price: null, isExpansion: false, rank: 566,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -735,7 +735,7 @@ describe("BoardgameLookupPage", () => {
         bggId: 13, name: "Catan", description: "Trade, build, settle.", rating: 7.2,
         numRatings: 1000, good: "Great trading game.", bad: "Too much luck.",
         partial: false, ratings: [], bgq: null, players: "3-4", duration: null,
-        age: null, complexity: null, isExpansion: false, rank: 566,
+        age: null, complexity: null, price: null, isExpansion: false, rank: 566,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -755,7 +755,7 @@ describe("BoardgameLookupPage", () => {
       game: {
         bggId: 13, name: "Catan", description: "", rating: 7.1, numRatings: 143738,
         good: null, bad: null, partial: true, ratings: [], bgq: null, players: null,
-        duration: null, age: null, complexity: null, isExpansion: false, rank: 566,
+        duration: null, age: null, complexity: null, price: null, isExpansion: false, rank: 566,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
@@ -789,7 +789,7 @@ describe("BoardgameLookupPage", () => {
         good: null,
         bad: null,
         partial: true,
-        isExpansion: false,
+        price: null, isExpansion: false,
         rank: 627,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       } as unknown as Boardgame,
@@ -829,7 +829,7 @@ describe("BoardgameLookupPage", () => {
         duration: null,
         age: null,
         complexity: null,
-        isExpansion: false,
+        price: null, isExpansion: false,
         rank: 1,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/224517" },
       },
@@ -877,6 +877,87 @@ describe("BoardgameLookupPage", () => {
     await waitFor(() => expect(api.topBoardgames).toHaveBeenCalled());
     expect(screen.queryByRole("heading", { name: /top .*BoardGameGeek/i })).toBeNull();
     expect(screen.queryByRole("list")).toBeNull();
+  });
+
+  // #90
+  it("shows the amazon.de retail price and links to used-market searches", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: {
+        ...CATAN,
+        price: { value: 22.9, currency: "EUR", source: "Amazon.de", url: "https://www.amazon.de/dp/B0DSWFN2XZ" },
+      },
+    });
+
+    renderPage("/boardgames?q=catan");
+
+    const priceLink = await screen.findByRole("link", { name: /22,90|22\.90/ });
+    expect(priceLink).toHaveAttribute("href", "https://www.amazon.de/dp/B0DSWFN2XZ");
+
+    const ebay = screen.getByRole("link", { name: /eBay\.de/ });
+    expect(ebay).toHaveAttribute("href", expect.stringContaining("ebay.de/sch/i.html?_nkw=Catan"));
+    const kleinanzeigen = screen.getByRole("link", { name: /Kleinanzeigen\.de/ });
+    expect(kleinanzeigen).toHaveAttribute("href", expect.stringContaining("kleinanzeigen.de/s-suchanfrage.html?keywords=Catan"));
+  });
+
+  // #90: no lawful source scrapes eBay/Kleinanzeigen (see usedMarketSearchUrls),
+  // and amazon.de does not always have a title-matching listing - the search
+  // links must still be there when the retail price is not.
+  it("still offers used-market search links when amazon.de has no price", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+
+    renderPage("/boardgames?q=catan");
+
+    await screen.findByRole("link", { name: /eBay\.de/ });
+    expect(screen.getByRole("link", { name: /Kleinanzeigen\.de/ })).toBeInTheDocument();
+    expect(screen.queryByText(/Neu, via Amazon\.de/)).toBeNull();
+  });
+
+  it("the Clear button empties the search and returns to the overview", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+
+    renderPage("/boardgames?q=catan");
+    await screen.findByText("Trade, build, settle.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+
+    expect(screen.getByRole("combobox")).toHaveValue("");
+    expect(locationSearch()).toBe("");
+    // The heading is a plain heading again, not a reset control, once there
+    // is nothing left to reset.
+    expect(screen.queryByRole("button", { name: "Boardgame Lookup" })).toBeNull();
+  });
+
+  it("clicking the page heading also resets to the overview", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+
+    renderPage("/boardgames?q=catan");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Boardgame Lookup" }));
+
+    expect(locationSearch()).toBe("");
+    expect(screen.getByRole("combobox")).toHaveValue("");
+  });
+
+  it("offers a way to scroll back to the top of a long answer", async () => {
+    // BoardgameLookupPage renders standalone in these tests (no AppShell),
+    // so the real scroll container the button targets does not exist here -
+    // stand one up the same way AppShell does (id="main-content").
+    const main = document.createElement("main");
+    main.id = "main-content";
+    document.body.appendChild(main);
+    const scrollTo = vi.fn();
+    main.scrollTo = scrollTo;
+
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+
+    renderPage("/boardgames?q=catan");
+    await screen.findByText("Trade, build, settle.");
+
+    fireEvent.click(screen.getByRole("button", { name: /back to top/i }));
+
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+    main.remove();
   });
 });
 
@@ -927,7 +1008,7 @@ describe("BoardgameLookupPage — shareable searches", () => {
       game: {
         bggId: 13, name: "Catan", description: "", rating: 7.1, numRatings: 143738,
         good: null, bad: null, partial: true, ratings: [], bgq: null, players: null,
-        duration: null, age: null, complexity: null, isExpansion: false, rank: 566,
+        duration: null, age: null, complexity: null, price: null, isExpansion: false, rank: 566,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });

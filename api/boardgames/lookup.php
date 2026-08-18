@@ -53,6 +53,7 @@ try {
         error_response('That board game could not be found on BoardGameGeek.', 404);
     }
 
+    $amazonClient = new AmazonRatingClient();
     $bgqClient = new BoardGameQuestClient();
     $hallClient = new Hall9000Client();
     $reportClient = new BrettspieleReportClient();
@@ -75,7 +76,7 @@ try {
     unset($game['germanNames']);
 
     $game['ratings'] = collect_ratings([
-        new AmazonRatingClient(),
+        $amazonClient,
         $bgqClient,
         $hallClient,
         $reportClient,
@@ -110,6 +111,19 @@ try {
     $game['complexity'] = isset($report['complexity'])
         ? ['value' => $report['complexity'], 'max' => $report['max'], 'url' => $report['url']]
         : null;
+
+    // #90: retail (new) price, not the used market this issue also asked
+    // about - see docs/adr/0018 for why used-market pricing (eBay,
+    // Kleinanzeigen) is a link-out on the frontend rather than a fetched
+    // number. A listing with a price but not yet a customer rating still
+    // answers this - see AmazonRatingClient::priceFor().
+    $amazonPrice = optional_source('amazon.de price', fn() => first_hit($searchNames, fn(string $n) => $amazonClient->priceFor($n)));
+    $game['price'] = $amazonPrice === null ? null : [
+        'value' => $amazonPrice['price'],
+        'currency' => $amazonPrice['currency'],
+        'source' => 'Amazon.de',
+        'url' => $amazonPrice['url'],
+    ];
 
     json_response(['status' => 'ok', 'game' => $game]);
 } catch (Throwable $e) {

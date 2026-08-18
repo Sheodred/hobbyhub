@@ -5,12 +5,12 @@ require_once __DIR__ . '/http_client.php';
 require_once __DIR__ . '/Cache.php';
 require_once __DIR__ . '/RatingSource.php';
 
-// Reads the aggregate customer rating for a board game from amazon.de search
-// results - the single star average and its rating count, both plain facts,
-// never any review text (see docs/adr/0012).
+// Reads the aggregate customer rating, and separately the displayed retail
+// price, for a board game from amazon.de search results - both plain facts
+// already on the page, never any review text (docs/adr/0012, docs/adr/0018).
 //
 // One request per uncached lookup: the search result block already carries
-// the rating, so there is no need to follow through to the product page.
+// both, so there is no need to follow through to the product page.
 // robots.txt for User-agent: * disallows neither /s nor /dp (checked
 // 2026-08-15, recorded in the ADR); requests identify themselves with the
 // project's real User-Agent and are throttled well below any browsing rate.
@@ -56,9 +56,55 @@ class AmazonRatingClient implements RatingSource
      */
     public function ratingFor(string $gameName): ?array
     {
+        foreach ($this->candidatesFor($gameName) as $candidate) {
+            if ($candidate['rating'] === null) {
+                continue;
+            }
+            return [
+                'rating' => $candidate['rating'],
+                'count' => $candidate['count'],
+                'title' => $candidate['title'],
+                'url' => $candidate['url'],
+            ];
+        }
+        return null;
+    }
+
+    // #90: the retail price shown on the same page a rating already comes
+    // from - a new listing has no reviews yet but still has a price, so this
+    // walks the same candidate list independently of ratingFor() rather than
+    // requiring both on one block.
+    //
+    // @return array{price:float,currency:string,title:string,url:string}|null
+    public function priceFor(string $gameName): ?array
+    {
+        foreach ($this->candidatesFor($gameName) as $candidate) {
+            if ($candidate['price'] === null) {
+                continue;
+            }
+            return [
+                'price' => $candidate['price'],
+                'currency' => 'EUR',
+                'title' => $candidate['title'],
+                'url' => $candidate['url'],
+            ];
+        }
+        return null;
+    }
+
+    /**
+     * Every title-matching, non-sponsored result on the page, in the order
+     * amazon.de shows them - one fetch serves both ratingFor() and
+     * priceFor(), each picking the first candidate that has the field it
+     * needs, since not every candidate carries both.
+     *
+     * @return array<array{title:string,url:string,rating:?float,count:?int,price:?float}>
+     */
+    private function candidatesFor(string $gameName): array
+    {
         $normalized = strtolower(trim($gameName));
         if ($normalized === '') {
-            return null;
+            return [];
         }
 
         return cache_aside('amazon_rating_cache', 'query_key', $normalized, self::CACHE_TTL_SECONDS, function () use ($gameName) {
@@ -76,38 +122,44 @@ class AmazonRatingClient implements RatingSource
                 // nothing for this game" - see Cache.php.
                 throw new RuntimeException('amazon.de request failed for ' . $gameName);
             }
-            $parsed = $this->parseSearchHtml($html, $gameName);
+            $candidates = $this->parseSearchHtml($html, $gameName);
             // Their anti-bot interstitial comes back with a 200, so "nothing
             // listed for this game" and "we were blocked" look the same from
             // here. Only the page that is recognisably a search result page
             // gets to answer "nothing" - otherwise a block would hide every
-            // game's rating for the miss TTL and outlive the block itself.
-            if ($parsed === null && !str_contains($html, 's-search-result')) {
+            // game's rating and price for the miss TTL and outlive the block.
+            if ($candidates === [] && !str_contains($html, 's-search-result')) {
                 throw new RuntimeException('amazon.de answered 200 without a search result page for ' . $gameName);
             }
-            return $parsed;
-        }, self::MISS_TTL_SECONDS);
+            // cache_aside() only miss-caches a null result (Cache.php); an
+            // empty list has to become null here or "genuinely nothing
+            // matched" would be cached under the long hit TTL instead of the
+            // short miss TTL.
+            return $candidates === [] ? null : $candidates;
+        }, self::MISS_TTL_SECONDS) ?? [];
     }
 
     /**
      * Public for testing the parser against captured markup without a fetch.
      *
-     * @return array{rating:float,count:?int,title:string,url:string}|null
+     * @return array<array{title:string,url:string,rating:?float,count:?int,price:?float}>
      */
-    public function parseSearchHtml(string $html, string $gameName): ?array
+    public function parseSearchHtml(string $html, string $gameName): array
     {
         $terms = $this->significantTerms($gameName);
         if ($terms === []) {
-            return null;
+            return [];
         }
+
+        $candidates = [];
 
         foreach (explode('data-component-type="s-search-result"', $html) as $block) {
             // Sponsored placements are ordinary result blocks carrying
             // AdHolder. They are adverts for whatever Amazon was paid to
             // show - frequently a different game entirely - so their rating
-            // must never be presented as this game's. Skipping them is the
-            // whole reason this parser exists rather than "take the first
-            // data-asin".
+            // and price must never be presented as this game's. Skipping
+            // them is the whole reason this parser exists rather than "take
+            // the first data-asin".
             if (str_contains($block, 'AdHolder')) {
                 continue;
             }
@@ -118,23 +170,48 @@ class AmazonRatingClient implements RatingSource
             if (!$this->titleMatches($title, $terms)) {
                 continue;
             }
-            if (!preg_match('/(\d[,.]\d)\s*von\s*5\s*Sternen/i', $block, $ratingMatch)) {
-                continue;
-            }
             $asin = $this->asinFor($html, $block);
             if ($asin === null) {
                 continue;
             }
 
-            return [
-                'rating' => (float) str_replace(',', '.', $ratingMatch[1]),
-                'count' => $this->parseCount($block),
+            // preg_match sets $ratingMatch to [] (not null) on no match, so
+            // the match is judged by the return value, never by inspecting
+            // $ratingMatch's nullness - that check silently passed on every
+            // no-match block and read $ratingMatch[1] as an undefined index.
+            $hasRating = preg_match('/(\d[,.]\d)\s*von\s*5\s*Sternen/i', $block, $ratingMatch) === 1;
+            $price = $this->parsePrice($block);
+            if (!$hasRating && $price === null) {
+                // Nothing usable on this block at all - a rating and a price
+                // are the only two things this client ever reads.
+                continue;
+            }
+
+            $candidates[] = [
                 'title' => $title,
                 'url' => 'https://www.amazon.de/dp/' . $asin,
+                'rating' => $hasRating ? (float) str_replace(',', '.', $ratingMatch[1]) : null,
+                'count' => $hasRating ? $this->parseCount($block) : null,
+                'price' => $price,
             ];
         }
 
-        return null;
+        return $candidates;
+    }
+
+    // The real selling price and a struck-through UVP list price share the
+    // "a-price" class - amazon.de tells them apart with data-a-color ("base"
+    // vs "secondary"), which this keys on rather than position, since a
+    // discounted listing shows the UVP first in the markup.
+    private function parsePrice(string $block): ?float
+    {
+        // amazon.de renders a non-breaking space (\xa0) between the number
+        // and the euro sign, not a regular one - \s alone (no /u modifier
+        // here) does not match it, and would silently miss every real price.
+        if (!preg_match('/<span class="a-price" data-a-size="[^"]*" data-a-color="base"><span class="a-offscreen">([\d.,]+)[\s\xc2\xa0]*€/', $block, $m)) {
+            return null;
+        }
+        return (float) str_replace(',', '.', $m[1]);
     }
 
     // The asin attribute sits just before the split marker, so it lands at

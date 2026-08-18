@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { FadeIn } from "../../components/FadeIn";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
+import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { ApiError } from "../../lib/apiClient";
 import {
   boardgameAwards,
@@ -13,6 +14,7 @@ import {
   randomBoardgame,
   suggestBoardgames,
   topBoardgames,
+  usedMarketSearchUrls,
   type AwardCategory,
   type AwardEntry,
   type Boardgame,
@@ -187,6 +189,7 @@ function ThumbnailPlaceholder({ name }: { name: string }) {
 
 export function BoardgameLookupPage() {
   useDocumentTitle("Boardgame Lookup");
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   // #99: the search lives in the URL, so a result can be linked, bookmarked,
   // reloaded and reached with Back. The URL is the input to the lookup; the
@@ -358,6 +361,26 @@ export function BoardgameLookupPage() {
     pick(candidate.bggId);
   }
 
+  // Clearing the URL is what actually resets state - the effect above sees
+  // an empty q/bgg_id and sets state back to idle itself (same path a fresh
+  // visit takes), so this only has to clear what the effect does not: the
+  // typed text still sitting in the box and any open suggestion list.
+  function resetToOverview() {
+    setQuery("");
+    closeSuggestions();
+    setSearchParams({});
+    scrollToTop();
+  }
+
+  // The page's own scroll container is <main> (AppShell gives it
+  // overflow-y-auto), not the window - window.scrollTo would do nothing here.
+  function scrollToTop() {
+    document.getElementById("main-content")?.scrollTo({
+      top: 0,
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+    });
+  }
+
   // #120: one random game, straight to its result page. Navigating by bgg_id
   // means the pick is shareable and back-button-able (#99), and lands on the
   // #115 fast path - a random game is never cached, so that matters. A failed
@@ -438,9 +461,28 @@ export function BoardgameLookupPage() {
   if (copyState === "copied" && state.kind === "result")
     statusText = `Link copied — it opens ${state.game.name} for whoever you send it to.`;
 
+  // #90: used-market search link-outs, computed once per result rather than
+  // inline in the JSX below.
+  const usedMarket = state.kind === "result" ? usedMarketSearchUrls(state.game.name) : null;
+
   return (
     <div>
-      <h1 className="text-3xl font-semibold text-white sm:text-4xl">Boardgame Lookup</h1>
+      <h1 className="text-3xl font-semibold text-white sm:text-4xl">
+        {/* Clickable once there is somewhere to come back FROM - on the
+            overview itself this is a heading, not a button that reloads the
+            page it is already on. */}
+        {state.kind === "idle" ? (
+          "Boardgame Lookup"
+        ) : (
+          <button
+            type="button"
+            onClick={resetToOverview}
+            className="rounded text-left hover:text-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          >
+            Boardgame Lookup
+          </button>
+        )}
+      </h1>
       <p className="mt-2 max-w-xl text-slate-400">
         One box in, one answer out: the community rating, what players love and don&apos;t, and what the game
         actually plays like.
@@ -520,6 +562,18 @@ export function BoardgameLookupPage() {
             className="rounded-md border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 hover:border-indigo-500 hover:text-indigo-400"
           >
             Surprise me
+          </button>
+        )}
+        {/* Only once there is something to clear - a typed query, or an
+            answer already on screen - so the idle overview never shows a
+            button that would do nothing. */}
+        {(query !== "" || state.kind !== "idle") && (
+          <button
+            type="button"
+            onClick={resetToOverview}
+            className="rounded-md px-3 py-2 text-sm text-slate-400 hover:text-white"
+          >
+            Clear
           </button>
         )}
       </form>
@@ -910,6 +964,49 @@ export function BoardgameLookupPage() {
                 </div>
               )}
 
+              {/* #90: a retail price when amazon.de has one, plus used-market
+                  search link-outs. eBay.de and Kleinanzeigen.de are not
+                  fetched - see usedMarketSearchUrls for why - so this always
+                  renders once a game resolves, with or without a price. */}
+              <div className="mt-6 border-t border-slate-800 pt-4">
+                <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Where to buy</h3>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {state.game.price && (
+                    <a
+                      href={state.game.price.url}
+                      target="_blank"
+                      rel="noreferrer nofollow"
+                      className="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 hover:border-indigo-500"
+                    >
+                      <span className="block text-lg font-semibold text-emerald-300">
+                        {state.game.price.value.toFixed(2)} €
+                      </span>
+                      <span className="text-xs text-slate-400">Neu, via {state.game.price.source}</span>
+                    </a>
+                  )}
+                  {usedMarket && (
+                    <>
+                      <a
+                        href={usedMarket.ebay}
+                        target="_blank"
+                        rel="noreferrer nofollow"
+                        className="flex items-center rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
+                      >
+                        Gebrauchte Angebote auf eBay.de
+                      </a>
+                      <a
+                        href={usedMarket.kleinanzeigen}
+                        target="_blank"
+                        rel="noreferrer nofollow"
+                        className="flex items-center rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
+                      >
+                        Gebrauchte Angebote auf Kleinanzeigen.de
+                      </a>
+                    </>
+                  )}
+                </div>
+              </div>
+
               {/* #99: the address bar already carries the search, but nobody
                   expects that to work on a search page, so the card says so.
                   Confirmation is announced through the status region above. */}
@@ -943,6 +1040,20 @@ export function BoardgameLookupPage() {
               </div>
             </article>
           </FadeIn>
+        )}
+
+        {/* Answers, and the disambiguation/not-found lists above them, can
+            run well past the first screen - this is the way back without
+            hunting for the browser's own scrollbar. Scrolls <main> itself
+            (see resetToOverview/scrollToTop), not the window. */}
+        {state.kind !== "idle" && state.kind !== "loading" && (
+          <button
+            type="button"
+            onClick={scrollToTop}
+            className="mt-8 block text-sm text-slate-400 underline hover:text-slate-300"
+          >
+            ↑ Back to top
+          </button>
         )}
       </div>
 
