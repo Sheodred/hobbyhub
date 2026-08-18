@@ -13,10 +13,11 @@ $bggId = ctype_digit((string) $bggIdParam) ? (int) $bggIdParam : null;
 if ($q === '' && $bggId === null) {
     error_response('q or bgg_id is required', 400);
 }
+$lang = ($_GET['lang'] ?? '') === 'de' ? 'de' : null;
 
 try {
     $client = new BggClient();
-    json_response($bggId !== null ? $client->lookupLocalById($bggId) : $client->lookupLocal($q));
+    json_response($bggId !== null ? $client->lookupLocalById($bggId, $lang) : $client->lookupLocal($q, $lang));
 } catch (Throwable $e) {
     error_log($e->getMessage());
     error_response('Something went wrong looking up that board game.', 502);

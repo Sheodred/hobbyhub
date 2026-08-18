@@ -392,7 +392,13 @@ class BggClient
     // ranks fallback, so the game people meant leads); only when that finds
     // nothing does it retry with #73's punctuation-stripped comparison, which
     // can't use the index but only runs on the empty-result path.
-    public function suggest(string $query, int $limit = 3): array
+    // #130: $lang picks which name is DISPLAYED, entirely separate from
+    // #132's game_aliases matching above (which name was TYPED). Typing
+    // "Catan" with DE active must still offer "Die Siedler von Catan" -
+    // the query matched the primary name, but the alias is what should
+    // show. So this is always a second pass over the already-resolved
+    // bgg_ids, never folded into the matching query itself.
+    public function suggest(string $query, int $limit = 3, ?string $lang = null): array
     {
         $normalized = strtolower(trim($query));
         if ($normalized === '') {
@@ -417,11 +423,11 @@ class BggClient
             }
         }
 
-        return array_map(fn(array $row) => [
+        return $this->applyPreferredNames(array_map(fn(array $row) => [
             'bggId' => (int) $row['bgg_id'],
             'name' => (string) $row['name'],
             'yearPublished' => $row['year_published'] === null ? null : (int) $row['year_published'],
-        ], $matches);
+        ], $matches), $lang);
     }
 
     /**
@@ -439,7 +445,7 @@ class BggClient
      * @return array{status:'ok',game:array}|array{status:'disambiguation',candidates:array}
      *         |array{status:'not_found'}|array{status:'unavailable'}
      */
-    public function lookupLocal(string $query): array
+    public function lookupLocal(string $query, ?string $lang = null): array
     {
         if (!$this->ranksImported()) {
             return ['status' => 'unavailable'];
@@ -453,7 +459,7 @@ class BggClient
             return $resolved;
         }
 
-        return $this->localAnswer($resolved['bggId']);
+        return $this->localAnswer($resolved['bggId'], $lang);
     }
 
     /**
@@ -465,23 +471,27 @@ class BggClient
      *
      * @return array{status:'ok',game:array}|array{status:'not_found'}|array{status:'unavailable'}
      */
-    public function lookupLocalById(int $bggId): array
+    public function lookupLocalById(int $bggId, ?string $lang = null): array
     {
         if (!$this->ranksImported()) {
             return ['status' => 'unavailable'];
         }
 
-        return $this->localAnswer($bggId);
+        return $this->localAnswer($bggId, $lang);
     }
 
     /**
      * @return array{status:'ok',game:array}|array{status:'not_found'}
      */
-    private function localAnswer(int $bggId): array
+    private function localAnswer(int $bggId, ?string $lang = null): array
     {
         $game = $this->lookupFromRanks($bggId);
         if ($game === null) {
             return ['status' => 'not_found'];
+        }
+        // #130: the result-card title, on the instant path.
+        if ($lang !== null) {
+            $game['name'] = $this->preferredName($bggId, $lang) ?? $game['name'];
         }
 
         // Every key the full lookup answers with has to be present, even
@@ -577,7 +587,7 @@ class BggClient
      *
      * @return list<array{bggId:int,name:string,yearPublished:int|null}>
      */
-    public function didYouMean(string $query, int $limit = 5): array
+    public function didYouMean(string $query, int $limit = 5, ?string $lang = null): array
     {
         $normalized = self::stripped(mb_strtolower(trim($query)));
         if ($normalized === '' || mb_strlen($normalized) > 64) {
@@ -609,7 +619,53 @@ class BggClient
             $ranked = $this->rankByDistance($rows, $normalized, $limit);
         }
 
-        return $ranked;
+        return $this->applyPreferredNames($ranked, $lang);
+    }
+
+    /**
+     * #130: overrides each match's `name` with its preferred-language alias
+     * where one exists, leaving matches without one untouched. A no-op
+     * (returns $matches unchanged) when $lang is null - the default,
+     * existing behaviour.
+     *
+     * @param list<array{bggId:int,name:string,yearPublished:int|null}> $matches
+     * @return list<array{bggId:int,name:string,yearPublished:int|null}>
+     */
+    private function applyPreferredNames(array $matches, ?string $lang): array
+    {
+        if ($lang === null || $matches === []) {
+            return $matches;
+        }
+
+        $ids = array_unique(array_column($matches, 'bggId'));
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = db()->prepare("SELECT bgg_id, name FROM game_aliases WHERE lang = ? AND bgg_id IN ($placeholders)");
+        $stmt->execute([$lang, ...$ids]);
+        $preferred = [];
+        foreach ($stmt->fetchAll() as $row) {
+            // First-wins on a rare multi-alias-per-language game, same
+            // convention as everywhere else names are deduped in this file.
+            $preferred[(int) $row['bgg_id']] ??= (string) $row['name'];
+        }
+
+        return array_map(function (array $m) use ($preferred) {
+            if (isset($preferred[$m['bggId']])) {
+                $m['name'] = $preferred[$m['bggId']];
+            }
+            return $m;
+        }, $matches);
+    }
+
+    /**
+     * #130: the preferred-language name for one specific game, for the
+     * result-card title - null when no alias in that language exists.
+     */
+    public function preferredName(int $bggId, string $lang): ?string
+    {
+        $stmt = db()->prepare('SELECT name FROM game_aliases WHERE bgg_id = ? AND lang = ? LIMIT 1');
+        $stmt->execute([$bggId, $lang]);
+        $row = $stmt->fetch();
+        return $row === false ? null : (string) $row['name'];
     }
 
     private function rankByDistance(array $rows, string $normalizedQuery, int $limit): array
