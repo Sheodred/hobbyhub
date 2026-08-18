@@ -131,4 +131,95 @@ final class AmazonRatingClientTest extends TestCase
             (int) db()->query("SELECT COUNT(*) FROM amazon_rating_cache WHERE query_key = 'catan'")->fetchColumn()
         );
     }
+
+    // #90: real amazon.de markup, a struck-through UVP list price ahead of
+    // the actual selling price - data-a-color is what tells them apart, not
+    // position, since a discounted listing shows the UVP first.
+    private function priceBlock(string $title, ?string $price = null, ?string $uvp = null, bool $withRating = true): string
+    {
+        $strike = $uvp === null ? '' : '<span class="a-offscreen">UVP: ' . $uvp
+            . "\u{00A0}€</span><span class=\"a-price a-text-price\" data-a-size=\"b\" data-a-color=\"secondary\">"
+            . '<span class="a-offscreen">' . $uvp . "\u{00A0}€</span></span>";
+        $rating = $withRating ? '<span>4,7 von 5 Sternen</span><a aria-label="257 Bewertungen"><span>257</span></a>' : '';
+        $priceSpan = $price === null ? '' : '<span class="a-price" data-a-size="xl" data-a-color="base">'
+            . '<span class="a-offscreen">' . $price . "\u{00A0}€</span></span>";
+
+        return '<div data-asin="B0PRICE001" data-component-type="s-search-result" class="s-result-item sg-col">'
+            . '<h2 aria-label="' . $title . '"><span>' . $title . '</span></h2>'
+            . $rating
+            . $strike
+            . $priceSpan
+            . '</div>';
+    }
+
+    public function testReadsThePriceFromTheSameBlockAsTheRating(): void
+    {
+        $client = new AmazonRatingClient(fn() => $this->priceBlock('KOSMOS Catan - Das Spiel', '22,90'));
+
+        $this->assertSame(22.9, $client->priceFor('Catan')['price']);
+        $this->assertSame('EUR', $client->priceFor('Catan')['currency']);
+    }
+
+    public function testNeverReadsTheStruckThroughUvpAsThePrice(): void
+    {
+        $client = new AmazonRatingClient(fn() => $this->priceBlock('KOSMOS Catan - Das Spiel', '22,90', '36,99'));
+
+        $this->assertSame(22.9, $client->priceFor('Catan')['price']);
+    }
+
+    // amazon.de's non-breaking space (U+00A0) between the number and the
+    // euro sign is not matched by plain \s - a regression here silently
+    // drops every real price while a same-shape fixture using an ordinary
+    // space would still pass.
+    public function testHandlesTheNonBreakingSpaceBeforeTheEuroSign(): void
+    {
+        $client = new AmazonRatingClient(fn() => $this->priceBlock('Catan', '19,99'));
+
+        $this->assertSame(19.99, $client->priceFor('Catan')['price']);
+    }
+
+    public function testPriceForReturnsNullWhenNoBlockHasAPrice(): void
+    {
+        // Rating markup only, no a-price span anywhere - the everyday
+        // fixture already used by the rating tests.
+        $client = new AmazonRatingClient(fn() => $this->searchHtml());
+
+        $this->assertNull($client->priceFor('Catan'));
+    }
+
+    // A brand-new listing can have a price with no reviews yet. ratingFor()
+    // must keep walking past it rather than stopping on the first title
+    // match, since the whole point of #90 is that price and rating are
+    // independent facts on independent blocks.
+    public function testRatingForSkipsAPriceOnlyBlockAndKeepsLookingForARating(): void
+    {
+        $html = $this->priceBlock('Catan New Listing', '19,99', null, withRating: false)
+            . $this->priceBlock('Catan Standard Edition', '22,90');
+
+        $client = new AmazonRatingClient(fn() => $html);
+
+        $this->assertSame(4.7, $client->ratingFor('Catan')['rating']);
+    }
+
+    public function testPriceForSkipsARatingOnlyBlockAndKeepsLookingForAPrice(): void
+    {
+        $html = $this->priceBlock('Catan Rated Only', null)
+            . $this->priceBlock('Catan Standard Edition', '22,90');
+
+        $client = new AmazonRatingClient(fn() => $html);
+
+        $this->assertSame(22.9, $client->priceFor('Catan')['price']);
+    }
+
+    public function testPriceForSkipsSponsoredResultsEvenWhenTheirTitleMatches(): void
+    {
+        $sponsored = '<div data-asin="B0SPONSOR2" data-component-type="s-search-result" class="s-result-item AdHolder sg-col">'
+            . '<h2 aria-label="Gesponserte Anzeige"><span>Catan Sponsored</span></h2>'
+            . '<span class="a-price" data-a-size="xl" data-a-color="base"><span class="a-offscreen">1,00' . "\u{00A0}"
+            . '€</span></span></div>' . $this->priceBlock('Catan Real Listing', '22,90');
+
+        $client = new AmazonRatingClient(fn() => $sponsored);
+
+        $this->assertSame(22.9, $client->priceFor('Catan')['price']);
+    }
 }

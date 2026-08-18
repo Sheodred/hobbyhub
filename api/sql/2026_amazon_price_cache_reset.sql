@@ -1,0 +1,25 @@
+-- One-time production migration for the Amazon.de retail price panel (#90).
+--
+-- AmazonRatingClient's cache_aside('amazon_rating_cache', ...) used to store
+-- one matched-product object per query. It now stores a LIST of candidate
+-- objects (a title-matching block can carry a price with no rating yet, or a
+-- rating with no visible price, and both ratingFor()/priceFor() need to walk
+-- past the ones that lack what they're looking for). A cached row written by
+-- the old code is read back by the new code as if it were that list, and
+-- PHP's foreach over its scalar values throws a TypeError rather than
+-- degrading - not a graceful schema drift, a genuine shape break.
+--
+-- The table is a pure cache (TTL 7 days, MISS_TTL 3 days, no user data,
+-- fully recomputable from a live amazon.de request), so the fix is simply to
+-- clear it once before this code ships - the next request per game just
+-- re-fetches. Local dev (docker-compose) does this automatically on every
+-- `php` container rebuild only if the row already expired; production does
+-- not rebuild on deploy, so run this by hand once via phpMyAdmin (SQL tab)
+-- or the CLI:
+--
+--   mysql -u<user> -p <database> < api/sql/2026_amazon_price_cache_reset.sql
+--
+-- Safe to re-run: DELETE with no WHERE just empties an already-empty table.
+-- Verify afterwards with:  SELECT COUNT(*) FROM amazon_rating_cache;  -- expect 0.
+
+DELETE FROM amazon_rating_cache;

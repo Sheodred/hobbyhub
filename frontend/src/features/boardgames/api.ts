@@ -41,6 +41,19 @@ export interface Complexity {
   url: string;
 }
 
+/**
+ * #90: the retail (new) price, from the same amazon.de result a rating may
+ * already come from - a genuinely different question from the used-market
+ * price this issue also asked about, which has no lawful source today and
+ * is a link-out (see usedMarketSearchUrls) rather than a fetched number.
+ */
+export interface RetailPrice {
+  value: number;
+  currency: string;
+  source: string;
+  url: string;
+}
+
 export interface Boardgame {
   bggId: number;
   name: string;
@@ -68,6 +81,8 @@ export interface Boardgame {
    * not a verdict: it belongs nowhere near `ratings`.
    */
   complexity: Complexity | null;
+  /** null when amazon.de has no title-matching listing with a visible price. */
+  price: RetailPrice | null;
   /** True when this needs a base game rather than standing on its own. */
   isExpansion: boolean;
   /**
@@ -196,4 +211,21 @@ export function suggestBoardgames(query: string): Promise<BoardgameCandidate[]> 
   return apiFetch<{ suggestions: BoardgameCandidate[] }>(`/api/boardgames/suggest?${params.toString()}`).then(
     (res) => res.suggestions
   );
+}
+
+/**
+ * #90: used-market search link-outs, not a fetched price. eBay's robots.txt
+ * disallows scraping its search paths and carries an explicit anti-scraping
+ * banner; Kleinanzeigen's Nutzungsbedingungen name "Crawler, Spider, Scraper"
+ * directly. Both were checked live before this issue was scoped - see its
+ * source-by-source table - and neither is a source this project reads from.
+ * A plain search link needs no permission, same as the existing Moxfield
+ * link-out, and it is what "at least the lowest price" resolves to today.
+ */
+export function usedMarketSearchUrls(gameName: string): { ebay: string; kleinanzeigen: string } {
+  const q = encodeURIComponent(gameName);
+  return {
+    ebay: `https://www.ebay.de/sch/i.html?_nkw=${q}`,
+    kleinanzeigen: `https://www.kleinanzeigen.de/s-suchanfrage.html?keywords=${q}`,
+  };
 }
