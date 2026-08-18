@@ -85,6 +85,13 @@ function legacyCopy(text: string): boolean {
   }
 }
 
+// #131: labels for state.game.interaction - keyed by the exact backend value.
+const INTERACTION_LABELS: Record<"competitive" | "cooperative" | "one-vs-all", string> = {
+  competitive: "Competitive",
+  cooperative: "Cooperative",
+  "one-vs-all": "One vs. All",
+};
+
 // BGG's weight vote is one of these 5 integer labels per voter; the
 // published average is a whole number only by coincidence, so a fractional
 // value's label is whichever whole vote it's closest to - standard
@@ -924,6 +931,7 @@ export function BoardgameLookupPage() {
                 typeof state.game.strategyRank === "number" ||
                 typeof state.game.familyRank === "number" ||
                 typeof state.game.thematicRank === "number" ||
+                state.game.interaction ||
                 state.game.complexity) && (
                 <p className="mt-3 flex flex-wrap items-center gap-2">
                   {[
@@ -937,6 +945,7 @@ export function BoardgameLookupPage() {
                     typeof state.game.strategyRank === "number" && `Strategy rank #${state.game.strategyRank}`,
                     typeof state.game.familyRank === "number" && `Family rank #${state.game.familyRank}`,
                     typeof state.game.thematicRank === "number" && `Thematic rank #${state.game.thematicRank}`,
+                    state.game.interaction && INTERACTION_LABELS[state.game.interaction],
                   ]
                     .filter((fact): fact is string => Boolean(fact))
                     .map((fact) => (

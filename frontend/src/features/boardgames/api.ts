@@ -110,6 +110,14 @@ export interface Boardgame {
   mechanics?: BggTag[];
   categories?: BggTag[];
   /**
+   * #131: derived from the mechanics above (Cooperative/Semi-Cooperative/
+   * Traitor Game), never a guess - null when the thing carries no mechanics
+   * at all to derive it from (the dump-backed partial answer), not when it
+   * happens to be a competitive game (that's a real "competitive", not an
+   * absence).
+   */
+  interaction?: "competitive" | "cooperative" | "one-vs-all" | null;
+  /**
    * BGG's "family" league tables alongside the overall rank - a game's
    * position among strategy games / family games / thematic games
    * specifically, not a separate rank of a different kind. Absent on the

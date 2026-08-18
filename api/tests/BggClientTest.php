@@ -401,6 +401,56 @@ final class BggClientTest extends TestCase
         );
     }
 
+    public function testInteractionTypeIsCooperativeWhenTheMechanicIsPresent(): void
+    {
+        // Chronicles of Crime's real shape (id 239188, probed 2026-08-19).
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="239188"><name type="primary" value="Chronicles of Crime"/>' .
+            '<link type="boardgamemechanic" id="2023" value="Cooperative Game"/>' .
+            '<link type="boardgamemechanic" id="2027" value="Storytelling"/>' .
+            '</item>'
+        ));
+
+        $this->assertSame('cooperative', $client->lookup(239188)['interaction']);
+    }
+
+    public function testInteractionTypeIsOneVsAllWhenTraitorOutranksCooperative(): void
+    {
+        // Mansions of Madness 2E's real shape (id 205059, probed 2026-08-19):
+        // carries BOTH Cooperative Game and Traitor Game - the hidden-enemy
+        // twist is the more honest read of "who is actually playing against
+        // whom" than plain cooperative would be.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="205059"><name type="primary" value="Mansions of Madness: Second Edition"/>' .
+            '<link type="boardgamemechanic" id="2023" value="Cooperative Game"/>' .
+            '<link type="boardgamemechanic" id="2814" value="Traitor Game"/>' .
+            '</item>'
+        ));
+
+        $this->assertSame('one-vs-all', $client->lookup(205059)['interaction']);
+    }
+
+    public function testInteractionTypeIsCompetitiveWhenNeitherMarkerIsPresent(): void
+    {
+        // Wingspan's real shape (id 266192, probed 2026-08-19): mechanics are
+        // present but carry none of the coop/traitor markers - a real
+        // negative signal, not a guess, since BGG does tag cooperative games.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="266192"><name type="primary" value="Wingspan"/>' .
+            '<link type="boardgamemechanic" id="2004" value="Set Collection"/>' .
+            '</item>'
+        ));
+
+        $this->assertSame('competitive', $client->lookup(266192)['interaction']);
+    }
+
+    public function testInteractionTypeIsNullRatherThanAGuessWhenThereAreNoMechanicsAtAll(): void
+    {
+        $client = new BggClient(fn() => $this->thingXml('<item id="13"><name type="primary" value="Catan"/></item>'));
+
+        $this->assertNull($client->lookup(13)['interaction']);
+    }
+
     public function testASingleCommentPageStillSuppliesBothSnippets(): void
     {
         // Under one page there is no last page to fetch: everything BGG holds
