@@ -369,7 +369,33 @@ class BggClient
             return $resolved;
         }
 
-        $game = $this->lookupFromRanks($resolved['bggId']);
+        return $this->localAnswer($resolved['bggId']);
+    }
+
+    /**
+     * A shared link, a reload, or a top-10 click (#115) carries a bgg_id but
+     * no name, so it can't go through lookupLocal()'s name resolution - but it
+     * wants the same instant dump answer the typed path gets, rather than a
+     * blank page for the 4-5s cold lookup. Same dump read, same key-fill, no
+     * BGG call.
+     *
+     * @return array{status:'ok',game:array}|array{status:'not_found'}|array{status:'unavailable'}
+     */
+    public function lookupLocalById(int $bggId): array
+    {
+        if (!$this->ranksImported()) {
+            return ['status' => 'unavailable'];
+        }
+
+        return $this->localAnswer($bggId);
+    }
+
+    /**
+     * @return array{status:'ok',game:array}|array{status:'not_found'}
+     */
+    private function localAnswer(int $bggId): array
+    {
+        $game = $this->lookupFromRanks($bggId);
         if ($game === null) {
             return ['status' => 'not_found'];
         }
@@ -379,7 +405,7 @@ class BggClient
         // through the same component, so an absent key is undefined.length
         // in the renderer rather than a quietly emptier card.
         return ['status' => 'ok', 'game' => $game + [
-            'rank' => $this->rankFor($resolved['bggId']),
+            'rank' => $this->rankFor($bggId),
             'ratings' => [],
             'bgq' => null,
             'players' => null,

@@ -678,6 +678,46 @@ final class BggClientTest extends TestCase
         $this->assertSame(['status' => 'unavailable'], (new BggClient(fn() => null))->lookupLocal('catan'));
     }
 
+    public function testLookupLocalByIdAnswersFromTheDumpWithoutCallingBgg(): void
+    {
+        // #115: a shared link or a top-10 click arrives by id, and must get the
+        // same instant, call-free answer the typed path gets - the whole point
+        // is not to hold the page blank for the 4-5s cold lookup.
+        $this->seedRanks();
+        $calls = 0;
+        $client = new BggClient(function () use (&$calls) {
+            $calls++;
+            return null;
+        });
+
+        $result = $client->lookupLocalById(13);
+
+        $this->assertSame(0, $calls, 'the local-by-id path must not call BGG at all');
+        $this->assertSame('ok', $result['status']);
+        $this->assertSame('Catan', $result['game']['name']);
+        $this->assertTrue($result['game']['partial'], 'dump-derived data carries no description or comments');
+        $this->assertSame(566, $result['game']['rank']);
+        // Same every-key guarantee as the name path: a missing key blanks the
+        // shared component (see testLookupLocalReturnsEveryFieldTheFullLookupDoes).
+        foreach (['bggId', 'name', 'description', 'rating', 'numRatings', 'good', 'bad', 'partial',
+                  'ratings', 'bgq', 'players', 'duration', 'age', 'complexity', 'isExpansion', 'rank',
+                  'source'] as $field) {
+            $this->assertArrayHasKey($field, $result['game'], "$field is missing from the instant answer");
+        }
+    }
+
+    public function testLookupLocalByIdReturnsNotFoundForAnIdTheDumpDoesNotHave(): void
+    {
+        $this->seedRanks();
+
+        $this->assertSame(['status' => 'not_found'], (new BggClient(fn() => null))->lookupLocalById(99999999));
+    }
+
+    public function testLookupLocalByIdReportsUnavailableWhenTheDumpIsEmpty(): void
+    {
+        $this->assertSame(['status' => 'unavailable'], (new BggClient(fn() => null))->lookupLocalById(13));
+    }
+
     public function testTopRankedListsRankedGamesBestFirstAndSkipsUnrankedOnes(): void
     {
         $calls = 0;

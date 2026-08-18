@@ -115,6 +115,17 @@ export function lookupBoardgameLocal(query: string): Promise<BoardgameLocalResul
 }
 
 /**
+ * The instant half of a lookup by id (#115): a shared link, a reload, or a
+ * top-10 click has a bgg_id but no name, so it can't use the name-based local
+ * lookup - but it wants the same millisecond dump answer before the cold full
+ * lookup lands, instead of a blank page.
+ */
+export function lookupBoardgameLocalById(bggId: number): Promise<BoardgameLocalResult> {
+  const params = new URLSearchParams({ bgg_id: String(bggId) });
+  return apiFetch<BoardgameLocalResult>(`/api/boardgames/local?${params.toString()}`);
+}
+
+/**
  * One entry in the pre-search top-10 (#102). Deliberately not a `Boardgame`:
  * this is a card in a list, not an answer, and it carries only the four
  * facts the local ranks dump actually holds. No image - see #101.

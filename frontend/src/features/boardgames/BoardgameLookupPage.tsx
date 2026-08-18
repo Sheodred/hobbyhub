@@ -8,6 +8,7 @@ import {
   lookupBoardgame,
   lookupBoardgameById,
   lookupBoardgameLocal,
+  lookupBoardgameLocalById,
   suggestBoardgames,
   topBoardgames,
   type Boardgame,
@@ -103,10 +104,6 @@ export function BoardgameLookupPage() {
     return { kind: "error", message: err instanceof ApiError ? err.message : "Something went wrong." };
   }
 
-  function fail(err: unknown) {
-    setState(errorState(err));
-  }
-
   async function runSearch(term: string) {
     setState({ kind: "loading" });
 
@@ -140,10 +137,28 @@ export function BoardgameLookupPage() {
 
   async function runLookupById(bggId: number) {
     setState({ kind: "loading" });
+
+    // #115: same instant-then-enrich shape as runSearch. A click or a shared
+    // link went straight to the 4-5s cold lookup and held the page blank the
+    // whole time; the dump can answer this id in milliseconds. A failure here
+    // is not reported - the full lookup below is authoritative.
+    try {
+      const local = await lookupBoardgameLocalById(bggId);
+      if (local.status === "ok") {
+        setState({ kind: "result", game: local.game, enriching: true });
+      }
+    } catch {
+      // Fall through to the full lookup.
+    }
+
     try {
       applyResult(await lookupBoardgameById(bggId));
     } catch (err) {
-      fail(err);
+      // Keep a good partial answer rather than replacing it with an error,
+      // the same way runSearch does.
+      setState((current) =>
+        current.kind === "result" ? { ...current, enriching: false } : errorState(err)
+      );
     }
   }
 
