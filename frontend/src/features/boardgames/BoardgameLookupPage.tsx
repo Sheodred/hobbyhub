@@ -894,7 +894,7 @@ export function BoardgameLookupPage() {
                       rel="noreferrer nofollow"
                       className="rounded-full border border-indigo-400/25 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-100 underline decoration-indigo-300/40 underline-offset-2 hover:border-indigo-400/60 hover:text-white"
                     >
-                      Komplexität {state.game.complexity.value} / {state.game.complexity.max} · brettspiele-report
+                      Komplexität {state.game.complexity.value} / {state.game.complexity.max} · {state.game.complexity.source}
                     </a>
                   )}
                 </p>

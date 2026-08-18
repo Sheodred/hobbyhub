@@ -111,10 +111,13 @@ try {
     $game['age'] = $hall['age'] ?? $game['age'] ?? null;
 
     // Not a rating - see BrettspieleReportClient. Carries its own scale for
-    // the same reason the ratings do.
+    // the same reason the ratings do. brettspiele-report wins when it has an
+    // entry; BGG's own community weight rating (already set on $game by
+    // BggClient::mapThing()) fills the gap otherwise, same fallback pattern
+    // as players/duration/age above.
     $game['complexity'] = isset($report['complexity'])
-        ? ['value' => $report['complexity'], 'max' => $report['max'], 'url' => $report['url']]
-        : null;
+        ? ['value' => $report['complexity'], 'max' => $report['max'], 'source' => 'brettspiele-report', 'url' => $report['url']]
+        : ($game['complexity'] ?? null);
 
     // #90: retail (new) price, not the used market this issue also asked
     // about - see docs/adr/0018 for why used-market pricing (eBay,

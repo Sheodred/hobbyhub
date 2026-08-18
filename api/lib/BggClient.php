@@ -718,6 +718,11 @@ class BggClient
             'players' => self::playerRange($item),
             'duration' => self::durationRange($item),
             'age' => self::ageLabel($item),
+            // Same fallback story: brettspiele-report wins when it has an
+            // entry (see lookup.php); BGG's own community weight rating
+            // (averageweight, 1-5, same scale as brettspiele-report's own)
+            // fills the gap otherwise.
+            'complexity' => self::complexityFromBgg($item, $bggId),
             'partial' => false,
             'source' => ['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/' . $bggId],
         ];
@@ -743,13 +748,34 @@ class BggClient
             return null;
         }
         $value = $min > 0 && $max > 0 && $min !== $max ? "$min - $max" : (string) max($min, $max);
-        return "$value min";
+        // German phrasing, matching H@LL9000's own ("75 Minuten") - this is
+        // a fallback for when that site has no entry, not a different
+        // language for the same card.
+        return "$value Minuten";
     }
 
     private static function ageLabel(SimpleXMLElement $item): ?string
     {
         $age = isset($item->minage) ? (int) $item->minage['value'] : 0;
-        return $age > 0 ? "Age: {$age}+" : null;
+        // "ab X Jahren", matching H@LL9000's own phrasing exactly.
+        return $age > 0 ? "ab {$age} Jahren" : null;
+    }
+
+    private static function complexityFromBgg(SimpleXMLElement $item, int $bggId): ?array
+    {
+        if (!isset($item->statistics->ratings->averageweight)) {
+            return null;
+        }
+        $weight = round((float) $item->statistics->ratings->averageweight['value'], 2);
+        if ($weight <= 0) {
+            return null;
+        }
+        return [
+            'value' => $weight,
+            'max' => 5,
+            'source' => 'BoardGameGeek',
+            'url' => 'https://boardgamegeek.com/boardgame/' . $bggId,
+        ];
     }
 
     /**

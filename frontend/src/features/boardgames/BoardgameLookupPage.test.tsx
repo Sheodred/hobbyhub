@@ -497,7 +497,12 @@ describe("BoardgameLookupPage", () => {
         players: "3 - 4",
         duration: "90 Minuten",
         age: "ab 12 Jahren",
-        complexity: { value: 12, max: 20, url: "https://www.brettspiele-report.de/catan-staedte-und-ritter/" },
+        complexity: {
+          value: 12,
+          max: 20,
+          source: "brettspiele-report",
+          url: "https://www.brettspiele-report.de/catan-staedte-und-ritter/",
+        },
         price: null, isExpansion: true,
         rank: 401,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/926" },
@@ -515,7 +520,7 @@ describe("BoardgameLookupPage", () => {
     expect(screen.getByText("BGG rank #401")).toBeInTheDocument();
     expect(screen.getByText("Expansion")).toBeInTheDocument();
     // The scale travels with the number, and the link says whose number it is.
-    expect(screen.getByRole("link", { name: /Komplexität 12 \/ 20/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Komplexität 12 \/ 20 · brettspiele-report/ })).toHaveAttribute(
       "href", "https://www.brettspiele-report.de/catan-staedte-und-ritter/"
     );
   });

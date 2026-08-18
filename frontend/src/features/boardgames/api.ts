@@ -38,6 +38,8 @@ export interface BoardGameQuestReview {
 export interface Complexity {
   value: number;
   max: number;
+  /** Which source published this number - brettspiele-report or BoardGameGeek. */
+  source: string;
   url: string;
 }
 

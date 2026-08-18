@@ -302,8 +302,10 @@ final class BggClientTest extends TestCase
         $result = $client->lookup(161936);
 
         $this->assertSame('2 - 4', $result['players']);
-        $this->assertSame('60 min', $result['duration']);
-        $this->assertSame('Age: 13+', $result['age']);
+        // German phrasing, matching H@LL9000's own exactly - this is a
+        // fallback for the same card, not a different language for it.
+        $this->assertSame('60 Minuten', $result['duration']);
+        $this->assertSame('ab 13 Jahren', $result['age']);
     }
 
     public function testPlayerCountAndDurationCollapseToASingleNumberWhenMinEqualsMax(): void
@@ -318,7 +320,39 @@ final class BggClientTest extends TestCase
         $result = $client->lookup(13);
 
         $this->assertSame('4', $result['players'], 'a range with the same min and max reads worse than a single number');
-        $this->assertSame('90 min', $result['duration']);
+        $this->assertSame('90 Minuten', $result['duration']);
+    }
+
+    public function testLookupSurfacesComplexityFromBggsAverageweight(): void
+    {
+        // brettspiele-report wins in lookup.php when it has an entry; this
+        // is the fallback BggClient itself supplies for when it doesn't -
+        // same 1-5 scale, BGG's own community weight poll.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="161936"><name type="primary" value="Pandemic Legacy: Season 1"/>' .
+            '<statistics><ratings><averageweight value="2.8283"/></ratings></statistics>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(161936);
+
+        $this->assertSame(
+            ['value' => 2.83, 'max' => 5, 'source' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/161936'],
+            $result['complexity']
+        );
+    }
+
+    public function testComplexityIsNullWhenBggHasNoWeightVotesYet(): void
+    {
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="13"><name type="primary" value="Catan"/>' .
+            '<statistics><ratings><averageweight value="0"/></ratings></statistics>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(13);
+
+        $this->assertNull($result['complexity']);
     }
 
     public function testPlayerCountDurationAndAgeAreNullWhenBggHasNoSuchData(): void
