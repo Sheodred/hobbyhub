@@ -41,8 +41,12 @@ final class BggClientTest extends TestCase
                 '<description>Trade, build, settle.</description>' .
                 '<statistics><ratings><average value="7.15"/><usersrated value="1000"/></ratings></statistics>' .
                 '<comments>' .
-                '<comment username="a" rating="9" value="Great trading game."/>' .
-                '<comment username="b" rating="3" value="Too much luck."/>' .
+                '<comment username="a" rating="10" value="Great trading game."/>' .
+                '<comment username="b" rating="9" value="A modern classic."/>' .
+                '<comment username="c" rating="8" value="Still holds up."/>' .
+                '<comment username="d" rating="3" value="Too much luck."/>' .
+                '<comment username="e" rating="2" value="Rolled badly, lost badly."/>' .
+                '<comment username="f" rating="1" value="Boring after round two."/>' .
                 '</comments>' .
                 '</item>'
             );
@@ -54,8 +58,14 @@ final class BggClientTest extends TestCase
         $this->assertSame('Catan', $result['name']);
         $this->assertSame(7.2, $result['rating']); // rounds 7.15 to 1 decimal
         $this->assertSame(1000, $result['numRatings']);
-        $this->assertSame('Great trading game.', $result['good']);
-        $this->assertSame('Too much luck.', $result['bad']);
+        $this->assertSame(
+            ['Great trading game.', 'A modern classic.', 'Still holds up.'],
+            $result['good']
+        );
+        $this->assertSame(
+            ['Boring after round two.', 'Rolled badly, lost badly.', 'Too much luck.'],
+            $result['bad']
+        );
         $this->assertSame(['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/13'], $result['source']);
     }
 
@@ -93,7 +103,11 @@ final class BggClientTest extends TestCase
             $pages[] = (int) $q['page'];
             $comments = (int) $q['page'] === 1
                 ? '<comment username="a" rating="1" value="Roll a dice, get shafted."/>'
-                : '<comment username="z" rating="10" value="The one everyone owns."/>';
+                . '<comment username="b" rating="1" value="Boring, no playtesting."/>'
+                . '<comment username="c" rating="2" value="Too much luck."/>'
+                : '<comment username="z" rating="10" value="The one everyone owns."/>'
+                . '<comment username="y" rating="9" value="A gateway classic."/>'
+                . '<comment username="x" rating="9" value="Still fun after decades."/>';
 
             return $this->thingXml(
                 '<item id="13"><name type="primary" value="Catan"/>' .
@@ -105,8 +119,14 @@ final class BggClientTest extends TestCase
         $result = $client->lookup(13);
 
         $this->assertSame([1, 3], $pages, 'the second request must ask for the last page: ceil(250/100)');
-        $this->assertSame('The one everyone owns.', $result['good']);
-        $this->assertSame('Roll a dice, get shafted.', $result['bad']);
+        $this->assertSame(
+            ['The one everyone owns.', 'A gateway classic.', 'Still fun after decades.'],
+            $result['good']
+        );
+        $this->assertSame(
+            ['Roll a dice, get shafted.', 'Boring, no playtesting.', 'Too much luck.'],
+            $result['bad']
+        );
     }
 
     public function testLookupStillAnswersWhenTheLastCommentPageFails(): void
@@ -125,7 +145,7 @@ final class BggClientTest extends TestCase
 
         $this->assertSame('Catan', $result['name']);
         $this->assertNull($result['good'], 'page 1 holds the worst ratings - it cannot supply the best');
-        $this->assertSame('Fine, dated.', $result['bad'], 'the worst still comes off the page we did get');
+        $this->assertSame(['Fine, dated.'], $result['bad'], 'the worst still comes off the page we did get');
     }
 
     public function testAFailedBestPageNeverPrintsALowRatingAsThePraise(): void
@@ -151,6 +171,69 @@ final class BggClientTest extends TestCase
         $this->assertSame('Catan', $result['name'], 'a missing snippet must never cost the game');
         $this->assertNull($result['good'], 'no praise beats a one-star rant labelled as praise');
         $this->assertNotNull($result['bad'], 'the bad snippet is exactly what page 1 can supply');
+    }
+
+    // Under one comment page, bestComments() hands back the exact same page
+    // as $worstPage - a game with only a handful of comments can have its
+    // top-3-best and bottom-3-worst genuinely overlap, and a comment must
+    // never be printed under both headings.
+    public function testNeverShowsTheSameCommentUnderBothGoodAndBad(): void
+    {
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="7"><name type="primary" value="Azul"/>' .
+            '<comments totalitems="4" page="1">' .
+            '<comment username="a" rating="9" value="Lovely tiles."/>' .
+            '<comment username="b" rating="8" value="Solid abstract."/>' .
+            '<comment username="c" rating="5" value="Middle of the road."/>' .
+            '<comment username="d" rating="4" value="Once was enough."/>' .
+            '</comments></item>'
+        ));
+
+        $result = $client->lookup(7);
+
+        $this->assertSame(['Lovely tiles.', 'Solid abstract.', 'Middle of the road.'], $result['good']);
+        // "Middle of the road." already used above - the bottom 3 of 4 would
+        // otherwise repeat it here.
+        $this->assertSame(['Once was enough.'], $result['bad']);
+    }
+
+    public function testLookupSurfacesTheStrategyAndFamilyGameRanks(): void
+    {
+        // Real shape from BGG's live thing response (id 13, probed
+        // 2026-08-18): the overall rank sits alongside two "family" league
+        // tables this project did not read before.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="13"><name type="primary" value="Catan"/>' .
+            '<statistics><ratings><ranks>' .
+            '<rank type="subtype" name="boardgame" value="627"/>' .
+            '<rank type="family" name="strategygames" value="592"/>' .
+            '<rank type="family" name="familygames" value="206"/>' .
+            '</ranks></ratings></statistics>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(13);
+
+        $this->assertSame(592, $result['strategyRank']);
+        $this->assertSame(206, $result['familyRank']);
+    }
+
+    public function testStrategyAndFamilyRanksAreNullWhenBggHasNoSuchLeagueTable(): void
+    {
+        // Most of BGG's catalog carries no family rank at all (party games,
+        // abstracts with too few ratings, ...) - absence, not "Not Ranked".
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="13"><name type="primary" value="Catan"/>' .
+            '<statistics><ratings><ranks>' .
+            '<rank type="subtype" name="boardgame" value="627"/>' .
+            '</ranks></ratings></statistics>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(13);
+
+        $this->assertNull($result['strategyRank']);
+        $this->assertNull($result['familyRank']);
     }
 
     public function testLookupSurfacesMechanicAndCategoryLabels(): void
@@ -180,16 +263,26 @@ final class BggClientTest extends TestCase
         // failed fetch, which must yield no praise at all.
         $client = new BggClient(fn() => $this->thingXml(
             '<item id="7"><name type="primary" value="Azul"/>' .
-            '<comments totalitems="2" page="1">' .
+            '<comments totalitems="6" page="1">' .
             '<comment username="a" rating="9" value="Beautiful and tight."/>' .
-            '<comment username="b" rating="2" value="Repetitive."/>' .
+            '<comment username="b" rating="9" value="A great gateway game."/>' .
+            '<comment username="c" rating="8" value="Gorgeous components."/>' .
+            '<comment username="d" rating="3" value="Repetitive."/>' .
+            '<comment username="e" rating="2" value="No real interaction."/>' .
+            '<comment username="f" rating="1" value="Solitaire with extra steps."/>' .
             '</comments></item>'
         ));
 
         $result = $client->lookup(7);
 
-        $this->assertSame('Beautiful and tight.', $result['good']);
-        $this->assertSame('Repetitive.', $result['bad']);
+        $this->assertSame(
+            ['Beautiful and tight.', 'A great gateway game.', 'Gorgeous components.'],
+            $result['good']
+        );
+        $this->assertSame(
+            ['Solitaire with extra steps.', 'No real interaction.', 'Repetitive.'],
+            $result['bad']
+        );
     }
 
     public function testLookupCacheHitDoesNotCallFetcherAgain(): void

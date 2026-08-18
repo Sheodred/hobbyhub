@@ -1,0 +1,31 @@
+-- One-time production migration for the top-3/bottom-3 review snippets and
+-- strategy/family ranks change.
+--
+-- BggClient::mapThing()'s good/bad fields changed shape from a single
+-- string (or null) to a list of up to 3 strings (or null) - not an added
+-- field, a retyped one. A bgg_lookup_cache row written by the old code
+-- still decodes fine (json_decode does not care), but the frontend then
+-- calls .map() on what is a plain string for any game whose row has not
+-- expired yet, which throws (TypeError: state.game.good.map is not a
+-- function) instead of degrading gracefully - the same class of break as
+-- the amazon_rating_cache shape change, see 2026_amazon_price_cache_reset.sql.
+--
+-- strategyRank/familyRank are a genuinely new, additive, optional field by
+-- contrast (same as mechanics/categories) - an old cached row simply lacks
+-- the key, and the frontend already treats a missing key as "not shown".
+-- No migration need on their account alone; they ride along for free once
+-- this table is cleared for the good/bad reason above.
+--
+-- The table is a pure cache (TTL 14 days, no user data, fully recomputable
+-- from a live BGG request), so the fix is simply to clear it once before
+-- this code ships - the next lookup per game just re-fetches. Local dev
+-- (docker-compose) gets this for free on the next `php` container rebuild
+-- only if the row had already expired; production does not rebuild on
+-- deploy, so run this by hand once via phpMyAdmin (SQL tab) or the CLI:
+--
+--   mysql -u<user> -p <database> < api/sql/2026_bgg_lookup_cache_reset.sql
+--
+-- Safe to re-run: DELETE with no WHERE just empties an already-empty table.
+-- Verify afterwards with:  SELECT COUNT(*) FROM bgg_lookup_cache;  -- expect 0.
+
+DELETE FROM bgg_lookup_cache;

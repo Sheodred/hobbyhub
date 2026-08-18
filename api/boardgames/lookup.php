@@ -95,8 +95,11 @@ try {
     // Overview for its description. Both defer to BGG - only nulls get filled.
     $game['bgq'] = $bgq;
     if ($bgq !== null) {
-        $game['good'] ??= $bgq['hits'][0] ?? null;
-        $game['bad'] ??= $bgq['misses'][0] ?? null;
+        // good/bad are string lists now (top/bottom 3 BGG comments) - Board
+        // Game Quest's whole Hits/Misses list fills the gap the same way a
+        // single hit used to, not just its first entry.
+        $game['good'] ??= $bgq['hits'] === [] ? null : $bgq['hits'];
+        $game['bad'] ??= $bgq['misses'] === [] ? null : $bgq['misses'];
     }
 
     // Player count, duration and minimum age are only ever known from

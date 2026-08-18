@@ -125,15 +125,34 @@ class BggClient
     }
 
     // Only the `boardgame` subtype is this game's overall position; the
-    // `family` entries alongside it are separate league tables. BGG writes
-    // a non-numeric "Not Ranked" for the bulk of its catalog.
+    // `family` entries alongside it (strategygames, familygames, ...) are
+    // separate league tables - see rankValue(). BGG writes a non-numeric
+    // "Not Ranked" for the bulk of its catalog.
     private static function apiRank(SimpleXMLElement $item): ?int
+    {
+        return self::rankValue($item, 'subtype', 'boardgame');
+    }
+
+    // The strategy and family "league tables" alongside the overall rank,
+    // read fresh from the live thing response on every cache miss like the
+    // overall rank is - unlike the overall rank, never persisted to
+    // bgg_ranks: that dump backs the Top-10 list and the partial fallback,
+    // neither of which this project ranks by strategy/family today, so a
+    // column nothing reads would be scope with no user, not a feature.
+    // Absent (not "Not Ranked") for a game with no family placement at all,
+    // e.g. most party or abstract games have no strategygames rank.
+    private static function familyRank(SimpleXMLElement $item, string $name): ?int
+    {
+        return self::rankValue($item, 'family', $name);
+    }
+
+    private static function rankValue(SimpleXMLElement $item, string $type, string $name): ?int
     {
         if (!isset($item->statistics->ratings->ranks->rank)) {
             return null;
         }
         foreach ($item->statistics->ratings->ranks->rank as $rank) {
-            if ((string) $rank['type'] === 'subtype' && (string) $rank['name'] === 'boardgame') {
+            if ((string) $rank['type'] === $type && (string) $rank['name'] === $name) {
                 $value = (string) $rank['value'];
                 return ctype_digit($value) ? (int) $value : null;
             }
@@ -678,6 +697,10 @@ class BggClient
             // labels; the dump-backed partial path has neither and omits them.
             'mechanics' => $this->linkValues($item, 'boardgamemechanic'),
             'categories' => $this->linkValues($item, 'boardgamecategory'),
+            // Read live from this same response, not the bgg_rank column -
+            // see familyRank(). null on the dump-backed partial path.
+            'strategyRank' => self::familyRank($item, 'strategygames'),
+            'familyRank' => self::familyRank($item, 'familygames'),
             'partial' => false,
             'source' => ['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/' . $bggId],
         ];
@@ -700,41 +723,59 @@ class BggClient
         return $values;
     }
 
-    // The bad snippet comes off the first page (lowest ratings), the good one
-    // off the last (highest) - see bestComments(). A null $bestPage means that
-    // page could not be read, and then there is NO good snippet: falling back
-    // to the highest rating on page 1 returns the best of the worst, which on
-    // an ascending sort is a one-star rant printed under a green heading. An
-    // absent snippet is the honest answer, and the page renders it as nothing.
-    // Still best-effort: the extremes of the pages we read, not of every
-    // rating BGG holds.
+    // Up to this many snippets per side - matches the panel's own "top 3 /
+    // bottom 3" brief, not a BGG-imposed number.
+    private const SNIPPET_COUNT = 3;
+
+    // The bad snippets come off the first page (lowest ratings), the good
+    // ones off the last (highest) - see bestComments(). A null $bestPage
+    // means that page could not be read, and then there are NO good
+    // snippets: falling back to the highest ratings on page 1 returns the
+    // best of the worst, which on an ascending sort is one-star rants
+    // printed under a green heading. Absent snippets are the honest answer,
+    // and the page renders them as nothing.
+    //
+    // Under one comment page (bestComments() returns the same page as
+    // $worstPage - see its own comment), the top and bottom picks are drawn
+    // from the identical pool and can genuinely overlap when there are only
+    // a handful of comments total; a comment already shown as good is
+    // dropped from bad rather than printed under both headings.
     private function pickGoodBad(iterable $worstPage, ?iterable $bestPage): array
     {
-        $best = $bestPage === null ? null : $this->pickExtreme($bestPage, true);
+        $best = $bestPage === null ? [] : $this->pickExtreme($bestPage, true);
         $worst = $this->pickExtreme($worstPage, false);
 
-        return [
-            $best ? $this->truncate($best['text']) : null,
-            ($worst && $worst !== $best) ? $this->truncate($worst['text']) : null,
-        ];
+        $bestTexts = array_column($best, 'text');
+        $worst = array_values(array_filter($worst, fn(array $c) => !in_array($c['text'], $bestTexts, true)));
+
+        $good = array_map(fn(array $c) => $this->truncate($c['text']), $best);
+        $bad = array_map(fn(array $c) => $this->truncate($c['text']), $worst);
+
+        return [$good === [] ? null : $good, $bad === [] ? null : $bad];
     }
 
-    /** @return array{rating:float,text:string}|null */
-    private function pickExtreme(iterable $comments, bool $highest): ?array
+    /**
+     * Up to SNIPPET_COUNT comments, most extreme first - highest rating
+     * first when $highest, lowest rating first otherwise. usort() is stable
+     * since PHP 8.0, so a tie keeps BGG's own comment order.
+     *
+     * @return array<array{rating:float,text:string}>
+     */
+    private function pickExtreme(iterable $comments, bool $highest): array
     {
-        $pick = null;
+        $pool = [];
         foreach ($comments as $comment) {
             $rating = (float) $comment['rating'];
             $text = trim((string) $comment['value']);
             if ($text === '' || $rating <= 0) {
                 continue; // BGG uses a non-numeric rating for comments with no rating
             }
-            if ($pick === null || ($highest ? $rating > $pick['rating'] : $rating < $pick['rating'])) {
-                $pick = ['rating' => $rating, 'text' => $text];
-            }
+            $pool[] = ['rating' => $rating, 'text' => $text];
         }
 
-        return $pick;
+        usort($pool, fn(array $a, array $b) => $highest ? $b['rating'] <=> $a['rating'] : $a['rating'] <=> $b['rating']);
+
+        return array_slice($pool, 0, self::SNIPPET_COUNT);
     }
 
     private function truncate(string $text, int $maxLength = 280): string
