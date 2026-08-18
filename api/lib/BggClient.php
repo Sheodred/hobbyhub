@@ -16,6 +16,10 @@ class BggClient
 {
     private const LOOKUP_CACHE_TTL_SECONDS = 14 * 24 * 60 * 60; // 14 days
     private const SEARCH_CACHE_TTL_SECONDS = 14 * 24 * 60 * 60;
+    // Shorter than a hit: "BGG has no such id" is a real answer worth
+    // remembering (#72), but a new game appearing under an id we already
+    // asked about should not wait a fortnight to be seen.
+    private const MISS_TTL_SECONDS = 3 * 24 * 60 * 60;
     private const THROTTLE_MIN_INTERVAL_MS = 500; // ~2 req/sec
     private const BASE_URL = 'https://boardgamegeek.com/xmlapi2';
     private const MAX_COMMENTS = 100; // one page - see pickGoodBad()
@@ -78,6 +82,7 @@ class BggClient
             if (!isset($xml->item)) {
                 return null; // BGG answered: no game with that id.
             }
+            $this->refreshRank($bggId, $xml->item);
             return $this->mapThing($xml->item, $this->bestComments($bggId, $xml->item));
         });
     }
@@ -100,6 +105,42 @@ class BggClient
         ]), 10, $this->authHeaders());
     }
 
+    // BGG's own rank rides along in the stats block this lookup already
+    // fetched, so keeping the dump current costs no extra request - and
+    // only on a cache miss, once per game per TTL. Rows the dump does not
+    // have are left alone; importing them is a separate job.
+    // ponytail: no re-ordering, so ranks can collide or leave gaps. That is
+    // invisible to `ORDER BY bgg_rank ASC LIMIT n`, and shifting the block
+    // in between would move rows BGG never spoke about. Add the shift only
+    // if a rank is ever displayed somewhere a gap would show.
+    private function refreshRank(int $bggId, SimpleXMLElement $item): void
+    {
+        $rank = self::apiRank($item);
+        if ($rank === null) {
+            return;
+        }
+
+        db()->prepare('UPDATE bgg_ranks SET bgg_rank = ? WHERE bgg_id = ?')->execute([$rank, $bggId]);
+    }
+
+    // Only the `boardgame` subtype is this game's overall position; the
+    // `family` entries alongside it are separate league tables. BGG writes
+    // a non-numeric "Not Ranked" for the bulk of its catalog.
+    private static function apiRank(SimpleXMLElement $item): ?int
+    {
+        if (!isset($item->statistics->ratings->ranks->rank)) {
+            return null;
+        }
+        foreach ($item->statistics->ratings->ranks->rank as $rank) {
+            if ((string) $rank['type'] === 'subtype' && (string) $rank['name'] === 'boardgame') {
+                $value = (string) $rank['value'];
+                return ctype_digit($value) ? (int) $value : null;
+            }
+        }
+
+        return null;
+    }
+
     // BGG returns rating comments sorted by rating ASCENDING, so page 1 is
     // nothing but the lowest scores - measured on id 13: all 29 usable
     // comments on page 1 rated 1, all 7 on the last page rated 10. Reading
@@ -107,17 +148,21 @@ class BggClient
     // review under a green heading. So the best comments cost a second
     // request, once per cache miss (14 days per game), throttled like the
     // first. A failure here costs the snippet, never the lookup.
-    private function bestComments(int $bggId, SimpleXMLElement $item): iterable
+    // null means "the best page could not be read", which is NOT the same as
+    // "there is no second page" - conflating the two is what let a one-star
+    // rant through as praise. Under one page, the page in hand holds every
+    // comment BGG has and is therefore the best page too.
+    private function bestComments(int $bggId, SimpleXMLElement $item): ?iterable
     {
         $total = (int) ($item->comments['totalitems'] ?? 0);
         $lastPage = (int) ceil($total / self::MAX_COMMENTS);
         if ($lastPage <= 1) {
-            return [];
+            return $item->comments->comment ?? [];
         }
 
         $xml = $this->fetchThing($bggId, $lastPage);
 
-        return $xml === null || !isset($xml->item->comments) ? [] : $xml->item->comments->comment;
+        return $xml === null || !isset($xml->item->comments) ? null : $xml->item->comments->comment;
     }
 
     /**
@@ -532,7 +577,7 @@ class BggClient
         $stmt->execute([$normalizedQuery, $bggId, self::SEARCH_CACHE_TTL_SECONDS]);
     }
 
-    private function mapThing(SimpleXMLElement $item, iterable $bestComments = []): array
+    private function mapThing(SimpleXMLElement $item, ?iterable $bestComments = null): array
     {
         $name = '';
         foreach ($item->name as $n) {
@@ -561,14 +606,16 @@ class BggClient
     }
 
     // The bad snippet comes off the first page (lowest ratings), the good one
-    // off the last (highest) - see bestComments(). $bestPage is empty when
-    // there is only one page of comments or the second request failed, and
-    // then both come off the page we have, which is what this did before.
+    // off the last (highest) - see bestComments(). A null $bestPage means that
+    // page could not be read, and then there is NO good snippet: falling back
+    // to the highest rating on page 1 returns the best of the worst, which on
+    // an ascending sort is a one-star rant printed under a green heading. An
+    // absent snippet is the honest answer, and the page renders it as nothing.
     // Still best-effort: the extremes of the pages we read, not of every
     // rating BGG holds.
-    private function pickGoodBad(iterable $worstPage, iterable $bestPage = []): array
+    private function pickGoodBad(iterable $worstPage, ?iterable $bestPage): array
     {
-        $best = $this->pickExtreme($bestPage, true) ?? $this->pickExtreme($worstPage, true);
+        $best = $bestPage === null ? null : $this->pickExtreme($bestPage, true);
         $worst = $this->pickExtreme($worstPage, false);
 
         return [
@@ -602,7 +649,14 @@ class BggClient
 
     private function cached(int $bggId, callable $fetch): ?array
     {
-        return cache_aside('bgg_lookup_cache', 'bgg_id', (string) $bggId, self::LOOKUP_CACHE_TTL_SECONDS, $fetch);
+        return cache_aside(
+            'bgg_lookup_cache',
+            'bgg_id',
+            (string) $bggId,
+            self::LOOKUP_CACHE_TTL_SECONDS,
+            $fetch,
+            self::MISS_TTL_SECONDS
+        );
     }
 
     private function throttle(): void
