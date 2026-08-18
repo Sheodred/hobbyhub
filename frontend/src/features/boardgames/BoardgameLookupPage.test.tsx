@@ -226,6 +226,22 @@ describe("BoardgameLookupPage", () => {
     expect(badge).toHaveTextContent("Spiel des Jahres 2026");
   });
 
+  it("renders BGG mechanic and category tags on the result card (#131)", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, categories: ["Negotiation"], mechanics: ["Dice Rolling", "Trading"] },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => expect(screen.getByText("Catan")).toBeInTheDocument());
+    expect(screen.getByText("Negotiation")).toBeInTheDocument();
+    expect(screen.getByText("Dice Rolling")).toBeInTheDocument();
+    expect(screen.getByText("Trading")).toBeInTheDocument();
+  });
+
   it("shows no award badge for a game that isn't in the panel (#117)", async () => {
     vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN }); // bggId 13

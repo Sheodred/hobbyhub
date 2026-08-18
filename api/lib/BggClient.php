@@ -661,9 +661,32 @@ class BggClient
             // BGG models an expansion as its own thing type rather than a
             // flag, so the answer is already here - no second request.
             'isExpansion' => (string) $item['type'] === 'boardgameexpansion',
+            // #131: the thing response already carries these as <link> children -
+            // mechanics (Worker Placement, Deck Building, ...) and categories
+            // (the theme: Science Fiction, Economic, ...). Surfaced as plain
+            // labels; the dump-backed partial path has neither and omits them.
+            'mechanics' => $this->linkValues($item, 'boardgamemechanic'),
+            'categories' => $this->linkValues($item, 'boardgamecategory'),
             'partial' => false,
             'source' => ['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/' . $bggId],
         ];
+    }
+
+    /**
+     * The values of every <link> of one type on a thing (e.g. every
+     * boardgamemechanic), in BGG's own order. Empty when the thing has none.
+     *
+     * @return string[]
+     */
+    private function linkValues(SimpleXMLElement $item, string $type): array
+    {
+        $values = [];
+        foreach ($item->link as $link) {
+            if ((string) $link['type'] === $type) {
+                $values[] = (string) $link['value'];
+            }
+        }
+        return $values;
     }
 
     // The bad snippet comes off the first page (lowest ratings), the good one
