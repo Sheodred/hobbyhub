@@ -34,11 +34,16 @@ export function Hero() {
 
   return (
     <div className="rounded-[2.5rem] border border-white/10 bg-white/[0.03] p-1.5 sm:p-2">
-      {/* flex on mobile (CTA stacks below the image, so more of it stays
-          visible), grid on sm+ (both children share the same cell, so the
-          CTA overlays the image's bottom-right corner like before). */}
+      {/* flex on mobile (CTA stacks below the image), grid on sm+ (both
+          children share the same cell, so the CTA overlays the image's
+          bottom-right corner like before). */}
       <div className="flex flex-col gap-6 sm:grid">
-        <section className="relative isolate flex min-h-[calc(100dvh-10rem)] flex-col justify-end overflow-hidden rounded-[calc(2.5rem-0.5rem)] p-6 sm:col-start-1 sm:row-start-1 sm:p-10">
+        {/* #119: on mobile the artwork is capped at 60svh so both CTAs (which
+            stack below it) land on the first screen instead of a full viewport
+            past the fold. sm+ keeps the near-full-height treatment. #118: svh,
+            not dvh - dvh re-measures as the mobile toolbar slides in/out during
+            scroll, which wiggles everything below the hero; svh is stable. */}
+        <section className="relative isolate flex min-h-[60svh] flex-col justify-end overflow-hidden rounded-[calc(2.5rem-0.5rem)] p-6 sm:col-start-1 sm:row-start-1 sm:min-h-[calc(100svh-10rem)] sm:p-10">
           {/* Background on its own layer (not the section itself) so it can
               drift independently of the text/buttons above it - a slow,
               barely-perceptible breathe (same technique as the AppShell
