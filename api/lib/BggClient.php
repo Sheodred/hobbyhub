@@ -770,6 +770,9 @@ class BggClient
             if ($text === '' || $rating <= 0) {
                 continue; // BGG uses a non-numeric rating for comments with no rating
             }
+            if (preg_match('#https?://#i', $text)) {
+                continue; // a link in a one-star comment is vote-brigading spam, not a review
+            }
             $pool[] = ['rating' => $rating, 'text' => $text];
         }
 

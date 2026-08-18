@@ -899,7 +899,6 @@ export function BoardgameLookupPage() {
                   what KIND of game this is, not a stat about it. */}
               {(state.game.categories?.length ?? 0) > 0 && (
                 <p className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-medium uppercase tracking-wide text-rose-400/90">Category</span>
                   {(state.game.categories ?? []).map((category) => (
                     <span
                       key={category}
