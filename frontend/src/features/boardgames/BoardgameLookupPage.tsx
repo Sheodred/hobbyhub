@@ -616,9 +616,6 @@ export function BoardgameLookupPage() {
                   >
                     {copyState === "copied" ? "Link copied" : "Copy a link to this game"}
                   </button>
-                  <p className="mt-2 text-xs text-slate-400">
-                    Whoever opens it lands on this page, showing {state.game.name}.
-                  </p>
                   {copyState === "failed" && (
                     <p className="mt-2 text-xs text-slate-400">
                       This browser wouldn&apos;t let the page copy for you — the link is{" "}
