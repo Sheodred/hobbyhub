@@ -127,6 +127,37 @@ function AwardNames({
   );
 }
 
+// #117: does this game appear in this year's award panel, and as what? Matches
+// the looked-up game's bgg_id against the already-loaded awards (no extra
+// fetch), returning the badge label or null. Winner first, then nominee, then
+// recommendation - a game can only sit in one pot per category.
+function awardBadge(bggId: number, awards: AwardCategory[], year: number | null): string | null {
+  const suffix = year === null ? "" : ` ${year}`;
+  for (const cat of awards) {
+    if (cat.winner.bggId === bggId) return `🏆 ${cat.category}${suffix}`;
+    if (cat.nominees.some((e) => e.bggId === bggId)) return `Nominiert · ${cat.category}${suffix}`;
+    if (cat.recommended.some((e) => e.bggId === bggId)) return `Empfehlungsliste · ${cat.category}${suffix}`;
+  }
+  return null;
+}
+
+// #117: an award badge on the result card, in the same amber as the Expansion
+// badge. Renders nothing when the game isn't in the current award panel.
+function AwardBadge({ bggId, awards, year }: { bggId: number; awards: AwardCategory[]; year: number | null }) {
+  const label = awardBadge(bggId, awards, year);
+  if (label === null) return null;
+  return (
+    <p className="mt-3">
+      <span
+        data-testid="award-badge"
+        className="rounded-full border border-amber-400/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-200"
+      >
+        {label}
+      </span>
+    </p>
+  );
+}
+
 // #128: a small loading ring. motion-safe only, so a prefers-reduced-motion
 // visitor gets a static ring rather than a spinning one; aria-hidden because
 // the role="status" region already announces the wait in words.
@@ -689,6 +720,10 @@ export function BoardgameLookupPage() {
                   </p>
                 )}
               </div>
+
+              {/* #117: award badge when this game is in the current SdJ panel,
+                  matched by bgg_id against the already-loaded award data. */}
+              <AwardBadge bggId={state.game.bggId} awards={awards} year={awardYear} />
 
               {/* #128: a subtle "still loading the other sources" cue on the
                   card while the slow half of the lookup runs, so a partial
