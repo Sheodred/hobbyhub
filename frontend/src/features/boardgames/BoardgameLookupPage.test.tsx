@@ -210,6 +210,34 @@ describe("BoardgameLookupPage", () => {
     await waitFor(() => expect(screen.queryByTestId("enriching-indicator")).not.toBeInTheDocument());
   });
 
+  it("shows a Spiel-des-Jahres badge when the game is in this year's panel (#117)", async () => {
+    vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
+    // DITO! (400495) is the Spiel-des-Jahres winner in the fixture.
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, bggId: 400495, name: "DITO!" },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "dito" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    const badge = await screen.findByTestId("award-badge");
+    expect(badge).toHaveTextContent("Spiel des Jahres 2026");
+  });
+
+  it("shows no award badge for a game that isn't in the panel (#117)", async () => {
+    vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN }); // bggId 13
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => expect(screen.getByText("Catan")).toBeInTheDocument());
+    expect(screen.queryByTestId("award-badge")).not.toBeInTheDocument();
+  });
+
   it("shows a disambiguation list and resolves the picked candidate", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "disambiguation",
@@ -825,6 +853,8 @@ describe("BoardgameLookupPage", () => {
 
   it("renders nothing at all when the ranks dump is empty", async () => {
     vi.spyOn(api, "topBoardgames").mockResolvedValue([]);
+    // The award panel has its own source; with both empty the idle grid is gone.
+    vi.spyOn(api, "boardgameAwards").mockResolvedValue({ year: null, categories: [] });
 
     renderPage();
 
