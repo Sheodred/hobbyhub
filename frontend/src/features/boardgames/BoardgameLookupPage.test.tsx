@@ -765,6 +765,28 @@ describe("BoardgameLookupPage — shareable searches", () => {
     expect(byId).not.toHaveBeenCalled();
   });
 
+  it("shows the local dump answer instantly on a ?bgg_id= link before the slow lookup lands (#115)", async () => {
+    vi.spyOn(api, "lookupBoardgameLocalById").mockResolvedValue({
+      status: "ok",
+      game: {
+        bggId: 13, name: "Catan", description: "", rating: 7.1, numRatings: 143738,
+        good: null, bad: null, partial: true, ratings: [], bgq: null, players: null,
+        duration: null, age: null, complexity: null, isExpansion: false, rank: 566,
+        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
+      },
+    });
+    // The slow half never settles, so anything on screen came from the instant
+    // path - the blank-page bug was that this path was skipped entirely (#115).
+    vi.spyOn(api, "lookupBoardgameById").mockReturnValue(new Promise(() => {}));
+
+    renderPage("/boardgames?bgg_id=13");
+
+    await waitFor(() => expect(api.lookupBoardgameLocalById).toHaveBeenCalledWith(13));
+    expect(screen.getByText("Catan")).toBeInTheDocument();
+    expect(screen.getByText("7.1")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/still/i);
+  });
+
   it("writes bgg_id to the URL when a candidate is picked", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "disambiguation",

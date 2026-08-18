@@ -6,12 +6,17 @@ require_once __DIR__ . '/../lib/http.php';
 require_once __DIR__ . '/../lib/BggClient.php';
 
 $q = trim($_GET['q'] ?? '');
-if ($q === '') {
-    error_response('q is required', 400);
+// #115: a shared link or a top-10 click arrives by id, not name, and wants
+// the same instant answer the typed path gets.
+$bggIdParam = $_GET['bgg_id'] ?? '';
+$bggId = ctype_digit((string) $bggIdParam) ? (int) $bggIdParam : null;
+if ($q === '' && $bggId === null) {
+    error_response('q or bgg_id is required', 400);
 }
 
 try {
-    json_response((new BggClient())->lookupLocal($q));
+    $client = new BggClient();
+    json_response($bggId !== null ? $client->lookupLocalById($bggId) : $client->lookupLocal($q));
 } catch (Throwable $e) {
     error_log($e->getMessage());
     error_response('Something went wrong looking up that board game.', 502);
