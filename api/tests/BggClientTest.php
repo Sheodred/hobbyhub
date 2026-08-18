@@ -246,6 +246,27 @@ final class BggClientTest extends TestCase
         $this->assertSame(206, $result['familyRank']);
     }
 
+    public function testLookupSurfacesTheThematicRank(): void
+    {
+        // A third "family" league table, same shape as strategy/family games -
+        // probed live on Pandemic Legacy: Season 1 (id 161936, 2026-08-18):
+        // #1 thematic and #3 strategy at once.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="161936"><name type="primary" value="Pandemic Legacy: Season 1"/>' .
+            '<statistics><ratings><ranks>' .
+            '<rank type="subtype" name="boardgame" value="3"/>' .
+            '<rank type="family" name="thematic" value="1"/>' .
+            '<rank type="family" name="strategygames" value="3"/>' .
+            '</ranks></ratings></statistics>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(161936);
+
+        $this->assertSame(1, $result['thematicRank']);
+        $this->assertSame(3, $result['strategyRank']);
+    }
+
     public function testStrategyAndFamilyRanksAreNullWhenBggHasNoSuchLeagueTable(): void
     {
         // Most of BGG's catalog carries no family rank at all (party games,
@@ -262,26 +283,32 @@ final class BggClientTest extends TestCase
 
         $this->assertNull($result['strategyRank']);
         $this->assertNull($result['familyRank']);
+        $this->assertNull($result['thematicRank']);
     }
 
     public function testLookupSurfacesMechanicAndCategoryLabels(): void
     {
         // #131: BGG carries mechanics and categories (the theme) as <link>
         // children on the thing - already fetched, now read. Other link types
-        // (designer, publisher, ...) are left out of these two lists.
+        // (designer, publisher, ...) are left out of these two lists. Each
+        // carries BGG's own id (needed to link to BGG's page for the tag).
         $client = new BggClient(fn(string $url) => $this->thingXml(
             '<item id="13"><name type="primary" value="Catan"/>' .
-            '<link type="boardgamecategory" value="Negotiation"/>' .
-            '<link type="boardgamemechanic" value="Dice Rolling"/>' .
-            '<link type="boardgamemechanic" value="Trading"/>' .
-            '<link type="boardgamedesigner" value="Klaus Teuber"/>' .
+            '<link type="boardgamecategory" id="1021" value="Negotiation"/>' .
+            '<link type="boardgamemechanic" id="2072" value="Dice Rolling"/>' .
+            '<link type="boardgamemechanic" id="2008" value="Trading"/>' .
+            '<link type="boardgamedesigner" id="9" value="Klaus Teuber"/>' .
             '</item>'
         ));
 
         $result = $client->lookup(13);
 
-        $this->assertSame(['Negotiation'], $result['categories']);
-        $this->assertSame(['Dice Rolling', 'Trading'], $result['mechanics'], 'BGG order, designer link ignored');
+        $this->assertSame([['id' => 1021, 'name' => 'Negotiation']], $result['categories']);
+        $this->assertSame(
+            [['id' => 2072, 'name' => 'Dice Rolling'], ['id' => 2008, 'name' => 'Trading']],
+            $result['mechanics'],
+            'BGG order, designer link ignored'
+        );
     }
 
     public function testASingleCommentPageStillSuppliesBothSnippets(): void

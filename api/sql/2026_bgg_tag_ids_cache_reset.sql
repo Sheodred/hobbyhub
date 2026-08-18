@@ -1,0 +1,30 @@
+-- One-time production migration for clickable mechanic/category tags and
+-- the thematic rank.
+--
+-- BggClient::mapThing()'s mechanics/categories fields changed shape from a
+-- list of plain strings to a list of {id, name} objects - not an added
+-- field, a retyped one, same class of break as the good/bad and
+-- strategyRank/familyRank changes in 2026_bgg_lookup_cache_reset.sql. A
+-- bgg_lookup_cache row written by the old code still decodes fine, but the
+-- frontend then reads .name off what is a plain string for any game whose
+-- row has not expired yet, which renders "undefined" chips instead of
+-- degrading gracefully.
+--
+-- thematicRank is a genuinely new, additive, optional field by contrast -
+-- an old cached row simply lacks the key. No migration need on its account
+-- alone; it rides along for free once this table is cleared for the
+-- mechanics/categories reason above.
+--
+-- The table is a pure cache (TTL 14 days, no user data, fully recomputable
+-- from a live BGG request), so the fix is simply to clear it once before
+-- this code ships - the next lookup per game just re-fetches. Local dev
+-- (docker-compose) gets this for free on the next `php` container rebuild
+-- only if the row had already expired; production does not rebuild on
+-- deploy, so run this by hand once via phpMyAdmin (SQL tab) or the CLI:
+--
+--   mysql -u<user> -p <database> < api/sql/2026_bgg_tag_ids_cache_reset.sql
+--
+-- Safe to re-run: DELETE with no WHERE just empties an already-empty table.
+-- Verify afterwards with:  SELECT COUNT(*) FROM bgg_lookup_cache;  -- expect 0.
+
+DELETE FROM bgg_lookup_cache;

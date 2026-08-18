@@ -693,34 +693,44 @@ class BggClient
             'isExpansion' => (string) $item['type'] === 'boardgameexpansion',
             // #131: the thing response already carries these as <link> children -
             // mechanics (Worker Placement, Deck Building, ...) and categories
-            // (the theme: Science Fiction, Economic, ...). Surfaced as plain
-            // labels; the dump-backed partial path has neither and omits them.
-            'mechanics' => $this->linkValues($item, 'boardgamemechanic'),
-            'categories' => $this->linkValues($item, 'boardgamecategory'),
+            // (the theme: Science Fiction, Economic, ...). Each carries BGG's
+            // own id so the frontend can link to BGG's page for it without
+            // reproducing their slugging - the dump-backed partial path has
+            // neither and omits them.
+            'mechanics' => $this->linkTags($item, 'boardgamemechanic'),
+            'categories' => $this->linkTags($item, 'boardgamecategory'),
             // Read live from this same response, not the bgg_rank column -
             // see familyRank(). null on the dump-backed partial path.
             'strategyRank' => self::familyRank($item, 'strategygames'),
             'familyRank' => self::familyRank($item, 'familygames'),
+            // BGG's "family" rank named "thematic" - a third league table
+            // alongside strategy/family games, e.g. Pandemic Legacy: Season 1
+            // is #1 thematic and #3 strategy simultaneously (probed live,
+            // 2026-08-18).
+            'thematicRank' => self::familyRank($item, 'thematic'),
             'partial' => false,
             'source' => ['name' => 'BoardGameGeek', 'url' => 'https://boardgamegeek.com/boardgame/' . $bggId],
         ];
     }
 
     /**
-     * The values of every <link> of one type on a thing (e.g. every
-     * boardgamemechanic), in BGG's own order. Empty when the thing has none.
+     * Every <link> of one type on a thing (e.g. every boardgamemechanic), in
+     * BGG's own order, as {id, name} pairs. The id is what lets the frontend
+     * link straight to BGG's own page for the tag (boardgamemechanic/{id})
+     * without reproducing BGG's slug rules - BGG redirects an id-only URL to
+     * the correctly-slugged one itself. Empty when the thing has none.
      *
-     * @return string[]
+     * @return array<array{id:int,name:string}>
      */
-    private function linkValues(SimpleXMLElement $item, string $type): array
+    private function linkTags(SimpleXMLElement $item, string $type): array
     {
-        $values = [];
+        $tags = [];
         foreach ($item->link as $link) {
             if ((string) $link['type'] === $type) {
-                $values[] = (string) $link['value'];
+                $tags[] = ['id' => (int) $link['id'], 'name' => (string) $link['value']];
             }
         }
-        return $values;
+        return $tags;
     }
 
     // Up to this many snippets per side - matches the panel's own "top 3 /

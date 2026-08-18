@@ -54,6 +54,12 @@ export interface RetailPrice {
   url: string;
 }
 
+/** A BGG mechanic or category link - `id` is what makes it linkable to BGG's own page. */
+export interface BggTag {
+  id: number;
+  name: string;
+}
+
 export interface Boardgame {
   bggId: number;
   name: string;
@@ -93,21 +99,26 @@ export interface Boardgame {
    */
   rank: number | null;
   /**
-   * #131: BGG's own mechanic and category (theme) links, as plain labels.
-   * Absent on the dump-backed partial answer, which has neither - treat a
-   * missing field as an empty list.
+   * #131: BGG's own mechanic and category (theme) links. Each carries BGG's
+   * id, which is what makes the tag linkable to BGG's own page for it
+   * (boardgamemechanic/{id}, boardgamecategory/{id} - BGG redirects an
+   * id-only URL to the correctly-slugged one). Absent on the dump-backed
+   * partial answer, which has neither - treat a missing field as an empty
+   * list.
    */
-  mechanics?: string[];
-  categories?: string[];
+  mechanics?: BggTag[];
+  categories?: BggTag[];
   /**
    * BGG's "family" league tables alongside the overall rank - a game's
-   * position among strategy games / family games specifically, not a
-   * separate rank of a different kind. Absent on the dump-backed partial
-   * answer, same convention as mechanics/categories; null (present but no
-   * such table) for a game BGG has not placed in that family at all.
+   * position among strategy games / family games / thematic games
+   * specifically, not a separate rank of a different kind. Absent on the
+   * dump-backed partial answer, same convention as mechanics/categories;
+   * null (present but no such table) for a game BGG has not placed in that
+   * family at all.
    */
   strategyRank?: number | null;
   familyRank?: number | null;
+  thematicRank?: number | null;
   source: BoardgameSource;
 }
 
