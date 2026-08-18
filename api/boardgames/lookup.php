@@ -116,7 +116,7 @@ try {
     // BggClient::mapThing()) fills the gap otherwise, same fallback pattern
     // as players/duration/age above.
     $game['complexity'] = isset($report['complexity'])
-        ? ['value' => $report['complexity'], 'max' => $report['max'], 'source' => 'brettspiele-report', 'url' => $report['url']]
+        ? ['value' => $report['complexity'], 'max' => $report['max'], 'source' => 'brettspiele-report']
         : ($game['complexity'] ?? null);
 
     // #90: retail (new) price, not the used market this issue also asked

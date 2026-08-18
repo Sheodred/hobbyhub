@@ -40,7 +40,6 @@ export interface Complexity {
   max: number;
   /** Which source published this number - brettspiele-report or BoardGameGeek. */
   source: string;
-  url: string;
 }
 
 /**

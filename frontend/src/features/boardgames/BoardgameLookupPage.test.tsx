@@ -497,12 +497,7 @@ describe("BoardgameLookupPage", () => {
         players: "3 - 4",
         duration: "90 Minuten",
         age: "ab 12 Jahren",
-        complexity: {
-          value: 12,
-          max: 20,
-          source: "brettspiele-report",
-          url: "https://www.brettspiele-report.de/catan-staedte-und-ritter/",
-        },
+        complexity: { value: 12, max: 20, source: "brettspiele-report" },
         price: null, isExpansion: true,
         rank: 401,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/926" },
@@ -519,10 +514,23 @@ describe("BoardgameLookupPage", () => {
     expect(screen.getByText("ab 12 Jahren")).toBeInTheDocument();
     expect(screen.getByText("BGG rank #401")).toBeInTheDocument();
     expect(screen.getByText("Expansion")).toBeInTheDocument();
-    // The scale travels with the number, and the link says whose number it is.
-    expect(screen.getByRole("link", { name: /Komplexität 12 \/ 20 · brettspiele-report/ })).toHaveAttribute(
-      "href", "https://www.brettspiele-report.de/catan-staedte-und-ritter/"
-    );
+    // Not a BGG 1-5 weight vote (max !== 5), so no Light/Medium/Heavy label -
+    // just the source's own scale.
+    expect(screen.getByText("Komplexität: 12 / 20 · brettspiele-report")).toBeInTheDocument();
+  });
+
+  it("labels a BGG-scale complexity by its nearest weight vote", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, complexity: { value: 2.83, max: 5, source: "BoardGameGeek" } },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    // 2.83 rounds to 3 - "Medium".
+    expect(await screen.findByText("Komplexität: Medium (2.83 / 5) · BoardGameGeek")).toBeInTheDocument();
   });
 
   it("leaves out facts no source published, rather than showing empty labels", async () => {
