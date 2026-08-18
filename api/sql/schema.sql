@@ -120,6 +120,28 @@ CREATE TABLE bgg_throttle (
     last_call_at DOUBLE NOT NULL
 );
 
+-- This year's Spiel-des-Jahres results, shown as pre-search entry points on
+-- the boardgame lookup (#105). Hand-maintained (three winners a year), same
+-- as wotc_news_fallback: three "pots" (Spiel / Kennerspiel / Kinderspiel des
+-- Jahres), each with one winner plus its nominees and recommendation list.
+-- Winners carry BGG's id so a click resolves the game; nominees and
+-- recommendations store a name only (no id seeded, so a click runs a name
+-- search). SdjAwards::current() serves the latest award_year present, so
+-- seeding next year's rows switches the panel over with no code change.
+CREATE TABLE sdj_awards (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    award_year SMALLINT NOT NULL,
+    -- The full German award title, used verbatim as the card label.
+    category VARCHAR(64) NOT NULL,
+    -- 'winner' | 'nominee' | 'recommended'.
+    kind VARCHAR(12) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    -- Only winners have one; NULL for nominees and recommendations.
+    bgg_id INT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    INDEX idx_sdj_awards_year (award_year, sort_order)
+);
+
 -- Board Game Quest review verdict per game name, read from their public
 -- WordPress REST API by BoardGameQuestClient (docs/adr/0013). Long TTL - a
 -- published review doesn't change.
@@ -205,3 +227,32 @@ CREATE TABLE mtg_deck_cards (
 
 INSERT INTO wotc_news_fallback (headline, url, sort_order) VALUES
     ('Magic: The Gathering news', 'https://magic.wizards.com/en/news', 0);
+
+-- Spiel des Jahres 2026 (facts from spiel-des-jahres.de/preistraeger2026 -
+-- award results are not copyrightable, no prose or images are copied). Refresh
+-- once a year: add the next year's rows (three pots, winner + nominees +
+-- recommendations), and the panel switches to it automatically. Only winners
+-- need a bgg_id looked up; nominees and recommendations are names only.
+INSERT INTO sdj_awards (award_year, category, kind, name, bgg_id, sort_order) VALUES
+    (2026, 'Spiel des Jahres', 'winner', 'DITO!', 400495, 0),
+    (2026, 'Spiel des Jahres', 'nominee', 'Cozy Sticker Ville', NULL, 1),
+    (2026, 'Spiel des Jahres', 'nominee', 'Morty Sorty Magic Shop', NULL, 2),
+    (2026, 'Spiel des Jahres', 'recommended', 'Hot Streak', NULL, 3),
+    (2026, 'Spiel des Jahres', 'recommended', 'Meister Makatsu', NULL, 4),
+    (2026, 'Spiel des Jahres', 'recommended', 'Take Time', NULL, 5),
+    (2026, 'Spiel des Jahres', 'recommended', 'Toriki', NULL, 6),
+    (2026, 'Spiel des Jahres', 'recommended', 'Toy Battle', NULL, 7),
+    (2026, 'Spiel des Jahres', 'recommended', 'Wilmot''s Warehouse', NULL, 8),
+    (2026, 'Kennerspiel des Jahres', 'winner', 'Rebirth', 417197, 10),
+    (2026, 'Kennerspiel des Jahres', 'nominee', 'Boss Fighters: QR', NULL, 11),
+    (2026, 'Kennerspiel des Jahres', 'nominee', 'Moon Colony Bloodbath', NULL, 12),
+    (2026, 'Kennerspiel des Jahres', 'recommended', 'Artengarten', NULL, 13),
+    (2026, 'Kennerspiel des Jahres', 'recommended', 'Frosted Blooms', NULL, 14),
+    (2026, 'Kennerspiel des Jahres', 'recommended', 'Grundstein von Metropolis', NULL, 15),
+    (2026, 'Kennerspiel des Jahres', 'recommended', 'Tag Team', NULL, 16),
+    (2026, 'Kinderspiel des Jahres', 'winner', 'Die Insel der Mookies', 435346, 20),
+    (2026, 'Kinderspiel des Jahres', 'nominee', 'Buh Party', NULL, 21),
+    (2026, 'Kinderspiel des Jahres', 'nominee', 'Verflixt verzaubert', NULL, 22),
+    (2026, 'Kinderspiel des Jahres', 'recommended', 'Kleiner Stinker', NULL, 23),
+    (2026, 'Kinderspiel des Jahres', 'recommended', 'Magische Spiegel', NULL, 24),
+    (2026, 'Kinderspiel des Jahres', 'recommended', 'Paleolino', NULL, 25);

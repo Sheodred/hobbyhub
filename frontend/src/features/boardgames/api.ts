@@ -144,6 +144,29 @@ export function topBoardgames(): Promise<TopBoardgame[]> {
 }
 
 /**
+ * One award category in the pre-search Spiel-des-Jahres panel (#105). The
+ * winner carries a bgg_id when one is seeded (a click resolves the game);
+ * nominees and the recommendation list are names only (a click runs a name
+ * search). Read from the hand-maintained sdj_awards table, latest year only.
+ */
+export interface AwardCategory {
+  category: string;
+  winner: { bggId: number | null; name: string };
+  nominees: string[];
+  recommended: string[];
+}
+
+export interface BoardgameAwards {
+  year: number | null;
+  categories: AwardCategory[];
+}
+
+/** `year: null` / empty categories when nothing is seeded - render nothing. */
+export function boardgameAwards(): Promise<BoardgameAwards> {
+  return apiFetch<BoardgameAwards>("/api/boardgames/awards");
+}
+
+/**
  * One random game for the "Surprise me" button (#120). null when the dump
  * has no eligible game (empty or un-imported) - the caller hides the button
  * rather than offering one that goes nowhere.
