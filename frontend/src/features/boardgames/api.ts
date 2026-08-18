@@ -144,16 +144,25 @@ export function topBoardgames(): Promise<TopBoardgame[]> {
 }
 
 /**
- * One award category in the pre-search Spiel-des-Jahres panel (#105). The
- * winner carries a bgg_id when one is seeded (a click resolves the game);
- * nominees and the recommendation list are names only (a click runs a name
- * search). Read from the hand-maintained sdj_awards table, latest year only.
+ * One entry (winner, nominee, or recommendation) in the award panel. bggId is
+ * optional per entry: a click resolves the game directly when it is set, and
+ * falls back to a name search when it is null. Winners always carry one;
+ * nominees/recommendations may.
+ */
+export interface AwardEntry {
+  bggId: number | null;
+  name: string;
+}
+
+/**
+ * One award category in the pre-search Spiel-des-Jahres panel (#105). Read
+ * from the hand-maintained sdj_awards table, latest year only.
  */
 export interface AwardCategory {
   category: string;
-  winner: { bggId: number | null; name: string };
-  nominees: string[];
-  recommended: string[];
+  winner: AwardEntry;
+  nominees: AwardEntry[];
+  recommended: AwardEntry[];
 }
 
 export interface BoardgameAwards {
