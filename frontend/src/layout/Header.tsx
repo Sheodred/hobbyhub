@@ -22,7 +22,12 @@ export function Header({ mobileNavOpen, onToggleMobileNav }: HeaderProps) {
 
   return (
     <header className="sticky top-4 z-20 flex justify-center px-4 py-2">
-      <div className="flex h-14 items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] backdrop-blur-2xl">
+      {/* An opaque-enough base, not just a 4% white tint: the pill floats over
+          the page (sticky top-4) and content scrolls underneath it, so a
+          near-transparent surface let headings read straight through the
+          header on mobile. backdrop-blur alone does not hide text, it only
+          smears it. The white border and inset highlight keep the glass read. */}
+      <div className="flex h-14 items-center gap-3 rounded-full border border-white/10 bg-[#0f0b24]/85 px-5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] backdrop-blur-2xl">
         <button
           type="button"
           onClick={onToggleMobileNav}
