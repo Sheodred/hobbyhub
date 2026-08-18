@@ -56,20 +56,77 @@ function legacyCopy(text: string): boolean {
   }
 }
 
-// #105: this year's Spiel des Jahres winners as pre-search entry points, a
+// #105: this year's Spiel-des-Jahres results as pre-search entry points, a
 // sibling to #102's top 10 - "what's current" next to "what's best all-time".
-// Hand-seeded, three lines a year (the award announces three winners each
-// summer) - far cheaper than a scraper for three strings, the same call this
-// project made for Moxfield and the WotC news fallback. The label is the
-// German award title because that is what a visitor recognises as the winner;
-// the id is BGG's (the dump stores only BGG's primary name, e.g. "JinxO" for
-// DITO!), so a click resolves to the real game. All three ids verified present
-// in the dump 2026-08-18. Refresh these three lines each summer.
-const AWARD_WINNERS: ReadonlyArray<{ bggId: number; title: string; award: string }> = [
-  { bggId: 400495, title: "DITO!", award: "Spiel des Jahres 2026" },
-  { bggId: 417197, title: "Rebirth", award: "Kennerspiel des Jahres 2026" },
-  { bggId: 435346, title: "Die Insel der Mookies", award: "Kinderspiel des Jahres 2026" },
+// Hand-seeded once a summer from spiel-des-jahres.de/preistraeger<year>: the
+// facts (which game won/was nominated/recommended) are not copyrightable, so
+// this is the same cheap hand-seed as the Moxfield and WotC-news fallbacks,
+// not a scrape of their prose or images. Winners carry BGG's id (the dump
+// stores only BGG's primary name, e.g. "JinxO" for DITO!) so a click resolves
+// the real game; nominees and the recommendation list are display-only names,
+// which keeps the yearly job to typing titles rather than hunting ~19 ids.
+// Winner ids verified present in the dump 2026-08-18. Refresh each summer.
+const AWARD_YEAR = 2026;
+const SPIEL_DES_JAHRES: ReadonlyArray<{
+  category: string;
+  winner: { bggId: number; title: string };
+  nominees: string[];
+  recommended: string[];
+}> = [
+  {
+    category: "Spiel des Jahres",
+    winner: { bggId: 400495, title: "DITO!" },
+    nominees: ["Cozy Sticker Ville", "Morty Sorty Magic Shop"],
+    recommended: ["Hot Streak", "Meister Makatsu", "Take Time", "Toriki", "Toy Battle", "Wilmot's Warehouse"],
+  },
+  {
+    category: "Kennerspiel des Jahres",
+    winner: { bggId: 417197, title: "Rebirth" },
+    nominees: ["Boss Fighters: QR", "Moon Colony Bloodbath"],
+    recommended: ["Artengarten", "Frosted Blooms", "Grundstein von Metropolis", "Tag Team"],
+  },
+  {
+    category: "Kinderspiel des Jahres",
+    winner: { bggId: 435346, title: "Die Insel der Mookies" },
+    nominees: ["Buh Party", "Verflixt verzaubert"],
+    recommended: ["Kleiner Stinker", "Magische Spiegel", "Paleolino"],
+  },
 ];
+
+// #116: BGG ships one description field, often 1,000+ chars, as a single
+// slab. whitespace-pre-line honours its paragraph breaks; this clamps the
+// long ones behind a real <button> so they don't dominate the card. Short
+// descriptions render untouched - a "Show more" that reveals two words is
+// worse than none, so the toggle only appears past the threshold. Character
+// count, not CSS line-clamp: no measuring ref, and the pre-line whitespace
+// stays intact.
+const DESCRIPTION_CLAMP = 600;
+
+function GameDescription({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const long = text.length > DESCRIPTION_CLAMP;
+  // Cut at the last space before the limit so a word never splits; fall
+  // back to a hard cut for the (absurd) spaceless case.
+  const cut = text.lastIndexOf(" ", DESCRIPTION_CLAMP);
+  const clamped =
+    long && !expanded ? `${text.slice(0, cut > 0 ? cut : DESCRIPTION_CLAMP)}…` : text;
+
+  return (
+    <div className="mt-4 max-w-prose">
+      <p className="whitespace-pre-line text-slate-300">{clamped}</p>
+      {long && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="mt-2 text-xs text-slate-400 underline hover:text-slate-300"
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function BoardgameLookupPage() {
   useDocumentTitle("Boardgame Lookup");
@@ -456,41 +513,56 @@ export function BoardgameLookupPage() {
         )}
 
         {/* Only before anything has been searched (#102): once a lookup is
-            running or an answer is up, this would push the answer down the
-            page. Real buttons, not clickable cards - each one activates a
-            lookup. Announcement goes through the role="status" region above;
-            this list has a heading and needs no live region of its own. */}
-        {/* #105: this year's award winners, above the all-time top 10 (current
-            before classic). Same idle-only, top.length>0 gate as the top-10
-            list so the empty-dump case behaves identically (#102); same
-            heading + list-of-buttons pattern and no live region of its own. */}
+            running or an answer is up, this would push the answers down the
+            page. #105: the current award results sit beside the all-time top
+            10 - side by side on desktop (lg:grid-cols-2), stacked on mobile,
+            award first (current before classic). lg:items-start keeps the
+            shorter column from stretching; both share the idle + non-empty-
+            dump gate so the empty-dump case behaves identically. Winners are
+            real buttons that activate a lookup; nominees and the recommendation
+            list are display-only names (#105 comment on the seed). */}
         {state.kind === "idle" && top.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              This year&apos;s award winners
-            </h2>
-            <ul className="mt-3 grid gap-2 sm:grid-cols-3">
-              {AWARD_WINNERS.map((winner) => (
-                <li key={winner.bggId}>
-                  <button
-                    type="button"
-                    onClick={() => pick(winner.bggId, winner.title)}
-                    className="flex w-full min-w-0 flex-col rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-left hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+            <section>
+              <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                Spiel des Jahres {AWARD_YEAR}
+              </h2>
+              <ul className="mt-3 space-y-3">
+                {SPIEL_DES_JAHRES.map((cat) => (
+                  <li
+                    key={cat.category}
+                    className="rounded-lg border border-slate-800 bg-slate-900/40 p-3"
                   >
-                    <span className="truncate text-sm text-slate-200">{winner.title}</span>
-                    <span className="truncate text-xs text-indigo-300">{winner.award}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+                    <p className="text-xs font-medium text-indigo-300">
+                      {cat.category} {AWARD_YEAR}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => pick(cat.winner.bggId, cat.winner.title)}
+                      className="mt-1.5 flex w-full min-w-0 items-baseline gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-left hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                    >
+                      <span aria-hidden="true" className="shrink-0 text-xs">🏆</span>
+                      <span className="min-w-0 flex-1 truncate text-sm text-slate-200">{cat.winner.title}</span>
+                    </button>
+                    {cat.nominees.length > 0 && (
+                      <p className="mt-2 text-xs text-slate-300">
+                        <span className="text-slate-400">Nominiert:</span> {cat.nominees.join(", ")}
+                      </p>
+                    )}
+                    {cat.recommended.length > 0 && (
+                      <p className="mt-1 text-xs text-slate-300">
+                        <span className="text-slate-400">Empfehlungsliste:</span> {cat.recommended.join(", ")}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
 
-        {state.kind === "idle" && top.length > 0 && (
-          <section>
-            <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              Top rated on BoardGameGeek
-            </h2>
+            <section>
+              <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                Top rated on BoardGameGeek
+              </h2>
             <ul className="mt-3 grid gap-2 sm:grid-cols-2">
               {top.map((game) => (
                 <li key={game.bggId}>
@@ -512,6 +584,7 @@ export function BoardgameLookupPage() {
               ))}
             </ul>
           </section>
+          </div>
         )}
 
         {state.kind === "result" && (
@@ -603,13 +676,10 @@ export function BoardgameLookupPage() {
                   comments come from BoardGameGeek&apos;s live API, which didn&apos;t answer for this one.
                 </p>
               ) : (
-                // #116: BGG's description carries the publisher's own paragraph
-                // breaks as \n\n, which a plain <p> collapses into one wall of
-                // text. whitespace-pre-line honours them without splitting the
-                // string; max-w-prose caps the measure so it reads as prose,
-                // not a slab. (Only the full answer reaches here - the partial
-                // dump path has description:"" and shows the notice above.)
-                <p className="mt-4 max-w-prose whitespace-pre-line text-slate-300">{state.game.description}</p>
+                // #116: honour BGG's paragraph breaks and clamp the long ones.
+                // (Only the full answer reaches here - the partial dump path
+                // has description:"" and shows the notice above.)
+                <GameDescription text={state.game.description} />
               )}
 
               {(state.game.good || state.game.bad) && (

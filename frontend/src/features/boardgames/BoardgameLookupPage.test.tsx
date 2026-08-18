@@ -100,6 +100,42 @@ describe("BoardgameLookupPage", () => {
     );
   });
 
+  // #116: long descriptions clamp behind a real button; short ones don't get
+  // a toggle at all (a "Show more" that reveals two words is worse than none).
+  it("clamps a long description behind a Show more/less toggle", async () => {
+    const long = `${"Lorem ipsum dolor sit amet ".repeat(40)}FINAL_SENTENCE_MARKER`;
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, description: long },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    const toggle = await screen.findByRole("button", { name: "Show more" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/FINAL_SENTENCE_MARKER/)).not.toBeInTheDocument();
+
+    fireEvent.click(toggle);
+    expect(screen.getByRole("button", { name: "Show less" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText(/FINAL_SENTENCE_MARKER/)).toBeInTheDocument();
+  });
+
+  it("shows a short description with no toggle", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, description: "Trade, build, settle." },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await screen.findByText("Trade, build, settle.");
+    expect(screen.queryByRole("button", { name: /Show more|Show less/ })).not.toBeInTheDocument();
+  });
+
   it("shows a disambiguation list and resolves the picked candidate", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "disambiguation",
@@ -804,7 +840,7 @@ describe("BoardgameLookupPage — shareable searches", () => {
     await waitFor(() => expect(locationSearch()).toBe("?bgg_id=342942"));
   });
 
-  it("offers this year's award winners as entry points and resolves a click by bgg_id (#105)", async () => {
+  it("offers this year's Spiel-des-Jahres results as entry points and resolves a winner click by bgg_id (#105)", async () => {
     // The dump must be non-empty for the pre-search lists to show (#102 gate).
     vi.spyOn(api, "topBoardgames").mockResolvedValue([
       { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1 },
@@ -814,11 +850,18 @@ describe("BoardgameLookupPage — shareable searches", () => {
 
     renderPage();
 
-    // Labelled by the German award title a visitor recognises, not the BGG
-    // primary name the dump stores.
+    // Winner is a real button labelled by the German award title a visitor
+    // recognises, not the BGG primary name the dump stores. All three award
+    // categories show for the year.
     const dito = await screen.findByRole("button", { name: /DITO!/ });
-    expect(screen.getByText("Spiel des Jahres 2026")).toBeInTheDocument();
+    expect(screen.getByText("Kennerspiel des Jahres 2026")).toBeInTheDocument();
     expect(screen.getByText("Kinderspiel des Jahres 2026")).toBeInTheDocument();
+
+    // Nominees and the recommendation list are shown but display-only - no
+    // per-game bgg_id is seeded for them, so they are text, not buttons.
+    expect(screen.getByText(/Cozy Sticker Ville/)).toBeInTheDocument();
+    expect(screen.getByText(/Wilmot's Warehouse/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Cozy Sticker Ville/ })).not.toBeInTheDocument();
 
     fireEvent.click(dito);
 
