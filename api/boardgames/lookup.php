@@ -62,20 +62,29 @@ try {
     // its own max and label; they are never averaged - a mean across a retail
     // pool, a reviewer and two German sites would be a number nobody
     // published.
+    // Three of the four sources are German sites and BGG's primary name is
+    // English, so Catan was searched for as "Catan" and found on none of them
+    // (#122). Every source is now asked under the English name first and then
+    // under whatever alternates look German, first answer wins. Board Game
+    // Quest is English and will never match a German title - it just spends
+    // the same cached miss as the others, which is cheaper than teaching this
+    // call site which sources speak which language.
+    $searchNames = array_merge([$game['name']], $game['germanNames'] ?? []);
+
     $game['ratings'] = collect_ratings([
         new AmazonRatingClient(),
         $bgqClient,
         $hallClient,
         $reportClient,
-    ], $game['name']);
+    ], $searchNames);
 
     // Everything below is not a rating, so it does not travel through the
     // seam: Board Game Quest's prose and H@LL9000's player count. Both are
     // cache-aside'd, so asking a second time is a database read, not another
     // request to them.
-    $bgq = optional_source('board game quest', fn() => $bgqClient->reviewFor($game['name']));
-    $hall = optional_source('hall9000', fn() => $hallClient->ratingFor($game['name']));
-    $report = optional_source('brettspiele-report', fn() => $reportClient->ratingFor($game['name']));
+    $bgq = optional_source('board game quest', fn() => first_hit($searchNames, fn(string $n) => $bgqClient->reviewFor($n)));
+    $hall = optional_source('hall9000', fn() => first_hit($searchNames, fn(string $n) => $hallClient->ratingFor($n)));
+    $report = optional_source('brettspiele-report', fn() => first_hit($searchNames, fn(string $n) => $reportClient->ratingFor($n)));
 
     // Board Game Quest's prose fills what BGG can't supply while #40 is open:
     // their Hits/Misses stand in for BGG's comments and their Gameplay

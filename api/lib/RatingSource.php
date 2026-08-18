@@ -24,13 +24,13 @@ interface RatingSource
 // no entry for this Game must never cost the user the answer they asked for,
 // and must never take the others down with it (ADR-0011). That rule now lives
 // here rather than being re-declared at each call site.
-function collect_ratings(array $sources, string $gameName): array
+function collect_ratings(array $sources, array $gameNames): array
 {
     $ratings = [];
 
     foreach ($sources as $source) {
         try {
-            $rating = $source->rating($gameName);
+            $rating = first_hit($gameNames, fn(string $name) => $source->rating($name));
         } catch (Throwable $e) {
             error_log($source->label() . ' rating failed: ' . $e->getMessage());
             continue;
@@ -44,4 +44,29 @@ function collect_ratings(array $sources, string $gameName): array
     }
 
     return $ratings;
+}
+
+// The sources are German sites; BGG's primary name is English (#122). So a
+// game is looked for under several names - the English primary first, then
+// whichever alternates look German (german_names.php) - and the first source
+// that answers wins.
+//
+// A wrong name is not a wrong answer: it simply finds nothing, which is
+// where a German-titled game already stands today. The cost of guessing is
+// one extra throttled request per source on a cache miss, and only for the
+// games the primary name failed on.
+//
+// Failures still throw rather than falling through to the next name: a
+// source that is down has not said "nothing published for this name", and
+// collect_ratings() is the one place that decides what to do about it.
+function first_hit(array $gameNames, callable $fetch)
+{
+    foreach ($gameNames as $name) {
+        $found = $fetch($name);
+        if ($found !== null) {
+            return $found;
+        }
+    }
+
+    return null;
 }

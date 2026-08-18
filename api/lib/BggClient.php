@@ -3,6 +3,7 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/Throttle.php';
 require_once __DIR__ . '/http_client.php';
 require_once __DIR__ . '/Cache.php';
+require_once __DIR__ . '/german_names.php';
 
 // On-demand cache-aside proxy to BoardGameGeek's XML API2 (docs/adr/0011).
 // Two-level cache: bgg_search_cache (free-text query -> resolved bgg_id) and
@@ -640,11 +641,15 @@ class BggClient
 
     private function mapThing(SimpleXMLElement $item, ?iterable $bestComments = null): array
     {
+        // Every <name>, not just the primary: the alternates are where the
+        // German title hides, and this response is the only place it exists
+        // (see german_names.php and #122).
         $name = '';
+        $allNames = [];
         foreach ($item->name as $n) {
-            if ((string) $n['type'] === 'primary') {
+            $allNames[] = (string) $n['value'];
+            if ($name === '' && (string) $n['type'] === 'primary') {
                 $name = (string) $n['value'];
-                break;
             }
         }
         [$good, $bad] = $this->pickGoodBad($item->comments->comment ?? [], $bestComments);
@@ -653,6 +658,12 @@ class BggClient
         return [
             'bggId' => $bggId,
             'name' => $name,
+            // ponytail: the heuristic's *output* is cached, not the raw name
+            // list, so a change to it only takes effect as rows expire. That
+            // keeps a 65-alternate game like Catan from bloating every cache
+            // row; widen this to the full list if the heuristic ever needs
+            // re-running against cached games.
+            'germanNames' => german_name_candidates($allNames, $name),
             'description' => html_entity_decode(strip_tags((string) $item->description), ENT_QUOTES),
             'rating' => isset($item->statistics->ratings->average) ? round((float) $item->statistics->ratings->average['value'], 1) : null,
             'numRatings' => isset($item->statistics->ratings->usersrated) ? (int) $item->statistics->ratings->usersrated['value'] : null,
