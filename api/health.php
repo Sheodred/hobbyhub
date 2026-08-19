@@ -30,22 +30,45 @@ if (($_GET['checks'] ?? '') === '') {
 // answers a request with no Accept/Accept-Language with its generic error
 // page, so probing it as JSON would produce a failure that tells us nothing
 // about the real client's failure (#165).
-function probe_outbound(string $url, array $headers = ['Accept: application/json']): array
+//
+// $markers exists because a 200 and a 200-character prefix cannot answer the
+// question this probe was added for. amazon.de answered production with a
+// 1.14 MB page - far too big to be an interstitial - while the price stayed
+// null, so "is it blocked" was the wrong question and "does the response
+// contain the markup the parser looks for" is the right one. The prefix
+// cannot say: `s-search-result` appears tens of kilobytes in. Each marker is
+// searched across the WHOLE body and reported as a bool.
+function probe_outbound(string $url, array $headers = ['Accept: application/json'], array $markers = []): array
 {
     $result = http_get_result($url, 8, array_merge($headers, ['User-Agent: ' . SCRYFALL_USER_AGENT]));
     $body = $result['body'];
 
+    $found = [];
+    foreach ($markers as $marker) {
+        $found[$marker] = $body !== null && str_contains($body, $marker);
+    }
+
     return [
+        'markers' => $found === [] ? null : $found,
         'httpStatus' => $result['status'],
         'curlError' => $result['error'],
         'bytes' => $body === null ? null : strlen($body),
-        // The first 200 characters, on success as well as failure. This used
-        // to be failure-only, on the reasoning that a success body is just
-        // card data - which #165 disproved: amazon.de's anti-bot interstitial
-        // is served with a 200, so a status-only view of it looks healthy.
-        // The whole point of this probe is to tell a real page from a block
-        // wearing a 200, and only the body can do that.
-        'bodySnippet' => $body === null ? null : substr($body, 0, 200),
+        // The first 200 bytes, on success as well as failure. This used to be
+        // failure-only, on the reasoning that a success body is just card
+        // data - which #165 disproved: amazon.de's anti-bot interstitial is
+        // served with a 200, so a status-only view of it looks healthy.
+        //
+        // mb_convert_encoding(..., 'UTF-8', 'UTF-8') strips invalid sequences.
+        // Not observed failing - a guard against a property of the two calls
+        // either side of it: substr() cuts BYTES, so a 200-byte cut through a
+        // multi-byte character leaves the string malformed; json_encode() then
+        // returns false for the WHOLE document, and json_response() emits an
+        // empty body with a 200. One split umlaut in an amazon.de page would
+        // take out the entire health report, including the schema section that
+        // has nothing to do with this probe. The snippet only became a
+        // routine (rather than failure-only) field with #165, so the exposure
+        // is new; the cost of the guard is one call on a manual endpoint.
+        'bodySnippet' => $body === null ? null : mb_convert_encoding(substr($body, 0, 200), 'UTF-8', 'UTF-8'),
     ];
 }
 
@@ -97,7 +120,12 @@ try {
             // that is the answer the issue is missing.
             'amazon' => probe_outbound(
                 AmazonRatingClient::SEARCH_URL . '?' . http_build_query(['k' => 'catan brettspiel']),
-                ['Accept: text/html,application/xhtml+xml', 'Accept-Language: de-DE,de;q=0.9']
+                ['Accept: text/html,application/xhtml+xml', 'Accept-Language: de-DE,de;q=0.9'],
+                // The first is the exact string candidatesFor() gates on, so
+                // false here means the client's own guard is what returns
+                // null - a markup/variant problem, not a block. The rest name
+                // the block shapes, so they distinguish it from one.
+                ['s-search-result', 'captcha', 'automated access', 'a-price']
             ),
         ],
     ]);
