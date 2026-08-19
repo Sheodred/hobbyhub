@@ -609,7 +609,7 @@ describe("BoardgameLookupPage", () => {
     expect(screen.getByText("Expansion")).toBeInTheDocument();
     // Not a BGG 1-5 weight vote (max !== 5), so no Light/Medium/Heavy label -
     // just the source's own scale.
-    expect(screen.getByText("Komplexität: 12 / 20 · brettspiele-report")).toBeInTheDocument();
+    expect(screen.getByText("Komplexität: 12 / 20")).toBeInTheDocument();
   });
 
   it("labels a BGG-scale complexity by its nearest weight vote", async () => {
@@ -623,7 +623,7 @@ describe("BoardgameLookupPage", () => {
     fireEvent.submit(screen.getByRole("search"));
 
     // 2.83 rounds to 3 - "Medium".
-    expect(await screen.findByText("Komplexität: Medium (2.83 / 5) · BoardGameGeek")).toBeInTheDocument();
+    expect(await screen.findByText("Komplexität: Medium (2.83 / 5)")).toBeInTheDocument();
   });
 
   it("leaves out facts no source published, rather than showing empty labels", async () => {
