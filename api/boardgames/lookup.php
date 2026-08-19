@@ -55,6 +55,8 @@ try {
     if ($game === null) {
         error_response('That board game could not be found on BoardGameGeek.', 404);
     }
+    // #171: captured before the display swap below - see BggClient::searchNames().
+    $primaryName = $game['name'];
     // #130: the result-card title.
     if ($lang !== null) {
         $game['name'] = $client->preferredName($bggId, $lang) ?? $game['name'];
@@ -85,11 +87,11 @@ try {
     // a guess, so it is asked first. Deduped because an alias and a guessed
     // candidate can name the same title, and each duplicate is a wasted
     // (throttled) request per source.
-    $searchNames = array_values(array_unique(array_merge(
-        [$game['name']],
-        $client->aliasNames($bggId),
-        $game['germanNames'] ?? []
-    )));
+    // #171: anchored to $primaryName, not $game['name'] - the latter may
+    // already be the display-language swap above, and resolving a product
+    // under the display language rather than BGG's own name is the bug this
+    // issue fixed. Same game, same search list, regardless of lang.
+    $searchNames = $client->searchNames($bggId, $primaryName, $game['germanNames'] ?? []);
     // Search-only, and cached inside bgg_lookup_cache under BggClient's own
     // key - not a field this API has ever published, so it does not start now.
     unset($game['germanNames']);

@@ -739,6 +739,28 @@ class BggClient
     }
 
     /**
+     * #171: the list every secondary source (amazon.de, Board Game Quest,
+     * H@LL9000, brettspiele-report) is searched under. $primaryName must be
+     * BGG's own name, captured before #130's display-language swap - taking
+     * it from a post-swap $game['name'] drops BGG's primary name from the
+     * list entirely under lang=de, which is what made the same game price
+     * differently depending on the toggle. Anchoring here instead of at the
+     * call site makes that invariant structural rather than a call-order
+     * convention someone has to remember.
+     *
+     * @param string[] $germanNames
+     * @return string[]
+     */
+    public function searchNames(int $bggId, string $primaryName, array $germanNames = []): array
+    {
+        return array_values(array_unique(array_merge(
+            [$primaryName],
+            $this->aliasNames($bggId),
+            $germanNames
+        )));
+    }
+
+    /**
      * #162: the German title read off BGG's own version list, rather than
      * guessed at from the alternate names.
      *

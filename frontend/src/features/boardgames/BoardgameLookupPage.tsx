@@ -48,10 +48,10 @@ const LANG_STORAGE_KEY = "boardgames_lang";
 function initialLang(): Lang {
   const stored = localStorage.getItem(LANG_STORAGE_KEY);
   if (stored === "de" || stored === "en") return stored;
-  // Site audience is German-leaning - default DE unless the browser clearly
-  // prefers English. navigator.language is usually set, but not guaranteed
-  // (some test/embedded environments leave it undefined).
-  return (navigator.language ?? "").toLowerCase().startsWith("en") ? "en" : "de";
+  // #171: default to English rather than guessing from navigator.language -
+  // full localization is a future project, so the toggle starts on the one
+  // language every result is guaranteed to have.
+  return "en";
 }
 
 /**

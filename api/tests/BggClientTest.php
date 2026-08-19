@@ -1170,6 +1170,24 @@ final class BggClientTest extends TestCase
         $this->assertSame([], (new BggClient(fn() => null))->aliasNames(999), 'a game with no alias adds no search terms');
     }
 
+    public function testSearchNamesIsUnaffectedByReadingThePreferredNameInBetween(): void
+    {
+        // #171: the same game must resolve to the same product regardless of
+        // the DE/EN toggle. The bug was lookup.php building the search list
+        // from $game['name'] *after* overwriting it with preferredName() -
+        // this pins that calling preferredName() (the display swap) has no
+        // effect on searchNames(), whatever order they run in.
+        $this->seedAlias(13, 'Die Siedler von Catan');
+        $client = new BggClient(fn() => null);
+
+        $withoutLangSwap = $client->searchNames(13, 'Catan');
+        $client->preferredName(13, 'de');
+        $withLangSwapInBetween = $client->searchNames(13, 'Catan');
+
+        $this->assertSame(['Catan', 'Die Siedler von Catan'], $withoutLangSwap);
+        $this->assertSame($withoutLangSwap, $withLangSwapInBetween);
+    }
+
     public function testResolveSearchFallbackAnswersNotFoundRatherThanThrowingWhenTheDumpIsPopulated(): void
     {
         // This test asserted a throw until #92. The dump is BGG's whole

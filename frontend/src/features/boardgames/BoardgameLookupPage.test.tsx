@@ -97,8 +97,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   describe("the DE/EN language toggle (#130)", () => {
-    it("defaults from the browser's language when nothing is persisted", () => {
-      // jsdom's own default locale is en-US.
+    it("defaults to English when nothing is persisted (#171)", () => {
       renderPage();
       expect(screen.getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "true");
       expect(screen.getByRole("button", { name: "DE" })).toHaveAttribute("aria-pressed", "false");
