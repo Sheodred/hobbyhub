@@ -17,6 +17,7 @@ export const primaryNavLinks: NavLinkItem[] = [
 // Small print and utility links - the drawer's bottom section, the footer,
 // and the site map all render this same list.
 export const legalNavLinks: NavLinkItem[] = [
+  { to: "/faq", label: "FAQ" },
   { to: "/legal/impressum", label: "Impressum" },
   { to: "/legal/privacy", label: "Privacy Policy" },
   { to: "/legal/terms", label: "Terms of Service" },

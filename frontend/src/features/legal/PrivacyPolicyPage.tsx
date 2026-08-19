@@ -1,4 +1,3 @@
-import { DraftContentNotice } from "../../components/DraftContentNotice";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 export function PrivacyPolicyPage() {
@@ -6,8 +5,6 @@ export function PrivacyPolicyPage() {
 
   return (
     <div className="mx-auto max-w-2xl text-slate-300">
-      <DraftContentNotice message="Operated as a private, non-commercial project (no postal address shown accordingly, see docs/adr/0006). Not legal advice." />
-
       <h1 className="text-3xl font-semibold text-slate-100">Privacy Policy</h1>
       <p className="mt-2 text-sm text-slate-400">Information pursuant to Article 13 GDPR.</p>
 
@@ -32,6 +29,13 @@ export function PrivacyPolicyPage() {
           forwarded to the Scryfall API through our backend to return card results. We do not attach any
           identifying information to these requests. Legal basis: legitimate interest in providing the feature
           (Art. 6(1)(f) GDPR).
+        </li>
+        <li>
+          <span className="font-medium text-slate-100">Board game lookup.</span> The game name you type is
+          forwarded through our backend to BoardGameGeek, and - to fill in details BoardGameGeek does not carry -
+          to Board Game Quest, H@LL9000, brettspiele-report.de and amazon.de. As with the card search, no
+          identifying information is attached to any of these requests. Legal basis: legitimate interest in
+          providing the feature (Art. 6(1)(f) GDPR).
         </li>
         <li>
           <span className="font-medium text-slate-100">Location, for the homepage weather and flea market panels.</span>{" "}
@@ -61,30 +65,43 @@ export function PrivacyPolicyPage() {
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">What we do not do</h2>
       <p className="mt-2">
-        No analytics, advertising, or third-party tracking scripts run on this site. No accounts, no accounts
-        data, no non-essential cookies are set.
+        No analytics, advertising, or third-party tracking scripts run on this site. There are no accounts and no
+        account data, and no cookies are set at all — not even &quot;essential&quot; ones.
+      </p>
+
+      <h2 className="mt-6 text-lg font-semibold text-slate-100">Stored on your device</h2>
+      <p className="mt-2">
+        Two features remember a choice in your browser&apos;s local storage so it survives a reload: the chess
+        page keeps your saved game (position, difficulty, chosen colour), and the board game page keeps your DE/EN
+        language preference. Both stay on your device, are never transmitted to us or to anyone else, and are
+        removed when you clear your browser&apos;s site data. Neither identifies you.
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Recipients and international transfers</h2>
       <p className="mt-2">
         IONOS SE (Montabaur, Germany) hosts the application and database - based in the EU, so no third-country
         transfer applies to hosting itself. MTG card searches and card-image lookups are relayed to Scryfall
-        (scryfall.com); the homepage weather panel sends your device&apos;s coordinates directly to Open-Meteo
-        (open-meteo.com), not through our backend - see each provider&apos;s own privacy policy for how they
-        handle that data. The homepage news panels and the MTG Meta &amp; Stats page are populated by a scheduled
-        backend job that reads public content from tagesschau.de, magic.wizards.com, edhrec.com, and
-        mtggoldfish.com - none of your data is sent to those sources, they are read-only content feeds. No other
-        data is shared with third parties. Scryfall runs on Heroku behind Cloudflare, and Open-Meteo serves
-        requests from servers in Europe and North America via GeoDNS - both may route a given request through
-        infrastructure outside the EU/EEA, including the United States. Where that happens, it relies on the
-        respective provider&apos;s own applicable safeguard (such as the EU-US Data Privacy Framework or Standard
-        Contractual Clauses under Art. 46 GDPR) - see each provider&apos;s own privacy policy for specifics.
+        (scryfall.com); board game lookups are relayed to BoardGameGeek (boardgamegeek.com), Board Game Quest
+        (boardgamequest.com), H@LL9000 (hall9000.de), brettspiele-report.de and amazon.de; the homepage weather
+        panel sends your device&apos;s coordinates directly to Open-Meteo (open-meteo.com), not through our
+        backend - see each provider&apos;s own privacy policy for how they handle that data. The homepage news and
+        flea market panels and the MTG Meta &amp; Stats page are populated by scheduled backend jobs that read
+        public content from tagesschau.de, magic.wizards.com, edhrec.com, mtggoldfish.com, radio912.de,
+        kinderflohmarkt.com and kinderbasar-online.de, and geocode the resulting event addresses (not your
+        location) via OpenStreetMap&apos;s Nominatim - none of your data is sent to those sources, they are
+        read-only content feeds. Apart from what is listed here, no data is shared with third parties. Scryfall
+        runs on Heroku behind Cloudflare, and Open-Meteo serves requests from servers in Europe and North America
+        via GeoDNS - both may route a given request through infrastructure outside the EU/EEA, including the
+        United States. Where that happens, it relies on the respective provider&apos;s own applicable safeguard
+        (such as the EU-US Data Privacy Framework or Standard Contractual Clauses under Art. 46 GDPR) - see each
+        provider&apos;s own privacy policy for specifics.
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Retention</h2>
       <p className="mt-2">
-        Server logs are rotated on a routine schedule by the hosting infrastructure. Cached third-party data
-        (card search results, news, MTG meta stats) is refreshed periodically and holds no personal data.
+        Server logs are rotated on a routine schedule by the hosting infrastructure. Cached third-party data (card
+        search results, board game data, news, MTG meta stats) is refreshed periodically - card results after
+        minutes, board game data after roughly two weeks - and holds no personal data.
       </p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Your rights</h2>

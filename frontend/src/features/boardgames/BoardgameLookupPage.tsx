@@ -958,7 +958,7 @@ export function BoardgameLookupPage() {
                     ))}
                   {state.game.complexity && (
                     <span className="rounded-full border border-indigo-400/25 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-100">
-                      Komplexität: {complexityText(state.game.complexity)} · {state.game.complexity.source}
+                      Komplexität: {complexityText(state.game.complexity)}
                     </span>
                   )}
                 </p>

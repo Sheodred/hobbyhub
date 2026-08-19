@@ -1,4 +1,3 @@
-import { DraftContentNotice } from "../../components/DraftContentNotice";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 export function TermsPage() {
@@ -6,10 +5,8 @@ export function TermsPage() {
 
   return (
     <div className="mx-auto max-w-2xl text-slate-300">
-      <DraftContentNotice message="Have this reviewed before this goes live (see docs/adr/0006). Not legal advice." />
-
       <h1 className="text-3xl font-semibold text-slate-100">Terms of Service</h1>
-      <p className="mt-2 text-sm text-slate-400">Last updated: August 6, 2026</p>
+      <p className="mt-2 text-sm text-slate-400">Last updated: 19 August 2026</p>
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">1. Scope</h2>
       <p className="mt-2">
@@ -32,26 +29,36 @@ export function TermsPage() {
         endorsed by Wizards of the Coast.
       </p>
 
-      <h2 className="mt-6 text-lg font-semibold text-slate-100">4. Availability and warranty</h2>
+      <h2 className="mt-6 text-lg font-semibold text-slate-100">4. Third-party data (board games)</h2>
       <p className="mt-2">
-        This is a hobby project provided on a best-effort basis, without any warranty of availability,
-        accuracy, or fitness for a particular purpose. Features (including the chess engine and MTG search) rely
-        on third-party services that may occasionally be unavailable.
+        Board game data - ratings, descriptions, player comments, rankings and classifications - comes from
+        BoardGameGeek via their XML API, and is used here under their API terms of use; this site is not
+        affiliated with or endorsed by BoardGameGeek. Additional review scores and key facts are sourced from
+        Board Game Quest, H@LL9000 and brettspiele-report.de, and retail prices from amazon.de. All of it remains
+        the property of the respective rights holders, and is shown here with attribution rather than reproduced
+        as our own.
       </p>
 
-      <h2 className="mt-6 text-lg font-semibold text-slate-100">5. Liability</h2>
+      <h2 className="mt-6 text-lg font-semibold text-slate-100">5. Availability and warranty</h2>
+      <p className="mt-2">
+        This is a hobby project provided on a best-effort basis, without any warranty of availability,
+        accuracy, or fitness for a particular purpose. Features (including the chess engine, MTG search and board game
+        lookup) rely on third-party services that may occasionally be unavailable.
+      </p>
+
+      <h2 className="mt-6 text-lg font-semibold text-slate-100">6. Liability</h2>
       <p className="mt-2">
         Liability is limited to intent and gross negligence, except where mandatory statutory liability applies
         (e.g. injury to life, body, or health). This clause has not been reviewed by a lawyer.
       </p>
 
-      <h2 className="mt-6 text-lg font-semibold text-slate-100">6. Changes to these terms</h2>
+      <h2 className="mt-6 text-lg font-semibold text-slate-100">7. Changes to these terms</h2>
       <p className="mt-2">
         We may update these terms from time to time. Continued use of the site after a change constitutes
         acceptance of the updated terms.
       </p>
 
-      <h2 className="mt-6 text-lg font-semibold text-slate-100">7. Governing law</h2>
+      <h2 className="mt-6 text-lg font-semibold text-slate-100">8. Governing law</h2>
       <p className="mt-2">These terms are governed by the laws of Germany, without regard to conflict-of-law rules.</p>
     </div>
   );

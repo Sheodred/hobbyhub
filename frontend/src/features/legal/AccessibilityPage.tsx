@@ -1,4 +1,3 @@
-import { DraftContentNotice } from "../../components/DraftContentNotice";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 // Voluntary, not mandated: the BFSG binds economic operators offering services
@@ -13,8 +12,6 @@ export function AccessibilityPage() {
 
   return (
     <div className="mx-auto max-w-2xl text-slate-300">
-      <DraftContentNotice message="Voluntary statement for a private, non-commercial project - not a declaration under Section 12b BGG, and not legal advice. Self-assessed, not audited." />
-
       <h1 className="text-3xl font-semibold text-slate-100">Accessibility</h1>
       <p className="mt-2 text-sm text-slate-400">Last reviewed: 16 August 2026.</p>
 
@@ -68,7 +65,11 @@ export function AccessibilityPage() {
 
       <h2 className="mt-6 text-lg font-semibold text-slate-100">Found a barrier?</h2>
       <p className="mt-2">
-        Write to <span className="text-slate-100">kluge@sheoforge.de</span> — the same address as in the
+        Write to{" "}
+        <a href="mailto:kluge@sheoforge.de" className="text-indigo-400 hover:text-indigo-300 hover:underline">
+          kluge@sheoforge.de
+        </a>{" "}
+        — the same address as in the
         Impressum. Describing the page and what got in your way is enough; you do not need to name a WCAG
         criterion, and you do not need to tell us anything about yourself or any disability. Anything you do
         choose to write is handled as set out in the Privacy Policy.
