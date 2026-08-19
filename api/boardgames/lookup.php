@@ -77,7 +77,19 @@ try {
     // Quest is English and will never match a German title - it just spends
     // the same cached miss as the others, which is cheaper than teaching this
     // call site which sources speak which language.
-    $searchNames = array_merge([$game['name']], $game['germanNames'] ?? []);
+    // Curated aliases come first among the alternates: german_name_candidates()
+    // can only spot a German title that carries a German marker, so a title
+    // like "Arche Nova" (no umlaut, no die/der/von/spiel) scores 0 and never
+    // gets tried - which is exactly why Ark Nova had no price and no
+    // brettspiele-report entry. A curated row is exact where the heuristic is
+    // a guess, so it is asked first. Deduped because an alias and a guessed
+    // candidate can name the same title, and each duplicate is a wasted
+    // (throttled) request per source.
+    $searchNames = array_values(array_unique(array_merge(
+        [$game['name']],
+        $client->aliasNames($bggId),
+        $game['germanNames'] ?? []
+    )));
     // Search-only, and cached inside bgg_lookup_cache under BggClient's own
     // key - not a field this API has ever published, so it does not start now.
     unset($game['germanNames']);

@@ -37,4 +37,12 @@ INSERT IGNORE INTO game_aliases (bgg_id, name, lang) VALUES
     -- respectively. Rebirth (417197) is not included: its sdj_awards name
     -- and BGG primary name are identical, so it would add nothing.
     (400495, 'DITO!', 'de'),
-    (435346, 'Die Insel der Mookies', 'de');
+    (435346, 'Die Insel der Mookies', 'de'),
+    -- Ark Nova: the case that showed why the alias table has to feed the
+    -- SEARCH and not just the displayed title. "Arche Nova" carries no
+    -- umlaut and none of the marker words german_name_candidates() looks
+    -- for, so it scored 0 and was never tried - amazon.de and
+    -- brettspiele-report were asked for "Ark Nova" and found nothing.
+    -- Verified 2026-08-19: amazon.de returns the real Feuerland listing for
+    -- "Arche Nova" immediately.
+    (342942, 'Arche Nova', 'de');
