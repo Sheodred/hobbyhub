@@ -191,6 +191,44 @@ describe("BoardgameLookupPage", () => {
     );
   });
 
+  // #135: the cover is hotlinked from BGG's CDN, so the <img> src has to be
+  // exactly the URL the API returned - a rewritten or proxied one would 404.
+  it("renders the BGG cover thumbnail on the result card", async () => {
+    const thumbnail = "https://cf.geekdo-images.com/x__small/img/y=/fit-in/200x150/pic6293412.jpg";
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, thumbnail },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    const cover = await screen.findByAltText("Cover von Catan");
+    expect(cover).toHaveAttribute("src", thumbnail);
+    // Without both, the text beside the image reflows when it finally loads.
+    expect(cover).toHaveAttribute("loading", "lazy");
+    expect(cover).toHaveAttribute("width", "160");
+  });
+
+  // The dump-backed partial answer carries no cover, and neither does a game
+  // BGG has no picture for. Rendering <img src=""> there would show a broken
+  // image and collapse the box the description is laid out against.
+  it("keeps a fixed-size placeholder when the game has no cover", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, thumbnail: null },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    await waitFor(() => expect(screen.getByText("Catan")).toBeInTheDocument());
+    expect(screen.getByRole("img", { name: "Kein Bild zu Catan verfügbar" })).toBeInTheDocument();
+    expect(screen.queryByAltText("Cover von Catan")).not.toBeInTheDocument();
+  });
+
   // #116: long descriptions clamp behind a real button; short ones don't get
   // a toggle at all (a "Show more" that reveals two words is worse than none).
   it("clamps a long description behind a Show more/less toggle", async () => {
@@ -274,17 +312,6 @@ describe("BoardgameLookupPage", () => {
     fireEvent.click(toggles[0]);
     expect(screen.getByRole("button", { name: "Show less" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText(/word49/)).toBeInTheDocument();
-  });
-
-  it("shows a cover-image placeholder on the result card", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
-
-    renderPage();
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
-    fireEvent.submit(screen.getByRole("search"));
-
-    await waitFor(() => expect(screen.getByText("Catan")).toBeInTheDocument());
-    expect(screen.getByRole("img", { name: /Bild zu Catan folgt/ })).toBeInTheDocument();
   });
 
   it("shows a loading indicator while the first lookup is in flight (#128)", async () => {

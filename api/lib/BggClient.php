@@ -976,6 +976,18 @@ class BggClient
             // row; widen this to the full list if the heuristic ever needs
             // re-running against cached games.
             'germanNames' => german_name_candidates($allNames, $name),
+            // #135: BGG's own cover URLs, already sitting in this response -
+            // no extra request, and the URL is all that is cached, never the
+            // bytes. <thumbnail> is ~200x150 and 5 KB, which is what the
+            // result card renders; <image> is the unbounded original (1.96 MB
+            // for Ark Nova, measured 2026-08-19) and must not be put in a
+            // 160px box. Hotlinked from BGG's CDN rather than copied here, so
+            // this project never holds publisher artwork - the licensing
+            // question #135 was closed on. Verified live: cf.geekdo-images.com
+            // serves with and without a Referer, so there is no hotlink block
+            // to work around.
+            'thumbnail' => trim((string) $item->thumbnail) ?: null,
+            'image' => trim((string) $item->image) ?: null,
             'description' => html_entity_decode(strip_tags((string) $item->description), ENT_QUOTES),
             'rating' => isset($item->statistics->ratings->average) ? round((float) $item->statistics->ratings->average['value'], 1) : null,
             'numRatings' => isset($item->statistics->ratings->usersrated) ? (int) $item->statistics->ratings->usersrated['value'] : null,

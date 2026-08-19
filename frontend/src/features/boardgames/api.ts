@@ -107,6 +107,16 @@ export interface Boardgame {
    * partial answer, which has neither - treat a missing field as an empty
    * list.
    */
+  /**
+   * #135: BGG's own cover URLs, hotlinked from their CDN - this project
+   * caches the URL, never the bytes, so it holds no publisher artwork.
+   * `thumbnail` is ~200x150 / 5 KB and is what the card renders; `image` is
+   * the full-size original (~2 MB) and must not be put in the card's box.
+   * Absent on the dump-backed partial answer, same convention as
+   * `mechanics`; null when BGG has no cover for the game at all.
+   */
+  thumbnail?: string | null;
+  image?: string | null;
   mechanics?: BggTag[];
   categories?: BggTag[];
   /**
