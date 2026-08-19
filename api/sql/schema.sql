@@ -119,10 +119,11 @@ CREATE TABLE bgg_ranks (
 -- German title ("Die Siedler von Catan") resolve on the instant/local path
 -- and autocomplete (bgg_ranks stores BGG's primary name only, usually
 -- English), not just the live BGG search, which already handles some
--- German titles on its own. Hand-curated for now, verified against BGG's
--- own live <name type="alternate"> data one game at a time - not a bulk
--- crawl of BGG's version endpoint, which is future work if this proves
--- worth scaling (see #132's own proposal).
+-- German titles on its own. Two writers now (#162): BggClient fills a row in
+-- on every cache miss, from the German editions in the thing response's own
+-- <versions> block, and the seeded rows below stay hand-curated for the
+-- titles that block cannot know (Spiel-des-Jahres names) or gets wrong. The
+-- derived write is guarded, so a curated row is never displaced.
 CREATE TABLE game_aliases (
     id INT AUTO_INCREMENT PRIMARY KEY,
     bgg_id INT NOT NULL,

@@ -82,7 +82,7 @@ class BggClient
     {
         return $this->cached($bggId, function () use ($bggId) {
             $this->throttle();
-            $xml = $this->fetchThing($bggId, 1);
+            $xml = $this->fetchThing($bggId, 1, true);
             if ($xml === null) {
                 // Failed call, not an answer - see resolveSearch().
                 throw new RuntimeException('BGG thing request failed for id ' . $bggId);
@@ -91,7 +91,9 @@ class BggClient
                 return null; // BGG answered: no game with that id.
             }
             $this->refreshRank($bggId, $xml->item);
-            return $this->mapThing($xml->item, $this->bestComments($bggId, $xml->item));
+            $game = $this->mapThing($xml->item, $this->bestComments($bggId, $xml->item));
+            $this->rememberGermanName($bggId, self::germanNameFromVersions($xml->item, $game['name']));
+            return $game;
         });
     }
 
@@ -101,16 +103,27 @@ class BggClient
     // Measured on id 13: both flags = 0 of 100 comments usable, ratingcomments
     // alone = 29. Sending both was invisible until #40 was resolved, because
     // the call had never once reached BGG.
-    private function fetchThing(int $bggId, int $page): ?SimpleXMLElement
+    //
+    // $withVersions (#162) rides along on the page-1 call only. It carries no
+    // request cost - same endpoint, same throttle budget - but it is not free:
+    // Catan's 146 versions take the response from 61 KB / 0.23 s to 260 KB /
+    // 1.28 s (measured live, 2026-08-19). That is once per game per cache TTL
+    // on the page-1 call; asking for it again on each comment page would pay
+    // it repeatedly for a block bestComments() never reads.
+    private function fetchThing(int $bggId, int $page, bool $withVersions = false): ?SimpleXMLElement
     {
         $this->throttle();
-        return ($this->httpGetXml)(self::BASE_URL . '/thing?' . http_build_query([
+        $params = [
             'id' => $bggId,
             'stats' => 1,
             'ratingcomments' => 1,
             'pagesize' => self::MAX_COMMENTS,
             'page' => $page,
-        ]), 10, $this->authHeaders());
+        ];
+        if ($withVersions) {
+            $params['versions'] = 1;
+        }
+        return ($this->httpGetXml)(self::BASE_URL . '/thing?' . http_build_query($params), 10, $this->authHeaders());
     }
 
     // BGG's own rank rides along in the stats block this lookup already
@@ -723,6 +736,83 @@ class BggClient
         $stmt = db()->prepare('SELECT name FROM game_aliases WHERE bgg_id = ?');
         $stmt->execute([$bggId]);
         return array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /**
+     * #162: the German title read off BGG's own version list, rather than
+     * guessed at from the alternate names.
+     *
+     * A German edition carries <link type="language" value="German"/>, and
+     * its <canonicalname> is the real German title - NOT its <name>, which is
+     * only the edition label ("German edition, first printing"). Nothing else
+     * in the thing response distinguishes a German title from a Dutch or
+     * French one, which is the whole reason german_name_candidates() has to
+     * guess.
+     *
+     * Most frequent wins, because a game can carry several German titles
+     * across printings and only one of them is the one anybody searches for:
+     * Catan has 12 versions canonically named "Die Siedler von Catan" against
+     * 3 named "Catan: Das Spiel".
+     *
+     * Null when the German editions keep the English name, so nothing invents
+     * a translation that does not exist - Gloomhaven and Terraforming Mars
+     * both publish in German under their English titles.
+     *
+     * Every figure above was read off live responses on 2026-08-19, not
+     * assumed; the same probe reproduced all 7 hand-curated aliases.
+     */
+    private static function germanNameFromVersions(SimpleXMLElement $item, string $primaryName): ?string
+    {
+        $tally = [];
+        foreach ($item->versions->item ?? [] as $version) {
+            $canonical = trim((string) ($version->canonicalname['value'] ?? ''));
+            if ($canonical === '') {
+                continue;
+            }
+            foreach ($version->link as $link) {
+                if ((string) $link['type'] === 'language' && (string) $link['value'] === 'German') {
+                    $tally[$canonical] = ($tally[$canonical] ?? 0) + 1;
+                    break; // one vote per version, not one per language link
+                }
+            }
+        }
+        if ($tally === []) {
+            return null;
+        }
+        // Stable in PHP 8, so versions tied on count keep BGG's own ordering.
+        arsort($tally);
+        $best = (string) array_key_first($tally);
+
+        return mb_strtolower($best) === mb_strtolower(trim($primaryName)) ? null : $best;
+    }
+
+    /**
+     * #162: store the derived title in game_aliases, so the search, display
+     * and suggest paths pick it up with no change at all - they already read
+     * that table (#130, #132).
+     *
+     * Guarded rather than upserted, for two different reasons:
+     *
+     * - The bgg_id check keeps a hand-curated row winning. preferredName()
+     *   takes whichever row it finds first, so a second German title for one
+     *   game would make the displayed one arbitrary. The curated rows are
+     *   exact where this is derived, and some of them (DITO!, Die Insel der
+     *   Mookies) are award titles BGG's version data has no way to know.
+     * - INSERT IGNORE covers the `name` UNIQUE key: an alias must resolve to
+     *   exactly one bgg_id (#108), so a title another game already claims is
+     *   dropped rather than duplicated into an ambiguous search term.
+     *
+     * Write-through on cache miss, alongside refreshRank() - so this fills in
+     * as bgg_lookup_cache rows expire, with no backfill job and no extra
+     * request.
+     */
+    private function rememberGermanName(int $bggId, ?string $german): void
+    {
+        if ($german === null || $this->preferredName($bggId, 'de') !== null) {
+            return;
+        }
+        $stmt = db()->prepare("INSERT IGNORE INTO game_aliases (bgg_id, name, lang) VALUES (?, ?, 'de')");
+        $stmt->execute([$bggId, $german]);
     }
 
     private function rankByDistance(array $rows, string $normalizedQuery, int $limit): array
