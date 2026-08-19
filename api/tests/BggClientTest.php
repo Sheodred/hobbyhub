@@ -183,6 +183,64 @@ final class BggClientTest extends TestCase
         $this->assertSame(['Fine, dated.'], $result['bad'], 'the worst still comes off the page we did get');
     }
 
+    public function testWalksBackAPageWhenTheLastOneIsAllTextlessRatings(): void
+    {
+        // Ark Nova's real shape (id 342942, measured 2026-08-19): 62,710
+        // comments, so page 628 is the last - and all 10 comments on it are
+        // rated 10 with value="", ratings nobody wrote anything for. The
+        // result was no praise at all next to three complaints. Page 627 does
+        // carry written 10s, and it is still the same top-rating band, so it
+        // is safe to read.
+        $pages = [];
+        $client = new BggClient(function (string $url) use (&$pages) {
+            parse_str(parse_url($url, PHP_URL_QUERY) ?: '', $q);
+            $page = (int) $q['page'];
+            $pages[] = $page;
+            $comments = match ($page) {
+                628 => '<comment username="a" rating="10" value=""/><comment username="b" rating="10" value=""/>',
+                627 => '<comment username="c" rating="10" value="Outstanding boardgame."/>',
+                default => '<comment username="z" rating="1" value="Overrated and overhyped."/>',
+            };
+            return $this->thingXml(
+                '<item id="342942"><name type="primary" value="Ark Nova"/>' .
+                '<comments totalitems="62710" page="' . $page . '">' . $comments . '</comments></item>'
+            );
+        });
+
+        $result = $client->lookup(342942);
+
+        $this->assertSame([1, 628, 627], $pages, 'walks back from the last page, never forward towards page 1');
+        $this->assertSame(['Outstanding boardgame.'], $result['good']);
+    }
+
+    public function testGivesUpRatherThanReachingPageOneWhenEveryHighPageIsTextless(): void
+    {
+        // The walk-back must stay in the top band. With only 3 pages, backing
+        // up far enough would land on page 1 - the WORST comments - so it
+        // stops instead and reports no praise. Comments are sorted ascending,
+        // so the fixture keeps the 10s on the top pages and the 1s on page 1,
+        // the way BGG actually returns them.
+        $pages = [];
+        $client = new BggClient(function (string $url) use (&$pages) {
+            parse_str(parse_url($url, PHP_URL_QUERY) ?: '', $q);
+            $page = (int) $q['page'];
+            $pages[] = $page;
+            $comments = $page === 1
+                ? '<comment username="z" rating="1" value="Dreadful."/>'
+                : '<comment username="a" rating="10" value=""/>'; // rated, never written
+            return $this->thingXml(
+                '<item id="13"><name type="primary" value="Catan"/>' .
+                '<comments totalitems="250" page="' . $page . '">' . $comments . '</comments></item>'
+            );
+        });
+
+        $result = $client->lookup(13);
+
+        $this->assertNull($result['good'], 'no praise beats a one-star rant printed as praise');
+        $this->assertSame(['Dreadful.'], $result['bad'], 'the complaint still comes off page 1, as always');
+        $this->assertSame([1, 3, 2], $pages, 'stops at page 2 - page 1 is never read as a source of praise');
+    }
+
     public function testAFailedBestPageNeverPrintsALowRatingAsThePraise(): void
     {
         // Rating comments arrive sorted ascending, so page 1 is nothing but
@@ -861,6 +919,21 @@ final class BggClientTest extends TestCase
         $this->seedRanks();
 
         $this->assertNull((new BggClient(fn() => null))->preferredName(13, 'de'));
+    }
+
+    public function testAliasNamesFeedTheSecondarySourceSearch(): void
+    {
+        // lookup.php searches amazon.de / brettspiele-report / H@LL9000 under
+        // these as well as BGG's primary name. german_name_candidates() only
+        // recognises a title carrying a German marker, so "Arche Nova" (no
+        // umlaut, no die/der/von/spiel) scores 0 and never gets tried - which
+        // is why Ark Nova had no price. A curated alias is the exact answer
+        // where the heuristic is a guess.
+        $this->seedAlias(342942, 'Arche Nova');
+        $this->seedAlias(13, 'Die Siedler von Catan');
+
+        $this->assertSame(['Arche Nova'], (new BggClient(fn() => null))->aliasNames(342942));
+        $this->assertSame([], (new BggClient(fn() => null))->aliasNames(999), 'a game with no alias adds no search terms');
     }
 
     public function testResolveSearchFallbackAnswersNotFoundRatherThanThrowingWhenTheDumpIsPopulated(): void

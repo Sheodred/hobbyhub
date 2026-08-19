@@ -179,6 +179,17 @@ class BggClient
     // "there is no second page" - conflating the two is what let a one-star
     // rant through as praise. Under one page, the page in hand holds every
     // comment BGG has and is therefore the best page too.
+    // A rating with no written comment still occupies a slot in this list, so
+    // the last page can be entirely textless - measured on Ark Nova (id
+    // 342942, 2026-08-19): all 10 comments on page 628 rated 10, every one of
+    // them with value="", which yielded no praise at all while the bad
+    // snippets came through fine. Pages 627 and 626 carry real 10-rated text.
+    // So walk back a couple of pages when a page has nothing usable. This
+    // stays at the HIGH-rating end throughout - it is emphatically not a
+    // fallback towards page 1, which is what would put a one-star rant under
+    // the green heading.
+    private const BEST_PAGE_LOOKBACK = 3;
+
     private function bestComments(int $bggId, SimpleXMLElement $item): ?iterable
     {
         $total = (int) ($item->comments['totalitems'] ?? 0);
@@ -187,9 +198,33 @@ class BggClient
             return $item->comments->comment ?? [];
         }
 
-        $xml = $this->fetchThing($bggId, $lastPage);
+        // Two different empty-handed outcomes, and they must not be conflated:
+        // a page that could not be READ means we cannot see the top ratings at
+        // all, so there is no praise to report and nothing lower may stand in
+        // for it (null). A page that read fine but happens to carry no written
+        // text is not a failure - the next page up the list is still in the
+        // same high-rating band, so it is safe to look one more back.
+        // $page > 1 is the hard floor: page 1 is guaranteed to be the WORST
+        // comments, and printing those under the green heading is the exact
+        // defect this whole method exists to prevent.
+        for ($page = $lastPage; $page > 1 && $page > $lastPage - self::BEST_PAGE_LOOKBACK; $page--) {
+            $xml = $this->fetchThing($bggId, $page);
+            if ($xml === null || !isset($xml->item->comments)) {
+                return null;
+            }
+            $comments = $xml->item->comments->comment;
+            foreach ($comments as $comment) {
+                // The same "usable" test pickExtreme() applies - a page of
+                // textless 10s is not an answer.
+                if (trim((string) $comment['value']) !== '' && (float) $comment['rating'] > 0) {
+                    return $comments;
+                }
+            }
+        }
 
-        return $xml === null || !isset($xml->item->comments) ? null : $xml->item->comments->comment;
+        // Every page we looked at read fine and simply held no written praise:
+        // that is an answer ("no good snippet"), not a failure.
+        return [];
     }
 
     /**
@@ -666,6 +701,28 @@ class BggClient
         $stmt->execute([$bggId, $lang]);
         $row = $stmt->fetch();
         return $row === false ? null : (string) $row['name'];
+    }
+
+    /**
+     * Every curated alias for a game, whatever the language.
+     *
+     * lookup.php searches the four secondary sources under these as well as
+     * BGG's primary name. german_name_candidates() guesses at the German
+     * title from BGG's own alternates, but it can only recognise one that
+     * carries a German marker - "Arche Nova" has no umlaut and none of
+     * die/der/von/und/spiel, scores 0, and is never tried, so amazon.de and
+     * brettspiele-report were searched as "Ark Nova" and found nothing
+     * (measured 2026-08-19; amazon.de finds the real listing immediately
+     * under "Arche Nova"). A curated alias is exact where the heuristic is a
+     * guess, so it is worth a try on top of it.
+     *
+     * @return string[]
+     */
+    public function aliasNames(int $bggId): array
+    {
+        $stmt = db()->prepare('SELECT name FROM game_aliases WHERE bgg_id = ?');
+        $stmt->execute([$bggId]);
+        return array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
 
     private function rankByDistance(array $rows, string $normalizedQuery, int $limit): array
