@@ -137,6 +137,24 @@ CREATE TABLE game_aliases (
     INDEX idx_game_aliases_bgg_id (bgg_id)
 );
 
+-- #129: translated descriptions, keyed by bgg_id + lang. Not a cache_aside()
+-- table - a translation does not go stale the way a price or a rank does, so
+-- there is no expires_at and no fetch-on-miss. Filled by a one-off batch
+-- (api/sql/2026_game_descriptions.sql for the first pass) or by hand later,
+-- never by a live translation call - production (IONOS shared hosting)
+-- cannot reach a translation API or a local LLM at request time, the same
+-- constraint that ruled out live BGG-name derivation before #162's
+-- versions=1 approach. `source` records how the text was produced, since a
+-- machine translation is not the publisher's words and the frontend labels
+-- it accordingly (#129's honesty rule, same as the `partial` badge).
+CREATE TABLE game_descriptions (
+    bgg_id INT NOT NULL,
+    lang VARCHAR(8) NOT NULL,
+    description TEXT NOT NULL,
+    source VARCHAR(32) NOT NULL DEFAULT 'machine-translated',
+    PRIMARY KEY (bgg_id, lang)
+);
+
 -- Single row, mirrors scryfall_throttle - spaces outbound BGG requests
 -- per the ~2 req/sec community-observed convention (BggClient::throttle()).
 CREATE TABLE bgg_throttle (

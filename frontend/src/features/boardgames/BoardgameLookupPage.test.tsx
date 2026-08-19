@@ -264,6 +264,38 @@ describe("BoardgameLookupPage", () => {
     expect(screen.queryByRole("button", { name: /Show more|Show less/ })).not.toBeInTheDocument();
   });
 
+  // #129: a machine-translated description must never read as BGG's own
+  // words - same honesty rule as the `partial` notice.
+  it("labels a machine-translated description and marks it lang=de", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, description: "Handeln, bauen, siedeln.", descriptionTranslated: true },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    const description = await screen.findByText("Handeln, bauen, siedeln.");
+    expect(description).toHaveAttribute("lang", "de");
+    expect(screen.getByText("Automatisch übersetzt / AI-translated")).toBeInTheDocument();
+  });
+
+  it("shows no translation label for BGG's own English description", async () => {
+    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+      status: "ok",
+      game: { ...CATAN, description: "Trade, build, settle.", descriptionTranslated: false },
+    });
+
+    renderPage();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
+    fireEvent.submit(screen.getByRole("search"));
+
+    const description = await screen.findByText("Trade, build, settle.");
+    expect(description).not.toHaveAttribute("lang");
+    expect(screen.queryByText(/AI-translated/)).not.toBeInTheDocument();
+  });
+
   it("shows up to 3 good and 3 bad snippets, each independently", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
       status: "ok",

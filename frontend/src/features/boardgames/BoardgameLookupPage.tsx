@@ -117,7 +117,7 @@ function complexityText(complexity: Complexity): string {
 // stays intact.
 const DESCRIPTION_CLAMP = 600;
 
-function GameDescription({ text }: { text: string }) {
+function GameDescription({ text, translated }: { text: string; translated?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const long = text.length > DESCRIPTION_CLAMP;
   // Cut at the last space before the limit so a word never splits; fall
@@ -128,7 +128,17 @@ function GameDescription({ text }: { text: string }) {
 
   return (
     <div className="max-w-prose">
-      <p className="whitespace-pre-line text-slate-300">{clamped}</p>
+      {/* #129: lang="de" so a screen reader switches pronunciation for the
+          translated text - document stays lang="en" (see NewsListPanel),
+          only this block is German. The label is the same honesty rule as
+          the `partial` notice: a machine translation must never read as the
+          publisher's own words. */}
+      <p className="whitespace-pre-line text-slate-300" lang={translated ? "de" : undefined}>
+        {clamped}
+      </p>
+      {translated && (
+        <p className="mt-1 text-xs text-slate-400">Automatisch übersetzt / AI-translated</p>
+      )}
       {long && (
         <button
           type="button"
@@ -1037,7 +1047,7 @@ export function BoardgameLookupPage() {
                     // #116: honour BGG's paragraph breaks and clamp the long ones.
                     // (Only the full answer reaches here - the partial dump path
                     // has description:"" and shows the notice above.)
-                    <GameDescription text={state.game.description} />
+                    <GameDescription text={state.game.description} translated={state.game.descriptionTranslated} />
                   )}
                 </div>
               </div>

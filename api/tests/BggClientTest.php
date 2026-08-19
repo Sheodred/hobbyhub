@@ -12,6 +12,7 @@ final class BggClientTest extends TestCase
         db()->exec('DELETE FROM bgg_search_cache');
         db()->exec('DELETE FROM bgg_ranks');
         db()->exec('DELETE FROM game_aliases');
+        db()->exec('DELETE FROM game_descriptions');
     }
 
     private function seedRanks(): void
@@ -1153,6 +1154,21 @@ final class BggClientTest extends TestCase
         $this->seedRanks();
 
         $this->assertNull((new BggClient(fn() => null))->preferredName(13, 'de'));
+    }
+
+    public function testPreferredDescriptionReadsBackATranslatedRowAndIsNullWithoutOne(): void
+    {
+        // #129: no fetch-on-miss here - unlike every other client's
+        // cache_aside(), a translated description is filled by a batch
+        // process, never a live call, so this is a plain read.
+        db()->prepare('INSERT INTO game_descriptions (bgg_id, lang, description) VALUES (?, ?, ?)')
+            ->execute([13, 'de', 'Catan ist ein Klassiker unter den Brettspielen.']);
+
+        $client = new BggClient(fn() => null);
+
+        $this->assertSame('Catan ist ein Klassiker unter den Brettspielen.', $client->preferredDescription(13, 'de'));
+        $this->assertNull($client->preferredDescription(13, 'en'), 'only the translated language has a row');
+        $this->assertNull($client->preferredDescription(999, 'de'), 'a game with no translation yet falls back to English in lookup.php');
     }
 
     public function testAliasNamesFeedTheSecondarySourceSearch(): void

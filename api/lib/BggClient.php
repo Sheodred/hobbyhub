@@ -717,6 +717,19 @@ class BggClient
     }
 
     /**
+     * #129: a translated description, null when this game has not been
+     * translated yet - lookup.php falls back to BGG's own English text,
+     * clearly labelled, the same honesty pattern as preferredName().
+     */
+    public function preferredDescription(int $bggId, string $lang): ?string
+    {
+        $stmt = db()->prepare('SELECT description FROM game_descriptions WHERE bgg_id = ? AND lang = ? LIMIT 1');
+        $stmt->execute([$bggId, $lang]);
+        $row = $stmt->fetch();
+        return $row === false ? null : (string) $row['description'];
+    }
+
+    /**
      * Every curated alias for a game, whatever the language.
      *
      * lookup.php searches the four secondary sources under these as well as

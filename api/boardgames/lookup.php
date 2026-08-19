@@ -61,6 +61,20 @@ try {
     if ($lang !== null) {
         $game['name'] = $client->preferredName($bggId, $lang) ?? $game['name'];
     }
+    // #129: the description, machine-translated and cached with no expiry
+    // (see game_descriptions in schema.sql) - falls back to BGG's own
+    // English text, unlabelled, when this game has not been translated yet.
+    // descriptionTranslated tells the frontend when to show the "AI
+    // translated" honesty label - it must never look like the publisher's
+    // own words.
+    $game['descriptionTranslated'] = false;
+    if ($lang !== null) {
+        $translated = $client->preferredDescription($bggId, $lang);
+        if ($translated !== null) {
+            $game['description'] = $translated;
+            $game['descriptionTranslated'] = true;
+        }
+    }
 
     $amazonClient = new AmazonRatingClient();
     $bgqClient = new BoardGameQuestClient();

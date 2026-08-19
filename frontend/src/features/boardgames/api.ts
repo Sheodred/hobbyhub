@@ -65,6 +65,15 @@ export interface Boardgame {
   bggId: number;
   name: string;
   description: string;
+  /**
+   * #129: true when `description` is a machine translation rather than
+   * BGG's own English text - lookup.php only sets this under lang=de, and
+   * only when this game has been translated already (a batch process, no
+   * live translation call). The honesty label depends on this, same
+   * pattern as `partial`. Optional rather than required like `partial` so
+   * existing test fixtures don't all need updating - absent reads as false.
+   */
+  descriptionTranslated?: boolean;
   rating: number | null;
   numRatings: number | null;
   /** Up to 3 snippets, best/most-cited first. null when nothing qualified. */
