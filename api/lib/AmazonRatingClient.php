@@ -21,7 +21,9 @@ class AmazonRatingClient implements RatingSource
     // slowest source of the four, so not re-asking matters most here.
     private const MISS_TTL_SECONDS = 3 * 24 * 60 * 60;
     private const THROTTLE_MIN_INTERVAL_MS = 2000;      // deliberately slow
-    private const SEARCH_URL = 'https://www.amazon.de/s';
+    // public so health.php's #165 probe asks the same URL this client asks -
+    // a probe that drifts from the real request measures nothing.
+    public const SEARCH_URL = 'https://www.amazon.de/s';
 
     /** @var callable */
     private $httpGetHtml;

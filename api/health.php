@@ -2,6 +2,7 @@
 require_once __DIR__ . '/lib/http.php';
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/http_client.php';
+require_once __DIR__ . '/lib/AmazonRatingClient.php';
 
 // Deploy's smoke test asserts this body is exactly {"status":"ok"}, so the
 // bare form stays the default. ?checks=1 adds a schema readiness report,
@@ -24,20 +25,27 @@ if (($_GET['checks'] ?? '') === '') {
 // This used to be a second curl implementation living beside the real one;
 // it now asks the same module every client uses, which is the only way the
 // answer is worth anything.
-function probe_outbound(string $url): array
+// $headers is per-probe because a probe sent with the wrong content
+// negotiation measures a different request than the one that fails. amazon.de
+// answers a request with no Accept/Accept-Language with its generic error
+// page, so probing it as JSON would produce a failure that tells us nothing
+// about the real client's failure (#165).
+function probe_outbound(string $url, array $headers = ['Accept: application/json']): array
 {
-    $result = http_get_result($url, 8, ['Accept: application/json', 'User-Agent: ' . SCRYFALL_USER_AGENT]);
+    $result = http_get_result($url, 8, array_merge($headers, ['User-Agent: ' . SCRYFALL_USER_AGENT]));
     $body = $result['body'];
 
     return [
         'httpStatus' => $result['status'],
         'curlError' => $result['error'],
         'bytes' => $body === null ? null : strlen($body),
-        // Only on failure, and only the first 200 characters: a rejection
-        // usually explains itself ("api key required", a WAF block id), and
-        // that sentence is the difference between fixing this and guessing
-        // at it. Success bodies stay out - they are just card data.
-        'bodySnippet' => $result['status'] >= 400 && $body !== null ? substr($body, 0, 200) : null,
+        // The first 200 characters, on success as well as failure. This used
+        // to be failure-only, on the reasoning that a success body is just
+        // card data - which #165 disproved: amazon.de's anti-bot interstitial
+        // is served with a 200, so a status-only view of it looks healthy.
+        // The whole point of this probe is to tell a real page from a block
+        // wearing a 200, and only the body can do that.
+        'bodySnippet' => $body === null ? null : substr($body, 0, 200),
     ];
 }
 
@@ -73,6 +81,24 @@ try {
         'outbound' => [
             'edhrecCombos' => probe_outbound(EDHREC_JSON_BASE_URL . '/pages/combos/sol-ring.json'),
             'scryfall' => probe_outbound(SCRYFALL_BASE_URL . '/cards/random'),
+            // #165: the retail price and the amazon.de rating both come from
+            // this one search request, and both return nothing on production
+            // while the identical request succeeds from outside IONOS. The
+            // other two probes above are the control: they answer 200 from
+            // here, so outbound HTTPS works and whatever this reports is
+            // amazon-specific.
+            //
+            // Same URL and same headers as AmazonRatingClient::candidatesFor()
+            // so this measures that request, not a lookalike. It deliberately
+            // skips the 2s throttle - ?checks=1 is a manual call, not traffic.
+            //
+            // Reading it: 200 plus a bodySnippet containing "s-search-result"
+            // is a real page; 200 with anything else is the interstitial, and
+            // that is the answer the issue is missing.
+            'amazon' => probe_outbound(
+                AmazonRatingClient::SEARCH_URL . '?' . http_build_query(['k' => 'catan brettspiel']),
+                ['Accept: text/html,application/xhtml+xml', 'Accept-Language: de-DE,de;q=0.9']
+            ),
         ],
     ]);
 } catch (Throwable $e) {
