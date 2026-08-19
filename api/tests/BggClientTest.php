@@ -322,6 +322,43 @@ final class BggClientTest extends TestCase
         $this->assertStringNotContainsString('versions', $urls[1]);
     }
 
+    public function testTheCoverUrlsAreCarriedFromTheThingResponse(): void
+    {
+        // #135: no extra request - <thumbnail> and <image> ride along in the
+        // response already fetched for description and rank.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="342942"><name type="primary" value="Ark Nova"/>' .
+            '<thumbnail>https://cf.geekdo-images.com/x__small/img/y=/fit-in/200x150/pic6293412.jpg</thumbnail>' .
+            '<image>https://cf.geekdo-images.com/x__original/img/z=/0x0/pic6293412.jpg</image>' .
+            '</item>'
+        ));
+
+        $result = $client->lookup(342942);
+
+        $this->assertSame(
+            'https://cf.geekdo-images.com/x__small/img/y=/fit-in/200x150/pic6293412.jpg',
+            $result['thumbnail']
+        );
+        $this->assertSame(
+            'https://cf.geekdo-images.com/x__original/img/z=/0x0/pic6293412.jpg',
+            $result['image']
+        );
+    }
+
+    public function testAGameWithNoCoverYieldsNullRatherThanAnEmptyString(): void
+    {
+        // An empty string is a truthy-looking src that renders as a broken
+        // image; null is what the card checks for to keep its placeholder.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="7"><name type="primary" value="Azul"/></item>'
+        ));
+
+        $result = $client->lookup(7);
+
+        $this->assertNull($result['thumbnail']);
+        $this->assertNull($result['image']);
+    }
+
     public function testGoodSnippetComesFromTheLastCommentPage(): void
     {
         // BGG sorts rating comments ascending, so page 1 holds only the worst

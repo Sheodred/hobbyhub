@@ -84,7 +84,10 @@ export function PrivacyPolicyPage() {
         (scryfall.com); board game lookups are relayed to BoardGameGeek (boardgamegeek.com), Board Game Quest
         (boardgamequest.com), H@LL9000 (hall9000.de), brettspiele-report.de and amazon.de; the homepage weather
         panel sends your device&apos;s coordinates directly to Open-Meteo (open-meteo.com), not through our
-        backend - see each provider&apos;s own privacy policy for how they handle that data. The homepage news and
+        backend. Game cover images and card images are loaded by your browser straight from BoardGameGeek&apos;s
+        image server (cf.geekdo-images.com) and Scryfall&apos;s (cards.scryfall.io) rather than being copied onto
+        our server, so those two receive your IP address and browser user agent when a picture is displayed - see
+        each provider&apos;s own privacy policy for how they handle that data. The homepage news and
         flea market panels and the MTG Meta &amp; Stats page are populated by scheduled backend jobs that read
         public content from tagesschau.de, magic.wizards.com, edhrec.com, mtggoldfish.com, radio912.de,
         kinderflohmarkt.com and kinderbasar-online.de, and geocode the resulting event addresses (not your

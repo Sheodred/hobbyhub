@@ -273,18 +273,39 @@ function Spinner() {
   );
 }
 
-// Thumbnail placeholder (#135): marks where the game's cover image will sit
-// once BGG's <thumbnail>/<image> is wired. The parent flex puts it right of
-// the text on desktop and above it on mobile.
-function ThumbnailPlaceholder({ name }: { name: string }) {
+// The game's cover (#135), hotlinked from BGG's CDN - the API caches the URL,
+// not the bytes. The parent flex puts it right of the text on desktop and
+// above it on mobile.
+//
+// The box keeps its 160x160 footprint whether or not an image arrives, so the
+// text beside it never reflows: the dump-backed partial answer carries no
+// cover at all, and neither does a game BGG has no picture for. width/height
+// plus loading="lazy" for the same reason - no layout shift when it loads.
+//
+// BGG's thumbnail is 200x150, not square, so object-contain fits it inside the
+// box rather than cropping the box art.
+function CoverImage({ name, src }: { name: string; src?: string | null }) {
+  if (!src) {
+    return (
+      <div
+        role="img"
+        aria-label={`Kein Bild zu ${name} verfügbar`}
+        className="flex h-40 w-40 shrink-0 items-center justify-center rounded-xl border border-dashed border-slate-700 bg-slate-800/40 text-xs text-slate-400"
+      >
+        Kein Bild
+      </div>
+    );
+  }
+
   return (
-    <div
-      role="img"
-      aria-label={`Bild zu ${name} folgt`}
-      className="flex h-40 w-40 shrink-0 items-center justify-center rounded-xl border border-dashed border-slate-700 bg-slate-800/40 text-xs text-slate-400"
-    >
-      Bild folgt
-    </div>
+    <img
+      src={src}
+      alt={`Cover von ${name}`}
+      loading="lazy"
+      width={160}
+      height={160}
+      className="h-40 w-40 shrink-0 rounded-xl border border-slate-800 bg-slate-950/40 object-contain"
+    />
   );
 }
 
@@ -1005,7 +1026,7 @@ export function BoardgameLookupPage() {
                   image on the right on desktop, above the text on mobile
                   (flex-col reversed to flex-row-reverse at md). */}
               <div className="mt-4 flex flex-col gap-4 md:flex-row-reverse md:items-start">
-                <ThumbnailPlaceholder name={state.game.name} />
+                <CoverImage name={state.game.name} src={state.game.thumbnail} />
                 <div className="min-w-0 flex-1">
                   {state.game.partial && !state.game.bgq ? (
                     <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-200/90">
