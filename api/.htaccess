@@ -1,3 +1,30 @@
+# Error pages (#166). This directory declares its own RewriteEngine, and
+# Apache's per-directory rewrite context does NOT inherit the parent's rules -
+# so the docroot .htaccess rule that serves index.html for unknown paths (and
+# with it React Router's styled 404 card) never runs under /api/. Without
+# these three lines, every unmatched path here fell through to Apache's stock
+# iso-8859-1 error pages instead.
+#
+# The target must stay a LOCAL PATH, not a full URL: a local path keeps the
+# original 403/404 status, while an "https://..." target turns the response
+# into a 302 - which is worse than the stock page, not better.
+#
+# API callers are unaffected: apiClient.ts already catches a non-JSON error
+# body and throws ApiError(status, "Request failed"), so a fetch() that 404s
+# still gets the right status and a typed error, whatever the body is.
+#
+# Deliberately NOT "Options -Indexes", even though /api/ and /api/boardgames/
+# are real directories. Their 403 already proves listing is denied on IONOS -
+# an enabled Indexes would have returned a listing, not a Forbidden - so the
+# directive would change nothing, and `Options` needs AllowOverride Options,
+# which is a different (unproven) class from the FileInfo that RewriteRule and
+# ErrorDocument use. If IONOS does not grant it, Apache answers 500 for this
+# whole directory: a real outage traded for no gain. ErrorDocument alone is
+# safe by the same reasoning inverted - the rewrites below are FileInfo and
+# demonstrably work, so FileInfo is granted.
+ErrorDocument 403 /index.html
+ErrorDocument 404 /index.html
+
 RewriteEngine On
 
 # Never allow direct web access to config/lib/cron/sql, or to the test

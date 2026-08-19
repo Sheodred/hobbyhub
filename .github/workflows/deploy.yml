@@ -165,4 +165,26 @@ jobs:
             echo "API health check failed: got '$health'"
             exit 1
           fi
-          echo "Smoke test passed: frontend 200, API health ok"
+          # #166: an unmatched /api/ path must render the SPA shell (React
+          # Router's styled 404) while KEEPING its status. The failure mode
+          # this guards is specific: pointing ErrorDocument at a full URL
+          # instead of a local path silently turns the 404 into a 302, which
+          # still "looks fixed" in a browser. -L is deliberately absent so a
+          # redirect shows up as 302 rather than being followed to a 200.
+          for path in /api/boardgame /api/; do
+            code=$(curl -s -o /tmp/err_body -w "%{http_code}" "https://sheoforge.de${path}")
+            case "$path" in
+              /api/) want=403 ;;
+              *)     want=404 ;;
+            esac
+            if [ "$code" != "$want" ]; then
+              echo "Error-page check failed: $path returned $code, expected $want"
+              exit 1
+            fi
+            if ! grep -q '<div id="root">' /tmp/err_body; then
+              echo "Error-page check failed: $path did not serve the SPA shell"
+              head -c 200 /tmp/err_body
+              exit 1
+            fi
+          done
+          echo "Smoke test passed: frontend 200, API health ok, /api/ error pages styled with status preserved"
