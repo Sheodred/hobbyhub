@@ -125,6 +125,203 @@ final class BggClientTest extends TestCase
         $this->assertStringNotContainsString('&comments=1', $url, 'plain comments would override ratingcomments');
     }
 
+    /**
+     * #162's XML shape, kept to what the code actually reads: a <versions>
+     * block whose items carry a <canonicalname> and language <link>s. The
+     * real responses carry ~30 more fields per version; none are read.
+     *
+     * @param array<int, array{0: string, 1: string[]}> $versions [canonicalname, languages]
+     */
+    private function versionsXml(array $versions): string
+    {
+        $items = '';
+        foreach ($versions as $i => [$canonical, $languages]) {
+            $links = '';
+            foreach ($languages as $language) {
+                $links .= '<link type="language" value="' . $language . '"/>';
+            }
+            $items .= '<item type="boardgameversion" id="' . (900 + $i) . '">' .
+                '<name type="primary" value="' . $canonical . ' edition"/>' .
+                '<canonicalname value="' . $canonical . '"/>' .
+                $links .
+                '</item>';
+        }
+
+        return '<versions>' . $items . '</versions>';
+    }
+
+    private function germanAliasFor(int $bggId): ?string
+    {
+        $stmt = db()->prepare("SELECT name FROM game_aliases WHERE bgg_id = ? AND lang = 'de'");
+        $stmt->execute([$bggId]);
+        $row = $stmt->fetch();
+
+        return $row === false ? null : (string) $row['name'];
+    }
+
+    public function testTheGermanTitleIsTakenFromTheVersionsCanonicalName(): void
+    {
+        // The exact case that motivated #162: "Arche Nova" carries no umlaut
+        // and none of german_name_candidates()'s marker words, so the
+        // heuristic scores it 0 and never tries it - amazon.de and
+        // brettspiele-report were searched as "Ark Nova" and found nothing.
+        // The version list states it outright. Probed live 2026-08-19: all 8
+        // of Ark Nova's German versions give canonicalname="Arche Nova".
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="342942"><name type="primary" value="Ark Nova"/>' .
+            $this->versionsXml([
+                ['Ark Nova', ['English']],
+                ['Arche Nova', ['German']],
+                ['Archa Nova', ['Czech']],
+            ]) .
+            '</item>'
+        ));
+
+        $client->lookup(342942);
+
+        $this->assertSame('Arche Nova', $this->germanAliasFor(342942));
+    }
+
+    public function testTheGermanTitleIsReadFromCanonicalNameNotTheEditionLabel(): void
+    {
+        // <name> on a version is the edition label ("German edition, first
+        // printing"), not a title. Taking it would write pure noise into
+        // game_aliases and then SEARCH amazon.de for that noise.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="342942"><name type="primary" value="Ark Nova"/>' .
+            '<versions><item type="boardgameversion" id="571945">' .
+            '<name type="primary" value="German edition, first printing"/>' .
+            '<canonicalname value="Arche Nova"/>' .
+            '<link type="language" value="German"/>' .
+            '</item></versions></item>'
+        ));
+
+        $client->lookup(342942);
+
+        $this->assertSame('Arche Nova', $this->germanAliasFor(342942));
+    }
+
+    public function testTheMostFrequentGermanTitleWinsOverARarerOne(): void
+    {
+        // Catan, live 2026-08-19: 12 German versions say "Die Siedler von
+        // Catan" and 3 say "Catan: Das Spiel". Only the first resolves at the
+        // secondary sources, and document order does not favour it - the
+        // count is what picks correctly.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="13"><name type="primary" value="Catan"/>' .
+            $this->versionsXml([
+                ['Catan: Das Spiel', ['German']],
+                ['Die Siedler von Catan', ['German']],
+                ['Catan: Das Spiel', ['German']],
+                ['Die Siedler von Catan', ['German']],
+                ['Die Siedler von Catan', ['German']],
+            ]) .
+            '</item>'
+        ));
+
+        $client->lookup(13);
+
+        $this->assertSame('Die Siedler von Catan', $this->germanAliasFor(13));
+    }
+
+    public function testAGermanEditionKeepingTheEnglishTitleYieldsNoAlias(): void
+    {
+        // Gloomhaven and Terraforming Mars both publish in German under their
+        // English names (probed live 2026-08-19). Writing that as an "alias"
+        // would be a falsehood in the table and a duplicate search term.
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="174430"><name type="primary" value="Gloomhaven"/>' .
+            $this->versionsXml([
+                ['Gloomhaven', ['English']],
+                ['Gloomhaven', ['German']],
+            ]) .
+            '</item>'
+        ));
+
+        $client->lookup(174430);
+
+        $this->assertNull($this->germanAliasFor(174430));
+    }
+
+    public function testAGameWithNoGermanEditionYieldsNoAlias(): void
+    {
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="7"><name type="primary" value="Azul"/>' .
+            $this->versionsXml([['Azul', ['English']], ['Azul', ['French']]]) .
+            '</item>'
+        ));
+
+        $client->lookup(7);
+
+        $this->assertNull($this->germanAliasFor(7));
+    }
+
+    public function testACuratedAliasIsNotDisplacedByTheDerivedOne(): void
+    {
+        // DITO! and Die Insel der Mookies are Spiel-des-Jahres titles BGG's
+        // version data cannot know. preferredName() takes the first row it
+        // finds, so a second German row for one game would make the displayed
+        // title arbitrary - the curated one has to stay alone.
+        $this->seedAlias(400495, 'DITO!');
+
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="400495"><name type="primary" value="JinxO"/>' .
+            $this->versionsXml([['Jinx-O', ['German']]]) .
+            '</item>'
+        ));
+
+        $client->lookup(400495);
+
+        $stmt = db()->prepare("SELECT name FROM game_aliases WHERE bgg_id = ? AND lang = 'de'");
+        $stmt->execute([400495]);
+        $this->assertSame(['DITO!'], $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    public function testATitleAnotherGameAlreadyClaimsIsNotDuplicated(): void
+    {
+        // The `name` UNIQUE key exists because an alias must resolve to
+        // exactly one bgg_id (#108). A derived title colliding with an
+        // existing row has to be dropped, not error the whole lookup.
+        $this->seedAlias(13, 'Die Siedler von Catan');
+
+        $client = new BggClient(fn() => $this->thingXml(
+            '<item id="99999"><name type="primary" value="Settlers Reprint"/>' .
+            $this->versionsXml([['Die Siedler von Catan', ['German']]]) .
+            '</item>'
+        ));
+
+        $client->lookup(99999);
+
+        $this->assertNull($this->germanAliasFor(99999));
+        $this->assertSame('Die Siedler von Catan', $this->germanAliasFor(13));
+    }
+
+    public function testVersionsAreRequestedOnTheFirstPageOnly(): void
+    {
+        // versions=1 costs no extra request but roughly quadruples the
+        // response (Catan: 61 KB -> 260 KB, measured 2026-08-19). The comment
+        // pages never read the block, so paying for it there is pure waste.
+        $urls = [];
+        $client = new BggClient(function (string $url) use (&$urls) {
+            $urls[] = $url;
+            $page = str_contains($url, 'page=2') ? 2 : 1;
+
+            return $this->thingXml(
+                '<item id="13"><name type="primary" value="Catan"/>' .
+                '<comments totalitems="150" page="' . $page . '">' .
+                '<comment username="a" rating="9" value="Good."/>' .
+                '<comment username="b" rating="2" value="Bad."/>' .
+                '</comments></item>'
+            );
+        });
+
+        $client->lookup(13);
+
+        $this->assertCount(2, $urls, 'a 150-comment game is fetched over two pages');
+        $this->assertStringContainsString('versions=1', $urls[0]);
+        $this->assertStringNotContainsString('versions', $urls[1]);
+    }
+
     public function testGoodSnippetComesFromTheLastCommentPage(): void
     {
         // BGG sorts rating comments ascending, so page 1 holds only the worst
