@@ -1,7 +1,12 @@
 # ADR-0017: Board game images — no source, no images
 
 Date: 2026-08-17
-Status: Accepted
+Status: Accepted, superseded in part by [ADR-0019](0019-bgg-cover-image-hotlink.md)
+Superseded in part: the BGG *hotlink* row of the Decision table below. BGG cover
+thumbnails are hotlinked in production as of 2026-08-19, as a risk the maintainer
+accepted knowingly. **The licensing analysis in this ADR is unchanged and was not
+overturned** - ADR-0019 disputes none of it, and the *store* column stays ✗ for
+every source. Read ADR-0019 before treating any part of this file as inactive.
 Relates to: [ADR-0003](0003-scryfall-proxy.md), [ADR-0005](0005-marketplace-images.md),
 [ADR-0009](0009-php-mysql-ionos-migration.md), [ADR-0014](0014-german-rating-sources.md)
 Resolves: [#101](https://github.com/Sheodred/hobbyhub/issues/101)
