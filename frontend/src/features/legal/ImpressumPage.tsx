@@ -1,4 +1,3 @@
-import { DraftContentNotice } from "../../components/DraftContentNotice";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 export function ImpressumPage() {
@@ -6,8 +5,6 @@ export function ImpressumPage() {
 
   return (
     <div className="mx-auto max-w-2xl text-slate-300">
-      <DraftContentNotice message="Operated as a private, non-commercial project (no postal address shown accordingly, see docs/adr/0006). Not legal advice: have this reviewed, especially the private/non-commercial classification itself, before relying on it." />
-
       <h1 className="text-3xl font-semibold text-slate-100">Impressum</h1>
       <p className="mt-2 text-sm text-slate-400">Legal notice pursuant to Section 5 TMG and Section 18(2) MStV.</p>
 

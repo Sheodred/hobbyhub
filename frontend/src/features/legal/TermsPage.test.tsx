@@ -8,7 +8,16 @@ describe("TermsPage", () => {
     render(<TermsPage />);
 
     expect(screen.getByRole("heading", { name: "Terms of Service", level: 1 })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /third-party data/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /third-party data \(magic/i })).toBeInTheDocument();
     expect(screen.getByText(/unofficial fan content/i)).toBeInTheDocument();
+  });
+
+  // BGG's XML API terms require attribution wherever their data is used, so
+  // this section is a licence obligation, not just a courtesy.
+  it("credits BoardGameGeek and the other board game sources", () => {
+    render(<TermsPage />);
+
+    expect(screen.getByRole("heading", { name: /third-party data \(board games\)/i })).toBeInTheDocument();
+    expect(screen.getByText(/boardgamegeek/i)).toBeInTheDocument();
   });
 });
