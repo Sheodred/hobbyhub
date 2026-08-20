@@ -102,14 +102,15 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             if (event.target === event.currentTarget) onClose();
           }}
         >
-          {/* top-[4.75rem]: just under the header pill (top-4 offset + its own
-              height), so the panel reads as growing out of the header bar
-              rather than appearing as an unrelated floating card -
-              transform-origin: top (below) is what makes the grow animation
-              read that way, this offset is what makes the *rest position*
-              agree with it. */}
+          {/* top-[5rem]: the header pill's exact rendered bottom edge (its
+              sticky top-4 = 1rem, plus the header wrapper's own py-2 top
+              padding = 0.5rem, plus the pill's h-14 = 3.5rem - 1+0.5+3.5 =
+              5rem). rounded-t-none and border-t-0 below drop this panel's
+              top edge entirely, so there is no border, no radius break and
+              no gap where it meets the pill above - together they read as
+              one shape, not two stacked cards. */}
           <motion.div
-            className="fixed inset-x-4 top-[4.75rem] z-40 mx-auto flex max-h-[calc(100dvh-6rem)] w-full max-w-md flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5"
+            className="fixed inset-x-4 top-[5rem] z-40 mx-auto flex max-h-[calc(100dvh-6.25rem)] w-full max-w-md flex-col overflow-hidden rounded-b-[2rem] rounded-t-none border border-t-0 border-white/10 bg-white/[0.03] p-1.5 pt-0"
             style={{ transformOrigin: "top center" }}
             variants={panelVariants}
             initial="hidden"
@@ -122,10 +123,14 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                 element, so either stays reachable regardless of how far the
                 link list is scrolled - the bug this replaces was a close
                 button that could scroll off the top of the viewport entirely
-                on a long list on a short phone screen. */}
-            <div className="flex-1 overflow-y-auto rounded-[calc(2rem-0.375rem)] bg-slate-900/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]">
-              <div className="sticky top-0 z-10 flex items-center justify-between bg-slate-900/95 px-6 pb-4 pt-6 backdrop-blur sm:px-8">
-                <span className="text-lg font-semibold text-white">Sheodred's Forge</span>
+                on a long list on a short phone screen. rounded-t-none
+                matches the outer panel's now-flat top (see its top-[5rem]
+                comment) - the header pill above already carries the
+                "Sheodred's Forge" title and its own close button, so this
+                row is icon-only rather than repeating a second title bar
+                that would read as a second, separate card. */}
+            <div className="flex-1 overflow-y-auto rounded-b-[calc(2rem-0.375rem)] rounded-t-none bg-slate-900/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]">
+              <div className="sticky top-0 z-10 flex justify-end bg-slate-900/95 px-4 pb-2 pt-3 backdrop-blur">
                 <button
                   ref={closeButtonRef}
                   type="button"

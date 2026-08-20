@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { NavLink, useLocation } from "react-router-dom";
 
 import { primaryNavLinks } from "./navigation";
@@ -29,8 +30,23 @@ export function Header({ mobileNavOpen, onToggleMobileNav }: HeaderProps) {
           the page (sticky top-4) and content scrolls underneath it, so a
           near-transparent surface let headings read straight through the
           header on mobile. backdrop-blur alone does not hide text, it only
-          smears it. The white border and inset highlight keep the glass read. */}
-      <div className="flex h-14 items-center gap-3 rounded-full border border-white/10 bg-[#0f0b24]/85 px-5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] backdrop-blur-2xl">
+          smears it. The white border and inset highlight keep the glass read.
+
+          When open, this widens to MobileDrawer's own width (max-w-md, same
+          px-4 outer gutter) and its bottom corners and border go flat/away
+          (rounded-t-*, border-b-0) - the drawer panel picks up with a
+          matching flat top and no top border directly beneath it (see its
+          top-[5rem], which is this pill's exact rendered bottom edge), so
+          the two read as one shape that the pill simply grows into, not two
+          stacked cards with a seam between them. `layout` animates the
+          width/shape change instead of it snapping. */}
+      <motion.div
+        layout
+        transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+        className={`flex h-14 items-center gap-3 border border-white/10 bg-[#0f0b24]/85 px-5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] backdrop-blur-2xl ${
+          mobileNavOpen ? "w-full max-w-md rounded-t-[2rem] border-b-0" : "rounded-full"
+        }`}
+      >
         <button
           type="button"
           onClick={onToggleMobileNav}
@@ -69,7 +85,7 @@ export function Header({ mobileNavOpen, onToggleMobileNav }: HeaderProps) {
             full-screen overlay (MobileDrawer) with the full nav at every
             breakpoint, so the header itself stays a compact floating pill. No
             account menu either - this site has no accounts (see docs/adr/0009). */}
-      </div>
+      </motion.div>
     </header>
   );
 }
