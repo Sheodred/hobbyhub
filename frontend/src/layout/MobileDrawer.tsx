@@ -44,17 +44,20 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
     ? { hidden: { opacity: 0 }, visible: { opacity: 1 } }
     : { hidden: { opacity: 0, scaleY: 0.85, y: -16 }, visible: { opacity: 1, scaleY: 1, y: 0 } };
   const dialogRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   // Standard modal-dialog keyboard behavior: move focus in on open, trap Tab
   // within the dialog while it's open, close on Escape, and restore focus to
   // whatever triggered the drawer (the header's hamburger button) on close.
+  // Focus goes to the first focusable element (the "Home" link) rather than
+  // a dedicated close button - the drawer no longer has one of its own (see
+  // the panel comment below), the header's X directly above it does that
+  // job now.
   useEffect(() => {
     if (!open) return;
 
     previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
-    closeButtonRef.current?.focus();
+    dialogRef.current?.querySelector<HTMLElement>('a[href], button:not([disabled])')?.focus();
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -93,7 +96,12 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
           role="dialog"
           aria-modal="true"
           aria-label="Navigation menu"
-          className="fixed inset-0 z-40 bg-black/35 backdrop-blur-3xl"
+          // bg-black/20 backdrop-blur-sm, not the previous /35 + blur-3xl
+          // (64px - the strongest step Tailwind has): that made the page
+          // behind the menu unrecognisable, not just de-emphasised, which
+          // was never the intent - the menu should read as the focused
+          // layer without the rest of the page vanishing under it.
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -102,14 +110,32 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             if (event.target === event.currentTarget) onClose();
           }}
         >
-          {/* top-[4.75rem]: just under the header pill (top-4 offset + its own
-              height), so the panel reads as growing out of the header bar
-              rather than appearing as an unrelated floating card -
-              transform-origin: top (below) is what makes the grow animation
-              read that way, this offset is what makes the *rest position*
-              agree with it. */}
+          {/* top-[5rem]: the header pill's exact rendered bottom edge (its
+              sticky top-4 = 1rem, plus the header wrapper's own py-2 top
+              padding = 0.5rem, plus the pill's h-14 = 3.5rem - 1+0.5+3.5 =
+              5rem). rounded-t-none and border-t-0 below drop this panel's
+              top edge entirely, so there is no border, no radius break and
+              no gap where it meets the pill above - together they read as
+              one shape, not two stacked cards.
+
+              No `w-full` here (removed - it used to be here alongside
+              inset-x-4): with `left` and `right` both set, an explicit
+              `width` over-constrains the box and both browsers and the CSS
+              spec disagree on which of margin/left/right actually wins,
+              which is a fragile thing to have relied on by accident.
+              Leaving width unset (auto) is the standard, unambiguous
+              version of this recipe - inset-x-4 alone derives the width,
+              max-w-md caps it, mx-auto is redundant with auto-width but
+              harmless. Prime suspect for the below-~500px misalignment this
+              replaces is actually Header.tsx's framer-motion `layout` prop
+              (removed there, see its comment) - `left`/`right` positioning
+              plus a still-computing FLIP transform on the pill above is a
+              more likely source of a transient, viewport-dependent offset
+              than a CSS rule that resolves consistently. Both changes ship
+              together since neither is confirmed in isolation without a
+              narrower live device to test against. */}
           <motion.div
-            className="fixed inset-x-4 top-[4.75rem] z-40 mx-auto flex max-h-[calc(100dvh-6rem)] w-full max-w-md flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5"
+            className="fixed inset-x-4 top-[5rem] z-40 mx-auto flex max-h-[calc(100dvh-6.25rem)] max-w-md flex-col overflow-hidden rounded-b-[2rem] rounded-t-none border border-t-0 border-white/10 bg-white/[0.03] p-1.5 pt-0"
             style={{ transformOrigin: "top center" }}
             variants={panelVariants}
             initial="hidden"
@@ -117,29 +143,24 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             exit="hidden"
             transition={transition}
           >
-            {/* The scroll container: both the close button above and the
-                back-to-top/close arrow below are `sticky` *inside* this
-                element, so either stays reachable regardless of how far the
-                link list is scrolled - the bug this replaces was a close
-                button that could scroll off the top of the viewport entirely
-                on a long list on a short phone screen. */}
-            <div className="flex-1 overflow-y-auto rounded-[calc(2rem-0.375rem)] bg-slate-900/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]">
-              <div className="sticky top-0 z-10 flex items-center justify-between bg-slate-900/95 px-6 pb-4 pt-6 backdrop-blur sm:px-8">
-                <span className="text-lg font-semibold text-white">Sheodred's Forge</span>
-                <button
-                  ref={closeButtonRef}
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-full p-2 text-slate-400 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 hover:text-white"
-                  aria-label="Close navigation menu"
-                >
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                    <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </div>
-
-              <nav aria-label="Primary" className="flex flex-col gap-1 px-6 pb-4 sm:px-8">
+            {/* The scroll container: the back-to-top/close button at the
+                bottom is `sticky` *inside* this element, so it stays
+                reachable regardless of how far the link list is scrolled -
+                the bug this replaces was a close button that could scroll
+                off the top of the viewport entirely on a long list on a
+                short phone screen. There is deliberately no matching row up
+                here any more - the header pill directly above already has
+                its own X (Header.tsx), and a second close button right
+                under it read as a redundant, empty-looking bar, not a
+                second affordance. rounded-t-none matches the outer panel's
+                now-flat top (see its top-[5rem] comment). */}
+            {/* bg-[#0f0b24]/85 - the exact same colour as the header pill
+                above (Header.tsx), not the slate-900 this used to be. Two
+                different dark blues meeting at the same seam that already
+                has no border or radius between them was still a visible
+                seam, just a colour one instead of a line. */}
+            <div className="flex-1 overflow-y-auto rounded-b-[calc(2rem-0.375rem)] rounded-t-none bg-[#0f0b24]/85 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]">
+              <nav aria-label="Primary" className="flex flex-col gap-1 px-6 pb-4 pt-4 sm:px-8">
                 {primaryNavLinks.map((link, index) => (
                   <motion.div
                     key={link.to}
@@ -170,15 +191,17 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
               </nav>
 
               {/* Bottom-pinned close affordance: reachable without scrolling
-                  back up, for exactly the case the header's button and the
-                  top close button both miss - your thumb and your attention
-                  are already at the bottom of a long list. */}
-              <div className="sticky bottom-0 z-10 flex justify-center bg-gradient-to-t from-slate-900/95 to-transparent pb-4 pt-6">
+                  back up, for exactly the case the header's own button
+                  misses - your thumb and your attention are already at the
+                  bottom of a long list. This is the drawer's only internal
+                  close control (see the removed top row above); the header
+                  pill's X handles the rest. */}
+              <div className="sticky bottom-0 z-10 flex justify-center bg-gradient-to-t from-[#0f0b24]/95 to-transparent pb-4 pt-6">
                 <button
                   type="button"
                   onClick={onClose}
                   className="flex items-center gap-1.5 rounded-full border border-white/10 bg-slate-800/90 px-4 py-2 text-xs font-medium text-slate-300 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 hover:text-white"
-                  aria-label="Close menu"
+                  aria-label="Close navigation menu"
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
                     <path d="M2 7l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

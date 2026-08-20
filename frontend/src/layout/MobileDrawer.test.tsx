@@ -43,14 +43,14 @@ describe("MobileDrawer", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("moves focus to the close button when opened", () => {
+  it("moves focus to the first nav link when opened", () => {
     render(
       <MemoryRouter>
         <MobileDrawer open onClose={vi.fn()} />
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("button", { name: "Close navigation menu" })).toHaveFocus();
+    expect(screen.getByRole("link", { name: "Home" })).toHaveFocus();
   });
 
   it("calls onClose when Escape is pressed", async () => {
