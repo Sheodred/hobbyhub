@@ -5,6 +5,7 @@ require_once __DIR__ . '/../lib/AmazonRatingClient.php';
 require_once __DIR__ . '/../lib/BoardGameQuestClient.php';
 require_once __DIR__ . '/../lib/Hall9000Client.php';
 require_once __DIR__ . '/../lib/BrettspieleReportClient.php';
+require_once __DIR__ . '/../lib/BrettspielpreiseClient.php';
 
 $q = trim($_GET['q'] ?? '');
 $bggIdParam = $_GET['bgg_id'] ?? '';
@@ -80,6 +81,7 @@ try {
     $bgqClient = new BoardGameQuestClient();
     $hallClient = new Hall9000Client();
     $reportClient = new BrettspieleReportClient();
+    $bspClient = new BrettspielpreiseClient();
 
     // One list rather than four bespoke fields, and the shape of an entry now
     // lives behind the RatingSource seam rather than here. Each source keeps
@@ -154,17 +156,27 @@ try {
         ? ['value' => $report['complexity'], 'max' => $report['max'], 'source' => 'brettspiele-report']
         : ($game['complexity'] ?? null);
 
-    // #90: retail (new) price, not the used market this issue also asked
-    // about - see docs/adr/0018 for why used-market pricing (eBay,
+    // #90/#172: retail (new) price, not the used market this issue also
+    // asked about - see docs/adr/0018 for why used-market pricing (eBay,
     // Kleinanzeigen) is a link-out on the frontend rather than a fetched
-    // number. A listing with a price but not yet a customer rating still
-    // answers this - see AmazonRatingClient::priceFor().
-    $amazonPrice = optional_source('amazon.de price', fn() => first_hit($searchNames, fn(string $n) => $amazonClient->priceFor($n)));
-    $game['price'] = $amazonPrice === null ? null : [
-        'value' => $amazonPrice['price'],
-        'currency' => $amazonPrice['currency'],
-        'source' => 'Amazon.de',
-        'url' => $amazonPrice['url'],
+    // number.
+    //
+    // brettspielpreise.de first (docs/adr/0020): it is keyed by BGG id
+    // directly, so there is no title-matching step to fail, and it already
+    // aggregates many stores - structurally more robust than a single
+    // scraped page. amazon.de is the fallback for whatever
+    // brettspielpreise.de has no listing for yet.
+    $price = optional_source('brettspielpreise.de', fn() => $bspClient->priceFor($bggId));
+    $priceSource = $bspClient->label();
+    if ($price === null) {
+        $price = optional_source('amazon.de price', fn() => first_hit($searchNames, fn(string $n) => $amazonClient->priceFor($n)));
+        $priceSource = $amazonClient->label();
+    }
+    $game['price'] = $price === null ? null : [
+        'value' => $price['price'],
+        'currency' => $price['currency'],
+        'source' => $priceSource,
+        'url' => $price['url'],
     ];
 
     json_response(['status' => 'ok', 'game' => $game]);
