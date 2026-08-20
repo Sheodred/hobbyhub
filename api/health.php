@@ -78,6 +78,7 @@ $required = [
     'amazon_rating_cache', 'amazon_throttle',
     'hall9000_cache', 'hall9000_throttle',
     'brettspiele_report_cache', 'brettspiele_report_throttle',
+    'brettspielpreise_cache', 'brettspielpreise_throttle',
 ];
 
 try {

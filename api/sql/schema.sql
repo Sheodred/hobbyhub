@@ -239,6 +239,21 @@ CREATE TABLE brettspiele_report_throttle (
     last_call_at DOUBLE NOT NULL
 );
 
+-- brettspielpreise.de retail offers per BGG id (docs/adr/0020, #172). Keyed
+-- by the BGG id itself, not a searched name - the API takes eid= directly,
+-- so there is no title-matching step and no wrong-product risk to guard
+-- against the way amazon_rating_cache's name-keyed lookups do.
+CREATE TABLE brettspielpreise_cache (
+    query_key VARCHAR(255) PRIMARY KEY,
+    response_json LONGTEXT NOT NULL,
+    expires_at DATETIME NOT NULL
+);
+
+CREATE TABLE brettspielpreise_throttle (
+    id TINYINT PRIMARY KEY DEFAULT 1,
+    last_call_at DOUBLE NOT NULL
+);
+
 -- Decks are imported as a snapshot, not fetched per request: the upstream is
 -- a metered third-party wrapper (200 calls/month on the free tier), and a
 -- published tournament deck never changes once it exists. The site only ever

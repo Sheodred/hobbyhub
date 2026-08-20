@@ -1151,10 +1151,11 @@ export function BoardgameLookupPage() {
                 </div>
               )}
 
-              {/* #90: a retail price when amazon.de has one, plus used-market
-                  search link-outs. eBay.de and Kleinanzeigen.de are not
-                  fetched - see usedMarketSearchUrls for why - so this always
-                  renders once a game resolves, with or without a price. */}
+              {/* #90/#172: a retail price when brettspielpreise.de or
+                  amazon.de has one (docs/adr/0020), plus used-market search
+                  link-outs. eBay.de and Kleinanzeigen.de are not fetched -
+                  see usedMarketSearchUrls for why - so this always renders
+                  once a game resolves, with or without a price. */}
               <div className="mt-6 border-t border-slate-800 pt-4">
                 <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Where to buy</h3>
                 <div className="mt-3 flex flex-wrap gap-3">
