@@ -50,6 +50,14 @@ function http_get_result(string $url, int $timeoutSeconds, array $headers): arra
         CURLOPT_MAXREDIRS => 5,
         CURLOPT_TIMEOUT => $timeoutSeconds,
         CURLOPT_HTTPHEADER => $headers,
+        // #165: without this, curl sends no Accept-Encoding at all, yet on
+        // IONOS amazon.de still answered with a gzip body - every caller then
+        // read raw gzip bytes as HTML and every marker search failed, which
+        // looked exactly like a block. '' makes curl advertise every
+        // encoding it supports and decompress the response itself, so every
+        // caller keeps receiving plain text regardless of what a given host
+        // decides to send.
+        CURLOPT_ENCODING => '',
     ]);
     $body = curl_exec($ch);
     $result = [
