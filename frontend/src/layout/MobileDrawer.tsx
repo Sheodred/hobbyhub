@@ -108,9 +108,26 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
               5rem). rounded-t-none and border-t-0 below drop this panel's
               top edge entirely, so there is no border, no radius break and
               no gap where it meets the pill above - together they read as
-              one shape, not two stacked cards. */}
+              one shape, not two stacked cards.
+
+              No `w-full` here (removed - it used to be here alongside
+              inset-x-4): with `left` and `right` both set, an explicit
+              `width` over-constrains the box and both browsers and the CSS
+              spec disagree on which of margin/left/right actually wins,
+              which is a fragile thing to have relied on by accident.
+              Leaving width unset (auto) is the standard, unambiguous
+              version of this recipe - inset-x-4 alone derives the width,
+              max-w-md caps it, mx-auto is redundant with auto-width but
+              harmless. Prime suspect for the below-~500px misalignment this
+              replaces is actually Header.tsx's framer-motion `layout` prop
+              (removed there, see its comment) - `left`/`right` positioning
+              plus a still-computing FLIP transform on the pill above is a
+              more likely source of a transient, viewport-dependent offset
+              than a CSS rule that resolves consistently. Both changes ship
+              together since neither is confirmed in isolation without a
+              narrower live device to test against. */}
           <motion.div
-            className="fixed inset-x-4 top-[5rem] z-40 mx-auto flex max-h-[calc(100dvh-6.25rem)] w-full max-w-md flex-col overflow-hidden rounded-b-[2rem] rounded-t-none border border-t-0 border-white/10 bg-white/[0.03] p-1.5 pt-0"
+            className="fixed inset-x-4 top-[5rem] z-40 mx-auto flex max-h-[calc(100dvh-6.25rem)] max-w-md flex-col overflow-hidden rounded-b-[2rem] rounded-t-none border border-t-0 border-white/10 bg-white/[0.03] p-1.5 pt-0"
             style={{ transformOrigin: "top center" }}
             variants={panelVariants}
             initial="hidden"
@@ -129,8 +146,13 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                 "Sheodred's Forge" title and its own close button, so this
                 row is icon-only rather than repeating a second title bar
                 that would read as a second, separate card. */}
-            <div className="flex-1 overflow-y-auto rounded-b-[calc(2rem-0.375rem)] rounded-t-none bg-slate-900/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]">
-              <div className="sticky top-0 z-10 flex justify-end bg-slate-900/95 px-4 pb-2 pt-3 backdrop-blur">
+            {/* bg-[#0f0b24]/85 - the exact same colour as the header pill
+                above (Header.tsx), not the slate-900 this used to be. Two
+                different dark blues meeting at the same seam that already
+                has no border or radius between them was still a visible
+                seam, just a colour one instead of a line. */}
+            <div className="flex-1 overflow-y-auto rounded-b-[calc(2rem-0.375rem)] rounded-t-none bg-[#0f0b24]/85 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]">
+              <div className="sticky top-0 z-10 flex justify-end bg-[#0f0b24]/95 px-4 pb-2 pt-3 backdrop-blur">
                 <button
                   ref={closeButtonRef}
                   type="button"
