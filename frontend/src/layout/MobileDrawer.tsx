@@ -25,14 +25,24 @@ const linkReveal = {
 };
 
 /**
- * Full-screen nav overlay, triggered by the header's hamburger at every
- * breakpoint (there is no persistent sidebar - see docs/adr/0010). Respects
- * prefers-reduced-motion by swapping the fade transition for an instant
+ * Nav overlay, triggered by the header's hamburger at every breakpoint
+ * (there is no persistent sidebar - see docs/adr/0010). Anchored to the top
+ * of the screen, directly under the header pill, and grows downward from
+ * there (transform-origin: top) rather than fading in as a separate
+ * screen-centered card - the previous centered layout let a tall link list
+ * push its own close button off the top of the viewport, which is exactly
+ * what made the menu hard to close on mobile. The header's hamburger (now
+ * an X, see Header.tsx's z-50) stays visible above the drawer the whole
+ * time, so the button that opened the menu also closes it. Respects
+ * prefers-reduced-motion by swapping the grow transition for an instant
  * show/hide and skipping the staggered link entrance.
  */
 export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
   const reduceMotion = usePrefersReducedMotion();
   const transition = reduceMotion ? { duration: 0 } : { type: "tween" as const, duration: 0.25 };
+  const panelVariants = reduceMotion
+    ? { hidden: { opacity: 0 }, visible: { opacity: 1 } }
+    : { hidden: { opacity: 0, scaleY: 0.85, y: -16 }, visible: { opacity: 1, scaleY: 1, y: 0 } };
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
@@ -83,7 +93,7 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
           role="dialog"
           aria-modal="true"
           aria-label="Navigation menu"
-          className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-black/35 p-6 backdrop-blur-3xl"
+          className="fixed inset-0 z-40 bg-black/35 backdrop-blur-3xl"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -92,9 +102,29 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             if (event.target === event.currentTarget) onClose();
           }}
         >
-          <div className="w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5">
-            <div className="rounded-[calc(2rem-0.375rem)] bg-slate-900/60 p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)] sm:p-8">
-              <div className="flex items-center justify-between">
+          {/* top-[4.75rem]: just under the header pill (top-4 offset + its own
+              height), so the panel reads as growing out of the header bar
+              rather than appearing as an unrelated floating card -
+              transform-origin: top (below) is what makes the grow animation
+              read that way, this offset is what makes the *rest position*
+              agree with it. */}
+          <motion.div
+            className="fixed inset-x-4 top-[4.75rem] z-40 mx-auto flex max-h-[calc(100dvh-6rem)] w-full max-w-md flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.03] p-1.5"
+            style={{ transformOrigin: "top center" }}
+            variants={panelVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={transition}
+          >
+            {/* The scroll container: both the close button above and the
+                back-to-top/close arrow below are `sticky` *inside* this
+                element, so either stays reachable regardless of how far the
+                link list is scrolled - the bug this replaces was a close
+                button that could scroll off the top of the viewport entirely
+                on a long list on a short phone screen. */}
+            <div className="flex-1 overflow-y-auto rounded-[calc(2rem-0.375rem)] bg-slate-900/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]">
+              <div className="sticky top-0 z-10 flex items-center justify-between bg-slate-900/95 px-6 pb-4 pt-6 backdrop-blur sm:px-8">
                 <span className="text-lg font-semibold text-white">Sheodred's Forge</span>
                 <button
                   ref={closeButtonRef}
@@ -109,7 +139,7 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                 </button>
               </div>
 
-              <nav aria-label="Primary" className="mt-8 flex flex-col gap-1">
+              <nav aria-label="Primary" className="flex flex-col gap-1 px-6 pb-4 sm:px-8">
                 {primaryNavLinks.map((link, index) => (
                   <motion.div
                     key={link.to}
@@ -138,8 +168,26 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                   </motion.div>
                 ))}
               </nav>
+
+              {/* Bottom-pinned close affordance: reachable without scrolling
+                  back up, for exactly the case the header's button and the
+                  top close button both miss - your thumb and your attention
+                  are already at the bottom of a long list. */}
+              <div className="sticky bottom-0 z-10 flex justify-center bg-gradient-to-t from-slate-900/95 to-transparent pb-4 pt-6">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex items-center gap-1.5 rounded-full border border-white/10 bg-slate-800/90 px-4 py-2 text-xs font-medium text-slate-300 transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-white/10 hover:text-white"
+                  aria-label="Close menu"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <path d="M2 7l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Close
+                </button>
+              </div>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

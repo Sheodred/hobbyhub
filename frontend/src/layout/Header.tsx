@@ -20,8 +20,11 @@ function useCurrentSectionLabel(): string | null {
 export function Header({ mobileNavOpen, onToggleMobileNav }: HeaderProps) {
   const sectionLabel = useCurrentSectionLabel();
 
+  // z-50, above MobileDrawer's z-40: the hamburger/X button must stay
+  // reachable while the drawer is open so the same button that opened it
+  // also closes it, instead of disappearing under the drawer's backdrop.
   return (
-    <header className="sticky top-4 z-20 flex justify-center px-4 py-2">
+    <header className="sticky top-4 z-50 flex justify-center px-4 py-2">
       {/* An opaque-enough base, not just a 4% white tint: the pill floats over
           the page (sticky top-4) and content scrolls underneath it, so a
           near-transparent surface let headings read straight through the
