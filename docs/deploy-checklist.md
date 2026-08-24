@@ -87,13 +87,15 @@ up, since shared-hosting WebCron products vary here).
 
       Any future change to what a scrape client extracts needs the same
       clear - see the cache entry in `docs/agents/pitfalls.md`.
-- [ ] **`bgq_review_cache` needs clearing for the "How it plays" truncation
-      fix (#178)** - via phpMyAdmin's SQL tab: `DELETE FROM
-      bgq_review_cache;`. `BoardGameQuestClient::section()` used to cut its
+- [x] **`bgq_review_cache` cleared for the "How it plays" truncation fix
+      (#178)** (2026-08-24, via phpMyAdmin's SQL tab: `DELETE FROM
+      bgq_review_cache;`). `BoardGameQuestClient::section()` used to cut its
       320-char excerpt with a plain `mb_substr`, landing mid-word as often
-      as not; existing cached rows hold that badly-cut text baked in and
-      won't self-heal until their 14-day TTL expires. Same class of issue as
-      the #58 entry above.
+      as not; existing cached rows held that badly-cut text baked in and
+      would not have self-healed until their 14-day TTL expired. Same class
+      of issue as the #58 entry above. Verified live afterwards: bgg_id
+      454672 (the game from the original report) now ends its excerpt
+      cleanly at a word boundary.
 - [x] **`bgg_rank` column added and filled for #58** (2026-08-16, via
       phpMyAdmin - IONOS firewalls off external database connections, so the
       CLI importer has no path here). `ALTER TABLE bgg_ranks ADD COLUMN
