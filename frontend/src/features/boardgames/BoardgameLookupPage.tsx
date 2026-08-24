@@ -841,11 +841,15 @@ export function BoardgameLookupPage() {
                 <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   Spiel des Jahres {awardYear}
                 </h2>
-                <ul className="mt-3 space-y-3">
+                {/* #179 follow-up: more room per box (space-y-4/p-4, wider
+                    internal margins) so the column's total depth reads
+                    closer to the top-10 grid beside it on desktop, rather
+                    than three tightly-packed boxes next to five open rows. */}
+                <ul className="mt-3 space-y-4">
                   {awards.map((cat) => (
                     <li
                       key={cat.category}
-                      className="rounded-lg border border-slate-800 bg-slate-900/40 p-3"
+                      className="rounded-lg border border-slate-800 bg-slate-900/40 p-4"
                     >
                       <p className="text-xs font-medium text-indigo-300">
                         {cat.category} {awardYear}
@@ -853,19 +857,19 @@ export function BoardgameLookupPage() {
                       <button
                         type="button"
                         onClick={() => selectAward(cat.winner)}
-                        className="mt-1.5 flex w-full min-w-0 items-baseline gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-left hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                        className="mt-3 flex w-full min-w-0 items-baseline gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-left hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                       >
                         <span aria-hidden="true" className="shrink-0 text-xs">🏆</span>
                         <span className="min-w-0 flex-1 truncate text-sm text-slate-200">{cat.winner.name}</span>
                       </button>
                       {cat.nominees.length > 0 && (
-                        <AwardNames label="Nominiert" entries={cat.nominees} className="mt-2" onSelect={selectAward} />
+                        <AwardNames label="Nominiert" entries={cat.nominees} className="mt-3" onSelect={selectAward} />
                       )}
                       {cat.recommended.length > 0 && (
                         <AwardNames
                           label="Empfehlungsliste"
                           entries={cat.recommended}
-                          className="mt-1"
+                          className="mt-2"
                           onSelect={selectAward}
                         />
                       )}
