@@ -1151,27 +1151,33 @@ export function BoardgameLookupPage() {
                 </div>
               )}
 
-              {/* #90/#172: a retail price when brettspielpreise.de or
-                  amazon.de has one (docs/adr/0020), plus used-market search
-                  link-outs. eBay.de and Kleinanzeigen.de are not fetched -
-                  see usedMarketSearchUrls for why - so this always renders
-                  once a game resolves, with or without a price. */}
+              {/* #90/#172/#176: one retail-price card per source that has an
+                  entry for this game (docs/adr/0020) - brettspielpreise.de
+                  and amazon.de never displace each other - plus used-market
+                  search link-outs. eBay.de and Kleinanzeigen.de are not
+                  fetched - see usedMarketSearchUrls for why - so this always
+                  renders once a game resolves, with or without a price. */}
               <div className="mt-6 border-t border-slate-800 pt-4">
                 <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Where to buy</h3>
                 <div className="mt-3 flex flex-wrap gap-3">
-                  {state.game.price && (
+                  {/* ?? [] rather than relying on the type: the dump-backed
+                      partial answer (/api/boardgames/local) never sets this
+                      field at all, same reason ratings above reads
+                      optionally - see #91. */}
+                  {(state.game.prices ?? []).map((price) => (
                     <a
-                      href={state.game.price.url}
+                      key={price.source}
+                      href={price.url}
                       target="_blank"
                       rel="noreferrer nofollow"
                       className="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 hover:border-indigo-500"
                     >
                       <span className="block text-lg font-semibold text-emerald-300">
-                        {state.game.price.value.toFixed(2)} €
+                        {price.value.toFixed(2)} €
                       </span>
-                      <span className="text-xs text-slate-400">Neu, via {state.game.price.source}</span>
+                      <span className="text-xs text-slate-400">Neu, via {price.source}</span>
                     </a>
-                  )}
+                  ))}
                   {usedMarket && (
                     <>
                       <a
