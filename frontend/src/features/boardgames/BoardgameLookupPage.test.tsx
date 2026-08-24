@@ -1092,8 +1092,8 @@ describe("BoardgameLookupPage", () => {
 
   // #102: a way in for someone who has nothing to type yet.
   const topGames = [
-    { bggId: 224517, name: "Brass: Birmingham", yearPublished: 2018, rank: 1, rating: 8.6 },
-    { bggId: 161936, name: "Pandemic Legacy: Season 1", yearPublished: 2015, rank: 2, rating: 8.5 },
+    { bggId: 224517, name: "Brass: Birmingham", yearPublished: 2018, rank: 1, rating: 8.6, numRatings: 45832 },
+    { bggId: 161936, name: "Pandemic Legacy: Season 1", yearPublished: 2015, rank: 2, rating: 8.5, numRatings: 57708 },
   ];
 
   it("offers the top-ranked games before a search and resolves the clicked one by id", async () => {
@@ -1127,6 +1127,9 @@ describe("BoardgameLookupPage", () => {
     const card = await screen.findByRole("button", { name: /Brass: Birmingham/ });
     expect(card).toHaveAccessibleName(expect.stringContaining("2018"));
     expect(card).toHaveAccessibleName(expect.stringContaining("8.6"));
+    // #179: the ranks dump has no player count/duration/age to show, so the
+    // taller tile shows the ratings count instead - already free on this row.
+    expect(card).toHaveAccessibleName(expect.stringContaining("45,832 ratings"));
 
     fireEvent.click(card);
 
@@ -1336,7 +1339,7 @@ describe("BoardgameLookupPage — shareable searches", () => {
   it("navigates to a random game by bgg_id when Surprise me is clicked (#120)", async () => {
     // The dump is non-empty (top-10 loaded), so the button renders.
     vi.spyOn(api, "topBoardgames").mockResolvedValue([
-      { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1 },
+      { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1, numRatings: 143738 },
     ]);
     vi.spyOn(api, "randomBoardgame").mockResolvedValue(342942);
     vi.spyOn(api, "lookupBoardgameLocalById").mockResolvedValue({ status: "not_found" });
@@ -1352,7 +1355,7 @@ describe("BoardgameLookupPage — shareable searches", () => {
 
   it("offers this year's Spiel-des-Jahres results as entry points and resolves a winner click by bgg_id (#105)", async () => {
     vi.spyOn(api, "topBoardgames").mockResolvedValue([
-      { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1 },
+      { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1, numRatings: 143738 },
     ]);
     // The award panel reads its own source (sdj_awards), not the ranks dump.
     vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);

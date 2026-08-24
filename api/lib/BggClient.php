@@ -573,12 +573,12 @@ class BggClient
      * "unranked". import_bgg_ranks.php normalises that to NULL, but this way
      * a single un-normalised row can't sort ahead of the actual number one.
      *
-     * @return list<array{bggId:int,name:string,yearPublished:int|null,rank:int,rating:float|null}>
+     * @return list<array{bggId:int,name:string,yearPublished:int|null,rank:int,rating:float|null,numRatings:int|null}>
      */
     public function topRanked(int $limit = 10): array
     {
         $rows = db()->query(
-            'SELECT bgg_id, name, year_published, average, bgg_rank FROM bgg_ranks'
+            'SELECT bgg_id, name, year_published, average, users_rated, bgg_rank FROM bgg_ranks'
                 . ' WHERE bgg_rank > 0 ORDER BY bgg_rank ASC LIMIT ' . $limit
         )->fetchAll();
 
@@ -588,6 +588,7 @@ class BggClient
             'yearPublished' => $row['year_published'] === null ? null : (int) $row['year_published'],
             'rank' => (int) $row['bgg_rank'],
             'rating' => $row['average'] === null ? null : round((float) $row['average'], 1),
+            'numRatings' => $row['users_rated'] === null ? null : (int) $row['users_rated'],
         ], $rows);
     }
 
