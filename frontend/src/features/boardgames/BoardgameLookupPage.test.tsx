@@ -1208,17 +1208,18 @@ describe("BoardgameLookupPage", () => {
     expect(amazonLink).toHaveAttribute("href", "https://www.amazon.de/dp/B0DSWFN2XZ");
   });
 
-  // #90: no lawful source scrapes eBay/Kleinanzeigen (see usedMarketSearchUrls),
-  // and amazon.de does not always have a title-matching listing - the search
-  // links must still be there when the retail price is not.
-  it("still offers used-market search links when amazon.de has no price", async () => {
+  // #177: eBay/Kleinanzeigen are permanent search link-outs, never a
+  // fetched listing (see usedMarketSearchUrls) - showing them for a game
+  // with no retail price anywhere reads as free advertising with nothing
+  // behind it, so they hide alongside the rest of "Where to buy" instead.
+  it("hides the used-market search links when no source has a price", async () => {
     vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
 
     renderPage("/boardgames?q=catan");
 
-    await screen.findByRole("link", { name: /eBay\.de/ });
-    expect(screen.getByRole("link", { name: /Kleinanzeigen\.de/ })).toBeInTheDocument();
-    expect(screen.queryByText(/Neu, via Amazon\.de/)).toBeNull();
+    await screen.findByText("Trade, build, settle.");
+    expect(screen.queryByRole("link", { name: /eBay\.de/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Kleinanzeigen\.de/ })).toBeNull();
   });
 
   it("the Clear button empties the search and returns to the overview", async () => {

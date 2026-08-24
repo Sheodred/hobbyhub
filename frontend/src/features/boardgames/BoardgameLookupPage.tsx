@@ -601,9 +601,16 @@ export function BoardgameLookupPage() {
   if (copyState === "copied" && state.kind === "result")
     statusText = `Link copied — it opens ${state.game.name} for whoever you send it to.`;
 
-  // #90: used-market search link-outs, computed once per result rather than
-  // inline in the JSX below.
-  const usedMarket = state.kind === "result" ? usedMarketSearchUrls(state.game.name) : null;
+  // #90/#177: used-market search link-outs, computed once per result rather
+  // than inline in the JSX below. Shown only alongside a real retail price -
+  // eBay.de/Kleinanzeigen.de can never be more than a canned search link
+  // (robots.txt disallows scraping either, see usedMarketSearchUrls), so
+  // with no price found anywhere they would be pure advertising with
+  // nothing backing them.
+  const usedMarket =
+    state.kind === "result" && (state.game.prices ?? []).length > 0
+      ? usedMarketSearchUrls(state.game.name)
+      : null;
 
   return (
     <div>
