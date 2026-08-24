@@ -213,8 +213,10 @@ export function lookupBoardgameLocalById(bggId: number, lang?: Lang): Promise<Bo
 
 /**
  * One entry in the pre-search top-10 (#102). Deliberately not a `Boardgame`:
- * this is a card in a list, not an answer, and it carries only the four
- * facts the local ranks dump actually holds. No image - see #101.
+ * this is a card in a list, not an answer, and it carries only the facts
+ * the local ranks dump actually holds - no player count/duration/age, BGG's
+ * ranks export never had those (#179, confirmed live against BGG's own
+ * dump). No image - see #101.
  */
 export interface TopBoardgame {
   bggId: number;
@@ -222,6 +224,7 @@ export interface TopBoardgame {
   yearPublished: number | null;
   rank: number;
   rating: number | null;
+  numRatings: number | null;
 }
 
 /** Empty when the ranks dump has not been imported - render nothing, not an empty grid. */

@@ -889,20 +889,40 @@ export function BoardgameLookupPage() {
                   deeper - the outer fix alone left this ul wider than its own
                   now-correctly-sized <section>, so rows spilled out of it. */}
             <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex-1 lg:content-between">
+              {/* #179: taller tile than a single baseline row - BGG's ranks
+                  dump carries no player count/duration/age (confirmed live
+                  against BGG's own export), so the added height goes to a
+                  rating bar and the ratings count instead, both already free
+                  on this row. */}
               {top.map((game) => (
                 <li key={game.bggId}>
                   <button
                     type="button"
                     onClick={() => pick(game.bggId, game.name)}
-                    className="flex w-full min-w-0 items-baseline gap-3 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2 text-left hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                    className="flex w-full min-w-0 flex-col gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-3 text-left hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                   >
-                    <span className="shrink-0 text-xs font-medium text-indigo-300">#{game.rank}</span>
-                    <span className="min-w-0 flex-1 truncate text-sm text-slate-200">
-                      {game.name}
-                      {game.yearPublished ? ` (${game.yearPublished})` : ""}
-                    </span>
+                    <div className="flex items-baseline gap-3">
+                      <span className="shrink-0 text-xs font-medium text-indigo-300">#{game.rank}</span>
+                      <span className="min-w-0 flex-1 truncate text-sm text-slate-200">
+                        {game.name}
+                        {game.yearPublished ? ` (${game.yearPublished})` : ""}
+                      </span>
+                      {game.rating !== null && (
+                        <span className="shrink-0 text-xs text-slate-400">{game.rating.toFixed(1)} / 10</span>
+                      )}
+                    </div>
                     {game.rating !== null && (
-                      <span className="shrink-0 text-xs text-slate-400">{game.rating.toFixed(1)} / 10</span>
+                      // Decorative only - the rating is already stated as text
+                      // above, this just gives the eye a faster read of it.
+                      <div aria-hidden="true" className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                        <div
+                          className="h-full rounded-full bg-indigo-400"
+                          style={{ width: `${(game.rating / 10) * 100}%` }}
+                        />
+                      </div>
+                    )}
+                    {game.numRatings !== null && (
+                      <span className="text-xs text-slate-400">{game.numRatings.toLocaleString("en")} ratings</span>
                     )}
                   </button>
                 </li>

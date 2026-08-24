@@ -1573,7 +1573,10 @@ final class BggClientTest extends TestCase
         $this->assertSame(0, $calls, 'the top list must not call BGG at all');
         $this->assertSame([926, 13], array_column($result, 'bggId'), 'rank 401 leads rank 566');
         $this->assertSame(
-            ['bggId' => 926, 'name' => 'Catan: Cities & Knights', 'yearPublished' => 1998, 'rank' => 401, 'rating' => 7.4],
+            [
+                'bggId' => 926, 'name' => 'Catan: Cities & Knights', 'yearPublished' => 1998,
+                'rank' => 401, 'rating' => 7.4, 'numRatings' => 40000,
+            ],
             $result[0]
         );
     }
