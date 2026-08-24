@@ -89,6 +89,24 @@ than getting streaming to work reliably.
 
 ### Endpoints
 
+**Search-name resolution, without waiting on `bgg.php`:** the four
+name-based endpoints (Amazon/Board Game Quest/H@LL9000/brettspiele-report)
+need a name to search under, currently `BggClient::searchNames($bggId,
+$primaryName, $germanNames)` = `[$primaryName] + aliasNames($bggId) +
+$germanNames`. Of these three, only `$germanNames` (derived from BGG's
+live "versions" data) requires the full live lookup - `$primaryName`
+is exactly what `bgg_ranks.name` already holds (the same dump-backed
+table the existing instant local answer reads), and `aliasNames()` is
+already a plain `game_aliases` DB query with no live dependency. Each
+name-based endpoint below resolves its own `[$primaryName] +
+aliasNames($bggId)` directly from those two tables (mirroring
+`BggClient::lookupLocalById()`'s existing pattern) instead of depending
+on `bgg.php`'s response - this is what makes true 6-way parallel fire
+correct instead of a thundering-herd risk. The live-version-derived
+German-title guess is dropped from this first pass; that only affects
+games without a curated alias yet, and is a smaller regression than
+the one #122 already fixed (curated aliases still work).
+
 - `api/boardgames/bgg.php` - replaces/slims `lookup.php`. Returns name,
   description (+ translation), image, facts (raw numbers, see below),
   categories, mechanics, interaction, BGG's own rating/rank/family
