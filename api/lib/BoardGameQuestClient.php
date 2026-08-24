@@ -128,9 +128,19 @@ class BoardGameQuestClient implements RatingSource
         }
         $text = trim(preg_replace('/\s+/', ' ', $text));
 
-        return mb_strlen($text) <= self::RULES_MAX_LENGTH
-            ? $text
-            : rtrim(mb_substr($text, 0, self::RULES_MAX_LENGTH)) . '…';
+        if (mb_strlen($text) <= self::RULES_MAX_LENGTH) {
+            return $text;
+        }
+
+        // Cut at the last space at-or-before the limit so a word is never
+        // split (#178) - same rule GameDescription applies to BGG's own
+        // description text on the frontend. Falls back to a hard cut for
+        // the (absurd) case of one word longer than the whole limit.
+        $window = mb_substr($text, 0, self::RULES_MAX_LENGTH + 1);
+        $cut = mb_strrpos($window, ' ');
+        $clamped = $cut === false ? mb_substr($text, 0, self::RULES_MAX_LENGTH) : mb_substr($window, 0, $cut);
+
+        return rtrim($clamped) . '…';
     }
 
     /** @return string[] */

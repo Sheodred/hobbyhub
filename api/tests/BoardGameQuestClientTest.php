@@ -117,6 +117,25 @@ final class BoardGameQuestClientTest extends TestCase
         $this->assertStringEndsWith('…', $rules);
     }
 
+    // #178: a plain mb_substr($text, 0, RULES_MAX_LENGTH) lands wherever the
+    // 320th character happens to fall, mid-word as often as not - this
+    // built a 20-char word straddling that exact cutoff to force it.
+    public function testRulesBlurbNeverSplitsAWordAtTheCutoff(): void
+    {
+        $prefix = str_repeat('a', BoardGameQuestClient::RULES_MAX_LENGTH - 10);
+        $client = new BoardGameQuestClient(fn() => [
+            $this->post(
+                'Azul Review',
+                'Gameplay Overview: ' . $prefix . ' washedwordwordword12 more text after this one. Final Score: 4 Stars',
+                'https://x/azul-review/'
+            ),
+        ]);
+
+        $rules = $client->reviewFor('Azul')['rules'];
+
+        $this->assertSame($prefix . '…', $rules);
+    }
+
     public function testDoesNotAcceptAReviewOfADifferentEdition(): void
     {
         // BGQ reviewed "Wingspan Pocket", not Wingspan. Presenting that score
