@@ -6,6 +6,7 @@ require_once __DIR__ . '/../lib/BoardGameQuestClient.php';
 require_once __DIR__ . '/../lib/Hall9000Client.php';
 require_once __DIR__ . '/../lib/BrettspieleReportClient.php';
 require_once __DIR__ . '/../lib/BrettspielpreiseClient.php';
+require_once __DIR__ . '/../lib/PriceSource.php';
 
 $q = trim($_GET['q'] ?? '');
 $bggIdParam = $_GET['bgg_id'] ?? '';
@@ -156,28 +157,22 @@ try {
         ? ['value' => $report['complexity'], 'max' => $report['max'], 'source' => 'brettspiele-report']
         : ($game['complexity'] ?? null);
 
-    // #90/#172: retail (new) price, not the used market this issue also
-    // asked about - see docs/adr/0018 for why used-market pricing (eBay,
-    // Kleinanzeigen) is a link-out on the frontend rather than a fetched
-    // number.
+    // #90/#172/#176: every retail (new) price this game has, not just one
+    // "winning" source - a game can genuinely be cheaper or in stock at one
+    // store and not another, so both reach the page when both have an
+    // answer. Not the used market this issue also asked about - see
+    // docs/adr/0018 for why used-market pricing (eBay, Kleinanzeigen) is a
+    // link-out on the frontend rather than a fetched number.
     //
     // brettspielpreise.de first (docs/adr/0020): it is keyed by BGG id
     // directly, so there is no title-matching step to fail, and it already
     // aggregates many stores - structurally more robust than a single
-    // scraped page. amazon.de is the fallback for whatever
-    // brettspielpreise.de has no listing for yet.
-    $price = optional_source('brettspielpreise.de', fn() => $bspClient->priceFor($bggId));
-    $priceSource = $bspClient->label();
-    if ($price === null) {
-        $price = optional_source('amazon.de price', fn() => first_hit($searchNames, fn(string $n) => $amazonClient->priceFor($n)));
-        $priceSource = $amazonClient->label();
-    }
-    $game['price'] = $price === null ? null : [
-        'value' => $price['price'],
-        'currency' => $price['currency'],
-        'source' => $priceSource,
-        'url' => $price['url'],
-    ];
+    // scraped page. List order, not exclusivity - amazon.de still appears
+    // alongside it when amazon.de also has a price.
+    $game['prices'] = collect_prices([
+        $bspClient->label() => fn() => $bspClient->priceFor($bggId),
+        $amazonClient->label() => fn() => first_hit($searchNames, fn(string $n) => $amazonClient->priceFor($n)),
+    ]);
 
     json_response(['status' => 'ok', 'game' => $game]);
 } catch (Throwable $e) {

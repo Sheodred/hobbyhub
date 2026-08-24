@@ -43,11 +43,12 @@ export interface Complexity {
 }
 
 /**
- * #90/#172: the retail (new) price - brettspielpreise.de first (docs/adr/0020,
- * keyed by BGG id, aggregates many stores), amazon.de as a fallback. A
- * genuinely different question from the used-market price this issue also
- * asked about, which has no lawful source today and is a link-out (see
- * usedMarketSearchUrls) rather than a fetched number.
+ * #90/#172/#176: one source's retail (new) price - brettspielpreise.de
+ * (docs/adr/0020, keyed by BGG id, aggregates many stores) and amazon.de each
+ * contribute their own entry when they have one; neither displaces the
+ * other. A genuinely different question from the used-market price this
+ * issue also asked about, which has no lawful source today and is a
+ * link-out (see usedMarketSearchUrls) rather than a fetched number.
  */
 export interface RetailPrice {
   value: number;
@@ -100,8 +101,8 @@ export interface Boardgame {
    * not a verdict: it belongs nowhere near `ratings`.
    */
   complexity: Complexity | null;
-  /** null when neither brettspielpreise.de nor amazon.de has a price for this game. */
-  price: RetailPrice | null;
+  /** Empty when neither brettspielpreise.de nor amazon.de has a price for this game. */
+  prices: RetailPrice[];
   /** True when this needs a base game rather than standing on its own. */
   isExpansion: boolean;
   /**
