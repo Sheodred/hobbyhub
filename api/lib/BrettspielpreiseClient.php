@@ -14,12 +14,12 @@ require_once __DIR__ . '/Cache.php';
 // - CACHE_TTL_SECONDS is a day, comfortably over that floor.
 class BrettspielpreiseClient
 {
-    private const CACHE_TTL_SECONDS = 24 * 60 * 60;
+    private const CACHE_TTL_SECONDS = 7 * 24 * 60 * 60; // #180: 24h re-fetched every single day, 7d matches Amazon's cadence
     // Same as the hit TTL - a miss ("nothing for this id yet") is worth
     // re-checking about as often as a hit is worth refreshing, and this is a
     // free API with no reason to hold a miss for days the way the slower
     // scraped sources do.
-    private const MISS_TTL_SECONDS = 24 * 60 * 60;
+    private const MISS_TTL_SECONDS = 7 * 24 * 60 * 60;
     private const THROTTLE_MIN_INTERVAL_MS = 500;
     public const INFO_URL = 'https://brettspielpreise.de/api/info';
 

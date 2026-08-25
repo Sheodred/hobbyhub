@@ -152,15 +152,99 @@ export interface Boardgame {
   source: BoardgameSource;
 }
 
-export type BoardgameLookupResult =
-  | { status: "ok"; game: Boardgame }
+/**
+ * #180/#186: bgg.php's shape - BGG's own data only. No `ratings`, `bgq`,
+ * or `prices` - those are assembled client-side from the five other
+ * endpoints (see mergeSources.ts). `players`/`duration`/`age` are raw,
+ * unit-free numbers/ranges here (BGG's own facts, still possibly filled
+ * in further by hall9000.php per-field) - the merge step is what turns
+ * them into the labeled `Boardgame.players`/`duration`/`age` strings.
+ */
+export interface BggCoreResult {
+  bggId: number;
+  name: string;
+  description: string;
+  descriptionTranslated?: boolean;
+  rating: number | null;
+  numRatings: number | null;
+  good: string[] | null;
+  bad: string[] | null;
+  partial: boolean;
+  players: string | null;
+  duration: string | null;
+  age: number | null;
+  complexity: Complexity | null;
+  isExpansion: boolean;
+  rank: number | null;
+  thumbnail?: string | null;
+  image?: string | null;
+  mechanics?: BggTag[];
+  categories?: BggTag[];
+  interaction?: "competitive" | "cooperative" | "one-vs-all" | null;
+  strategyRank?: number | null;
+  familyRank?: number | null;
+  thematicRank?: number | null;
+  source: BoardgameSource;
+}
+
+export type BggResult =
+  | { status: "ok"; game: BggCoreResult }
   | { status: "disambiguation"; candidates: BoardgameCandidate[] }
-  /**
-   * The search ran and found nothing - a result, not a failure, so it
-   * arrives as a 200. `suggestions` holds the closest names in the local
-   * catalogue and is empty when even those miss.
-   */
   | { status: "not_found"; query: string; suggestions: BoardgameCandidate[] };
+
+export function fetchBggById(bggId: number, lang?: Lang): Promise<BggResult> {
+  const params = withLang({ bgg_id: String(bggId) }, lang);
+  return apiFetch<BggResult>(`/api/boardgames/bgg?${params.toString()}`);
+}
+
+export function fetchBggByQuery(query: string, lang?: Lang): Promise<BggResult> {
+  const params = withLang({ q: query }, lang);
+  return apiFetch<BggResult>(`/api/boardgames/bgg?${params.toString()}`);
+}
+
+export interface AmazonResult {
+  rating: ExternalRating | null;
+  price: RetailPrice | null;
+}
+
+export function fetchAmazon(bggId: number): Promise<AmazonResult> {
+  return apiFetch<{ status: "ok" } & AmazonResult>(`/api/boardgames/amazon?bgg_id=${bggId}`);
+}
+
+export interface BoardGameQuestResult {
+  rating: ExternalRating | null;
+  review: Omit<BoardGameQuestReview, "score"> | null;
+}
+
+export function fetchBoardGameQuest(bggId: number): Promise<BoardGameQuestResult> {
+  return apiFetch<{ status: "ok" } & BoardGameQuestResult>(`/api/boardgames/boardgamequest?bgg_id=${bggId}`);
+}
+
+export interface Hall9000Result {
+  rating: ExternalRating | null;
+  players: string | null;
+  duration: string | null;
+  age: number | null;
+}
+
+export function fetchHall9000(bggId: number): Promise<Hall9000Result> {
+  return apiFetch<{ status: "ok" } & Hall9000Result>(`/api/boardgames/hall9000?bgg_id=${bggId}`);
+}
+
+export interface BrettspieleReportResult {
+  rating: ExternalRating | null;
+  complexity: Complexity | null;
+}
+
+export function fetchBrettspieleReport(bggId: number): Promise<BrettspieleReportResult> {
+  return apiFetch<{ status: "ok" } & BrettspieleReportResult>(`/api/boardgames/brettspielereport?bgg_id=${bggId}`);
+}
+
+export function fetchBrettspielpreise(bggId: number): Promise<RetailPrice | null> {
+  return apiFetch<{ status: "ok"; price: RetailPrice | null }>(`/api/boardgames/brettspielpreise?bgg_id=${bggId}`).then(
+    (res) => res.price
+  );
+}
 
 /**
  * #130: which name to display - the German alias where one exists ("Die
@@ -172,16 +256,6 @@ export type Lang = "de" | "en";
 
 function withLang(base: Record<string, string>, lang?: Lang): URLSearchParams {
   return new URLSearchParams(lang ? { ...base, lang } : base);
-}
-
-export function lookupBoardgame(query: string, lang?: Lang): Promise<BoardgameLookupResult> {
-  const params = withLang({ q: query }, lang);
-  return apiFetch<BoardgameLookupResult>(`/api/boardgames/lookup?${params.toString()}`);
-}
-
-export function lookupBoardgameById(bggId: number, lang?: Lang): Promise<BoardgameLookupResult> {
-  const params = withLang({ bgg_id: String(bggId) }, lang);
-  return apiFetch<BoardgameLookupResult>(`/api/boardgames/lookup?${params.toString()}`);
 }
 
 /**

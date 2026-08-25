@@ -604,8 +604,8 @@ final class BggClientTest extends TestCase
         $this->assertSame('2 - 4', $result['players']);
         // German phrasing, matching H@LL9000's own exactly - this is a
         // fallback for the same card, not a different language for it.
-        $this->assertSame('60 Minuten', $result['duration']);
-        $this->assertSame('ab 13 Jahren', $result['age']);
+        $this->assertSame('60', $result['duration']);
+        $this->assertSame(13, $result['age']);
     }
 
     public function testPlayerCountAndDurationCollapseToASingleNumberWhenMinEqualsMax(): void
@@ -620,7 +620,7 @@ final class BggClientTest extends TestCase
         $result = $client->lookup(13);
 
         $this->assertSame('4', $result['players'], 'a range with the same min and max reads worse than a single number');
-        $this->assertSame('90 Minuten', $result['duration']);
+        $this->assertSame('90', $result['duration']);
     }
 
     public function testLookupSurfacesComplexityFromBggsAverageweight(): void
@@ -667,6 +667,60 @@ final class BggClientTest extends TestCase
         $this->assertNull($result['players']);
         $this->assertNull($result['duration']);
         $this->assertNull($result['age']);
+    }
+
+    public function testLocalSearchNamesCombinesThePrimaryDumpNameWithCuratedAliases(): void
+    {
+        $this->seedRanks(); // seeds bgg_id 13 = "Catan"
+        db()->exec("INSERT INTO game_aliases (bgg_id, name) VALUES (13, 'Die Siedler von Catan')");
+
+        $names = (new BggClient(fn() => null))->localSearchNames(13);
+
+        $this->assertSame(['Catan', 'Die Siedler von Catan'], $names);
+    }
+
+    public function testLocalSearchNamesIsEmptyWhenTheDumpHasNoRowForThisId(): void
+    {
+        $this->assertSame([], (new BggClient(fn() => null))->localSearchNames(999999));
+    }
+
+    public function testLocalSearchNamesFallsBackToANameAlreadyCachedFromAnEarlierBggLookup(): void
+    {
+        // A game published/added since the last bgg_ranks import has no dump
+        // row, but once anyone has looked it up here even once, bgg.php's
+        // own successful call already cached its name - this fallback finds
+        // that instead of losing all four name-based sources silently.
+        db()->exec(
+            "INSERT INTO bgg_lookup_cache (bgg_id, response_json, expires_at) VALUES
+             (454672, '{\"bggId\":454672,\"name\":\"Some New Release\"}', DATE_ADD(NOW(), INTERVAL 1 DAY))"
+        );
+
+        $names = (new BggClient(fn() => null))->localSearchNames(454672);
+
+        $this->assertSame(['Some New Release'], $names);
+    }
+
+    public function testLocalSearchNamesIgnoresAnExpiredCacheEntry(): void
+    {
+        db()->exec(
+            "INSERT INTO bgg_lookup_cache (bgg_id, response_json, expires_at) VALUES
+             (454672, '{\"bggId\":454672,\"name\":\"Some New Release\"}', DATE_SUB(NOW(), INTERVAL 1 DAY))"
+        );
+
+        $this->assertSame([], (new BggClient(fn() => null))->localSearchNames(454672));
+    }
+
+    public function testLocalSearchNamesNeverCallsBgg(): void
+    {
+        $this->seedRanks();
+        $calls = 0;
+        $names = (new BggClient(function () use (&$calls) {
+            $calls++;
+            return null;
+        }))->localSearchNames(13);
+
+        $this->assertSame(0, $calls, 'localSearchNames must resolve from bgg_ranks/game_aliases only');
+        $this->assertSame(['Catan'], $names);
     }
 
     public function testLookupSurfacesMechanicAndCategoryLabels(): void

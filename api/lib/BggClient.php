@@ -775,6 +775,55 @@ class BggClient
     }
 
     /**
+     * #180/#186: the name candidates a source can be searched under,
+     * resolved without any live BGG call - primary name from bgg_ranks
+     * (the same dump-backed table the instant local answer already reads),
+     * falling back to a name already cached in bgg_lookup_cache from an
+     * earlier successful bgg.php call for this same id (a game published
+     * or added since the last dump import has no bgg_ranks row, but once
+     * anyone has looked it up here even once, this fallback finds it for
+     * every lookup after) - plus curated aliases from game_aliases
+     * (already a plain DB query, see aliasNames()). Deliberately excludes
+     * the third tier searchNames() adds (a German title guessed from BGG's
+     * live version data) - that would require the full live lookup,
+     * defeating the point of this method existing: letting the four
+     * name-based endpoints (amazon.php/boardgamequest.php/hall9000.php/
+     * brettspielereport.php) fire in true parallel with bgg.php instead of
+     * waiting on it first (which would risk several endpoints racing to
+     * populate bgg_lookup_cache simultaneously on a cold cache). The very
+     * first lookup of a game that is both absent from the dump AND never
+     * cached still returns [] here - bgg.php's own live call is what
+     * populates the cache the next lookup will find.
+     *
+     * @return string[] empty when neither the dump nor the cache has a name for this id.
+     */
+    public function localSearchNames(int $bggId): array
+    {
+        $stmt = db()->prepare('SELECT name FROM bgg_ranks WHERE bgg_id = ?');
+        $stmt->execute([$bggId]);
+        $name = $stmt->fetchColumn();
+        if ($name === false) {
+            $name = $this->cachedLookupName($bggId);
+        }
+        if ($name === null) {
+            return [];
+        }
+        return array_values(array_unique(array_merge([(string) $name], $this->aliasNames($bggId))));
+    }
+
+    private function cachedLookupName(int $bggId): ?string
+    {
+        $stmt = db()->prepare('SELECT response_json FROM bgg_lookup_cache WHERE bgg_id = ? AND expires_at > NOW()');
+        $stmt->execute([$bggId]);
+        $json = $stmt->fetchColumn();
+        if ($json === false) {
+            return null;
+        }
+        $decoded = json_decode((string) $json, true);
+        return isset($decoded['name']) && is_string($decoded['name']) ? $decoded['name'] : null;
+    }
+
+    /**
      * #162: the German title read off BGG's own version list, rather than
      * guessed at from the alternate names.
      *
@@ -1069,7 +1118,7 @@ class BggClient
             // fields present and correct).
             'players' => self::playerRange($item),
             'duration' => self::durationRange($item),
-            'age' => self::ageLabel($item),
+            'age' => self::minAge($item),
             // Same fallback story: brettspiele-report wins when it has an
             // entry (see lookup.php); BGG's own community weight rating
             // (averageweight, 1-5, same scale as brettspiele-report's own)
@@ -1099,18 +1148,16 @@ class BggClient
         if ($min <= 0 && $max <= 0) {
             return null;
         }
-        $value = $min > 0 && $max > 0 && $min !== $max ? "$min - $max" : (string) max($min, $max);
-        // German phrasing, matching H@LL9000's own ("75 Minuten") - this is
-        // a fallback for when that site has no entry, not a different
-        // language for the same card.
-        return "$value Minuten";
+        // #180/#186: no unit word here any more - the frontend labels this,
+        // consistently with H@LL9000's now-equally-unit-free duration, in
+        // whichever of DE/EN the page is currently showing.
+        return $min > 0 && $max > 0 && $min !== $max ? "$min - $max" : (string) max($min, $max);
     }
 
-    private static function ageLabel(SimpleXMLElement $item): ?string
+    private static function minAge(SimpleXMLElement $item): ?int
     {
         $age = isset($item->minage) ? (int) $item->minage['value'] : 0;
-        // "ab X Jahren", matching H@LL9000's own phrasing exactly.
-        return $age > 0 ? "ab {$age} Jahren" : null;
+        return $age > 0 ? $age : null;
     }
 
     private static function complexityFromBgg(SimpleXMLElement $item): ?array

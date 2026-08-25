@@ -37,8 +37,8 @@ final class GermanRatingClientsTest extends TestCase
         $this->assertSame(6, $r['max']);
         $this->assertSame(17, $r['count']);
         $this->assertSame('2 - 4', $r['players']);
-        $this->assertSame('30 - 45 Minuten', $r['duration']);
-        $this->assertSame('ab 8 Jahren', $r['age']);
+        $this->assertSame('30 - 45', $r['duration']);
+        $this->assertSame(8, $r['age']);
         $this->assertSame('https://www.hall9000.de/html/spiel/azul', $r['url']);
     }
 

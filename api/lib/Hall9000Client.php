@@ -52,7 +52,7 @@ class Hall9000Client implements RatingSource
     }
 
     /**
-     * @return array{rating:float,max:int,count:?int,players:?string,duration:?string,age:?string,url:string}|null
+     * @return array{rating:float,max:int,count:?int,players:?string,duration:?string,age:?int,url:string}|null
      */
     public function label(): string
     {
@@ -109,7 +109,7 @@ class Hall9000Client implements RatingSource
     }
 
     /**
-     * @return array{rating:float,max:int,count:?int,players:?string,duration:?string,url:string}|null
+     * @return array{rating:float,max:int,count:?int,players:?string,duration:?string,age:?int,url:string}|null
      */
     public function parse(string $html, string $slug): ?array
     {
@@ -129,8 +129,8 @@ class Hall9000Client implements RatingSource
             'max' => self::MAX_RATING,
             'count' => (int) $m[2],
             'players' => $this->field($text, 'Spieler'),
-            'duration' => $this->field($text, 'Dauer'),
-            'age' => $this->field($text, 'Alter'),
+            'duration' => $this->numericPrefix($this->field($text, 'Dauer')),
+            'age' => $this->numericAge($this->field($text, 'Alter')),
             'url' => self::GAME_URL . $slug,
         ];
     }
@@ -143,6 +143,26 @@ class Hall9000Client implements RatingSource
         }
         $value = trim($m[1]);
         return $value === '' ? null : $value;
+    }
+
+    // #180/#186: BGG's own facts carry no unit word either ("2 - 4", not
+    // "2 - 4 Spieler") - labeling moved to the frontend so both sources
+    // speak the same unit-free language and the page applies one
+    // consistent, language-toggle-aware label instead of whichever source
+    // happened to answer baking in its own (German) words.
+    private function numericPrefix(?string $raw): ?string
+    {
+        if ($raw === null || !preg_match('/\d[\d\s\-–]*\d|\d+/', $raw, $m)) {
+            return null;
+        }
+        return trim($m[0]);
+    }
+
+    // Age is always a single minimum, never a range ("ab 8 Jahren" -> 8).
+    private function numericAge(?string $raw): ?int
+    {
+        $stripped = $this->numericPrefix($raw);
+        return $stripped === null ? null : (int) $stripped;
     }
 
     // Matches the slugs in their own RSS feeds: lowercase, every run of

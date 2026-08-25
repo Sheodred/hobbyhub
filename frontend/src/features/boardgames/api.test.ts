@@ -1,12 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { lookupBoardgame, suggestBoardgames } from "./api";
+import { fetchBggByQuery, suggestBoardgames } from "./api";
 
-describe("lookupBoardgame", () => {
+describe("fetchBggByQuery", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
   });
 
-  it("requests the lookup endpoint with the query param and returns the parsed body", async () => {
+  it("requests the bgg endpoint with the query param and returns the parsed body", async () => {
     const body = { status: "ok", game: { bggId: 13, name: "Catan" } };
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
@@ -14,9 +14,9 @@ describe("lookupBoardgame", () => {
       json: async () => body,
     });
 
-    const result = await lookupBoardgame("catan");
+    const result = await fetchBggByQuery("catan");
 
-    expect(fetch).toHaveBeenCalledWith("/api/boardgames/lookup?q=catan", expect.anything());
+    expect(fetch).toHaveBeenCalledWith("/api/boardgames/bgg?q=catan", expect.anything());
     expect(result).toEqual(body);
   });
 });
