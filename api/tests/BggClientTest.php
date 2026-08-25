@@ -1680,6 +1680,24 @@ final class BggClientTest extends TestCase
         $this->assertCount(1, (new BggClient())->topRanked(1));
     }
 
+    public function testTopRankedDegradesGracefullyWhenCategoryColumnsAreNotMigratedYet(): void
+    {
+        // Category-rank columns land via a manual phpMyAdmin ALTER TABLE, not
+        // a migration runner - a deploy can land before that's applied.
+        // Simulate that gap: the list must still render, just without badges.
+        $this->seedRanks();
+        db()->exec('ALTER TABLE bgg_ranks DROP COLUMN strategygames_rank');
+
+        try {
+            $result = (new BggClient())->topRanked();
+        } finally {
+            db()->exec('ALTER TABLE bgg_ranks ADD COLUMN strategygames_rank INT NULL');
+        }
+
+        $this->assertSame([926, 13], array_column($result, 'bggId'));
+        $this->assertSame([], $result[0]['categoryRanks']);
+    }
+
     public function testDidYouMeanRanksATranspositionAsOneEdit(): void
     {
         // 'Ctaan' transposes the 'a' and 't' of 'Catan'. Plain Levenshtein
