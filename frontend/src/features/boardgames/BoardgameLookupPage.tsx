@@ -7,8 +7,13 @@ import { usePrefersReducedMotion } from "../../hooks/usePrefersReducedMotion";
 import { ApiError } from "../../lib/apiClient";
 import {
   boardgameAwards,
-  lookupBoardgame,
-  lookupBoardgameById,
+  fetchAmazon,
+  fetchBggById,
+  fetchBggByQuery,
+  fetchBoardGameQuest,
+  fetchBrettspieleReport,
+  fetchBrettspielpreise,
+  fetchHall9000,
   lookupBoardgameLocal,
   lookupBoardgameLocalById,
   randomBoardgame,
@@ -18,12 +23,13 @@ import {
   type AwardCategory,
   type AwardEntry,
   type Boardgame,
+  type BggResult,
   type BoardgameCandidate,
-  type BoardgameLookupResult,
   type Complexity,
   type Lang,
   type TopBoardgame,
 } from "./api";
+import { initialSources, mergeSources, type Sources } from "./mergeSources";
 
 type ViewState =
   | { kind: "idle" }
@@ -31,13 +37,40 @@ type ViewState =
   | { kind: "error"; message: string }
   | { kind: "disambiguation"; candidates: BoardgameCandidate[] }
   | { kind: "not_found"; query: string; suggestions: BoardgameCandidate[] }
-  | { kind: "result"; game: Boardgame; enriching: boolean };
+  | { kind: "result"; game: Boardgame; sources: Sources };
 
 // 2 chars keeps a single keystroke from firing a request; 200ms is short
 // enough to feel live without hammering the (indexed, but still real)
 // bgg_ranks query on every keystroke.
 const SUGGEST_MIN_LENGTH = 2;
 const SUGGEST_DEBOUNCE_MS = 200;
+
+// #180/#186: when even the instant local answer fails (dump not
+// imported, or a shared link to a game outside it), bgg.php's own
+// response is still the base mergeSources() starts from - this stub
+// exists only so there is always a Boardgame to spread over. Every
+// field bgg.php actually answers with overwrites these placeholders
+// immediately in the same merge pass.
+const FALLBACK_PARTIAL: Boardgame = {
+  bggId: 0,
+  name: "",
+  description: "",
+  rating: null,
+  numRatings: null,
+  good: null,
+  bad: null,
+  partial: true,
+  ratings: [],
+  bgq: null,
+  players: null,
+  duration: null,
+  age: null,
+  complexity: null,
+  prices: [],
+  isExpansion: false,
+  rank: null,
+  source: { name: "BoardGameGeek", url: "https://boardgamegeek.com" },
+};
 
 // #130: persisted independently of the URL-driven search state (#99) - this
 // is a standing site preference, not part of any one search, so switching
@@ -373,9 +406,37 @@ export function BoardgameLookupPage() {
     setActiveIndex(-1);
   }
 
-  function applyResult(result: BoardgameLookupResult) {
+  function fireAllSources(bggId: number) {
+    const patch = (patchFn: (s: Sources) => Sources) =>
+      setState((current) => (current.kind === "result" ? { ...current, sources: patchFn(current.sources) } : current));
+
+    fetchAmazon(bggId).then(
+      (value) => patch((s) => ({ ...s, amazon: { status: "done", value } })),
+      () => patch((s) => ({ ...s, amazon: { status: "done", value: { rating: null, price: null } } }))
+    );
+    fetchBoardGameQuest(bggId).then(
+      (value) => patch((s) => ({ ...s, boardgamequest: { status: "done", value } })),
+      () => patch((s) => ({ ...s, boardgamequest: { status: "done", value: { rating: null, review: null } } }))
+    );
+    fetchHall9000(bggId).then(
+      (value) => patch((s) => ({ ...s, hall9000: { status: "done", value } })),
+      () => patch((s) => ({ ...s, hall9000: { status: "done", value: { rating: null, players: null, duration: null, age: null } } }))
+    );
+    fetchBrettspieleReport(bggId).then(
+      (value) => patch((s) => ({ ...s, brettspielereport: { status: "done", value } })),
+      () => patch((s) => ({ ...s, brettspielereport: { status: "done", value: { rating: null, complexity: null } } }))
+    );
+    fetchBrettspielpreise(bggId).then(
+      (value) => patch((s) => ({ ...s, brettspielpreise: { status: "done", value } })),
+      () => patch((s) => ({ ...s, brettspielpreise: { status: "done", value: null } }))
+    );
+  }
+
+  function applyBggResult(result: BggResult, local: Boardgame) {
     if (result.status === "ok") {
-      setState({ kind: "result", game: result.game, enriching: false });
+      const sources: Sources = { ...initialSources(), bgg: { status: "done", value: result.game } };
+      setState({ kind: "result", game: mergeSources(local, sources, lang), sources });
+      fireAllSources(result.game.bggId);
     } else if (result.status === "not_found") {
       setState({ kind: "not_found", query: result.query, suggestions: result.suggestions });
     } else {
@@ -390,58 +451,44 @@ export function BoardgameLookupPage() {
   async function runSearch(term: string) {
     setState({ kind: "loading" });
 
-    // The dump answers in milliseconds; the full lookup walks four Rating
-    // Sources sequentially and measured 4-5s cold in production. Show the
-    // cheap half straight away rather than holding the page for the slow
-    // one. A failure here is not reported - the full lookup below is still
-    // authoritative and will report its own.
+    let local: Boardgame | null = null;
     try {
-      const local = await lookupBoardgameLocal(term, lang);
-      if (local.status === "ok") {
-        setState({ kind: "result", game: local.game, enriching: true });
-      } else if (local.status === "disambiguation") {
-        setState({ kind: "disambiguation", candidates: local.candidates });
+      const localResult = await lookupBoardgameLocal(term, lang);
+      if (localResult.status === "ok") {
+        local = localResult.game;
+        setState({ kind: "result", game: local, sources: initialSources() });
+      } else if (localResult.status === "disambiguation") {
+        setState({ kind: "disambiguation", candidates: localResult.candidates });
       }
     } catch {
       // Fall through to the full lookup.
     }
 
     try {
-      applyResult(await lookupBoardgame(term, lang));
+      applyBggResult(await fetchBggByQuery(term, lang), local ?? FALLBACK_PARTIAL);
     } catch (err) {
-      // Keep a good partial answer rather than replacing it with an error:
-      // before #91 the dump's data was all you got when BGG was unreachable,
-      // and discarding it here would be a regression on that.
-      setState((current) =>
-        current.kind === "result" ? { ...current, enriching: false } : errorState(err)
-      );
+      setState((current) => (current.kind === "result" ? current : errorState(err)));
     }
   }
 
   async function runLookupById(bggId: number) {
     setState({ kind: "loading" });
 
-    // #115: same instant-then-enrich shape as runSearch. A click or a shared
-    // link went straight to the 4-5s cold lookup and held the page blank the
-    // whole time; the dump can answer this id in milliseconds. A failure here
-    // is not reported - the full lookup below is authoritative.
+    let local: Boardgame | null = null;
     try {
-      const local = await lookupBoardgameLocalById(bggId, lang);
-      if (local.status === "ok") {
-        setState({ kind: "result", game: local.game, enriching: true });
+      const localResult = await lookupBoardgameLocalById(bggId, lang);
+      if (localResult.status === "ok") {
+        local = localResult.game;
+        setState({ kind: "result", game: local, sources: initialSources() });
       }
     } catch {
       // Fall through to the full lookup.
     }
 
     try {
-      applyResult(await lookupBoardgameById(bggId, lang));
+      applyBggResult(await fetchBggById(bggId, lang), local ?? FALLBACK_PARTIAL);
     } catch (err) {
-      // Keep a good partial answer rather than replacing it with an error,
-      // the same way runSearch does.
-      setState((current) =>
-        current.kind === "result" ? { ...current, enriching: false } : errorState(err)
-      );
+      setState((current) => (current.kind === "result" ? current : errorState(err)));
     }
   }
 
