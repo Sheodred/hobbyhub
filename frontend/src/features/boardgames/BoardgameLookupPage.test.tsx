@@ -44,6 +44,21 @@ const CATAN: Boardgame = {
   source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
 };
 
+function mockEmptyExternalSources() {
+  vi.spyOn(api, "fetchAmazon").mockResolvedValue({ rating: null, price: null });
+  vi.spyOn(api, "fetchBoardGameQuest").mockResolvedValue({ rating: null, review: null });
+  vi.spyOn(api, "fetchHall9000").mockResolvedValue({ rating: null, players: null, duration: null, age: null });
+  vi.spyOn(api, "fetchBrettspieleReport").mockResolvedValue({ rating: null, complexity: null });
+  vi.spyOn(api, "fetchBrettspielpreise").mockResolvedValue(null);
+}
+
+// The BggCoreResult shape bgg.php now returns - every Boardgame field
+// except ratings/bgq/prices (those come from the other five endpoints).
+function bggCoreFrom(game: Boardgame): api.BggCoreResult {
+  const { ratings: _ratings, bgq: _bgq, prices: _prices, ...core } = game;
+  return core;
+}
+
 const AWARDS_2026: api.BoardgameAwards = {
   year: 2026,
   categories: [
@@ -122,7 +137,8 @@ describe("BoardgameLookupPage", () => {
     });
 
     it("sends the chosen language on every lookup, suggestion, and instant-path call", async () => {
-      vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+      mockEmptyExternalSources();
+      vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
       vi.spyOn(api, "lookupBoardgameLocal").mockResolvedValue({ status: "unavailable" });
 
       renderPage();
@@ -130,7 +146,7 @@ describe("BoardgameLookupPage", () => {
       fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
       fireEvent.submit(screen.getByRole("search"));
 
-      await waitFor(() => expect(api.lookupBoardgame).toHaveBeenCalledWith("catan", "de"));
+      await waitFor(() => expect(api.fetchBggByQuery).toHaveBeenCalledWith("catan", "de"));
       expect(api.lookupBoardgameLocal).toHaveBeenCalledWith("catan", "de");
     });
 
@@ -138,9 +154,10 @@ describe("BoardgameLookupPage", () => {
       // First call (EN, on load) resolves under the primary name; the second
       // (after clicking DE) resolves under the German alias - proving the
       // toggle re-runs the lookup rather than only affecting future searches.
-      vi.spyOn(api, "lookupBoardgame")
-        .mockResolvedValueOnce({ status: "ok", game: CATAN })
-        .mockResolvedValueOnce({ status: "ok", game: { ...CATAN, name: "Die Siedler von Catan" } });
+      mockEmptyExternalSources();
+      vi.spyOn(api, "fetchBggByQuery")
+        .mockResolvedValueOnce({ status: "ok", game: bggCoreFrom(CATAN) })
+        .mockResolvedValueOnce({ status: "ok", game: bggCoreFrom({ ...CATAN, name: "Die Siedler von Catan" }) });
       vi.spyOn(api, "lookupBoardgameLocal").mockResolvedValue({ status: "unavailable" });
 
       renderPage("/boardgames?q=catan");
@@ -153,9 +170,10 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows the game's rating, good/bad snippet, and BGG source credit after a search", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         bggId: 13,
         name: "Catan",
         description: "Trade, build, settle.",
@@ -173,7 +191,7 @@ describe("BoardgameLookupPage", () => {
         prices: [], isExpansion: false,
         rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
-      },
+      }),
     });
 
     renderPage();
@@ -194,9 +212,10 @@ describe("BoardgameLookupPage", () => {
   // exactly the URL the API returned - a rewritten or proxied one would 404.
   it("renders the BGG cover thumbnail on the result card", async () => {
     const thumbnail = "https://cf.geekdo-images.com/x__small/img/y=/fit-in/200x150/pic6293412.jpg";
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, thumbnail },
+      game: bggCoreFrom({ ...CATAN, thumbnail }),
     });
 
     renderPage();
@@ -214,9 +233,10 @@ describe("BoardgameLookupPage", () => {
   // BGG has no picture for. Rendering <img src=""> there would show a broken
   // image and collapse the box the description is laid out against.
   it("keeps a fixed-size placeholder when the game has no cover", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, thumbnail: null },
+      game: bggCoreFrom({ ...CATAN, thumbnail: null }),
     });
 
     renderPage();
@@ -232,9 +252,10 @@ describe("BoardgameLookupPage", () => {
   // a toggle at all (a "Show more" that reveals two words is worse than none).
   it("clamps a long description behind a Show more/less toggle", async () => {
     const long = `${"Lorem ipsum dolor sit amet ".repeat(40)}FINAL_SENTENCE_MARKER`;
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, description: long },
+      game: bggCoreFrom({ ...CATAN, description: long }),
     });
 
     renderPage();
@@ -251,9 +272,10 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows a short description with no toggle", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, description: "Trade, build, settle." },
+      game: bggCoreFrom({ ...CATAN, description: "Trade, build, settle." }),
     });
 
     renderPage();
@@ -267,9 +289,10 @@ describe("BoardgameLookupPage", () => {
   // #129: a machine-translated description must never read as BGG's own
   // words - same honesty rule as the `partial` notice.
   it("labels a machine-translated description and marks it lang=de", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, description: "Handeln, bauen, siedeln.", descriptionTranslated: true },
+      game: bggCoreFrom({ ...CATAN, description: "Handeln, bauen, siedeln.", descriptionTranslated: true }),
     });
 
     renderPage();
@@ -282,9 +305,10 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows no translation label for BGG's own English description", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, description: "Trade, build, settle.", descriptionTranslated: false },
+      game: bggCoreFrom({ ...CATAN, description: "Trade, build, settle.", descriptionTranslated: false }),
     });
 
     renderPage();
@@ -297,13 +321,14 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows up to 3 good and 3 bad snippets, each independently", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         ...CATAN,
         good: ["Great trading game.", "A modern classic.", "Still holds up."],
         bad: ["Too much luck.", "Rolled badly, lost badly.", "Boring after round two."],
-      },
+      }),
     });
 
     renderPage();
@@ -323,9 +348,10 @@ describe("BoardgameLookupPage", () => {
   // full doesn't force the others open too.
   it("clamps a review snippet past 35 words behind its own Show more", async () => {
     const longReview = Array.from({ length: 50 }, (_, i) => `word${i}`).join(" ");
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, good: [longReview, "Short one."], bad: null },
+      game: bggCoreFrom({ ...CATAN, good: [longReview, "Short one."], bad: null }),
     });
 
     renderPage();
@@ -348,7 +374,7 @@ describe("BoardgameLookupPage", () => {
   it("shows a loading indicator while the first lookup is in flight (#128)", async () => {
     // Never-resolving lookups keep the page in the loading state.
     vi.spyOn(api, "lookupBoardgameLocal").mockReturnValue(new Promise(() => {}));
-    vi.spyOn(api, "lookupBoardgame").mockReturnValue(new Promise(() => {}));
+    vi.spyOn(api, "fetchBggByQuery").mockReturnValue(new Promise(() => {}));
 
     renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
@@ -357,34 +383,33 @@ describe("BoardgameLookupPage", () => {
     await waitFor(() => expect(screen.getByTestId("loading-indicator")).toBeInTheDocument());
   });
 
-  it("shows an enriching indicator on the card while the slow sources load (#128)", async () => {
-    vi.spyOn(api, "lookupBoardgameLocal").mockResolvedValue({ status: "ok", game: CATAN });
-    let resolveFull!: (r: api.BoardgameLookupResult) => void;
-    vi.spyOn(api, "lookupBoardgame").mockReturnValue(
-      new Promise<api.BoardgameLookupResult>((resolve) => {
-        resolveFull = resolve;
-      })
-    );
+  it("shows a per-section loading indicator while the slow sources load (#128/#186)", async () => {
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
+    let resolveAmazon!: (r: api.AmazonResult) => void;
+    vi.spyOn(api, "fetchAmazon").mockReturnValue(new Promise((resolve) => { resolveAmazon = resolve; }));
+    vi.spyOn(api, "fetchBoardGameQuest").mockResolvedValue({ rating: null, review: null });
+    vi.spyOn(api, "fetchHall9000").mockResolvedValue({ rating: null, players: null, duration: null, age: null });
+    vi.spyOn(api, "fetchBrettspieleReport").mockResolvedValue({ rating: null, complexity: null });
+    vi.spyOn(api, "fetchBrettspielpreise").mockResolvedValue(null);
 
     renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
     fireEvent.submit(screen.getByRole("search"));
 
-    // The instant local answer is up, but the card flags it's still enriching.
-    await waitFor(() => expect(screen.getByTestId("enriching-indicator")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Loading other ratings/)).toBeInTheDocument());
 
-    resolveFull({ status: "ok", game: CATAN });
+    resolveAmazon({ rating: null, price: null });
 
-    // Once the full answer lands, the cue is gone.
-    await waitFor(() => expect(screen.queryByTestId("enriching-indicator")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText(/Loading other ratings/)).not.toBeInTheDocument());
   });
 
   it("shows a Spiel-des-Jahres badge when the game is in this year's panel (#117)", async () => {
     vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
     // DITO! (400495) is the Spiel-des-Jahres winner in the fixture.
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, bggId: 400495, name: "DITO!" },
+      game: bggCoreFrom({ ...CATAN, bggId: 400495, name: "DITO!" }),
     });
 
     renderPage();
@@ -396,16 +421,17 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("renders BGG mechanic and category tags on the result card (#131)", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         ...CATAN,
         categories: [{ id: 1021, name: "Negotiation" }],
         mechanics: [
           { id: 2072, name: "Dice Rolling" },
           { id: 2008, name: "Trading" },
         ],
-      },
+      }),
     });
 
     renderPage();
@@ -429,13 +455,14 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("links each mechanic and category tag to BGG's own page for it", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         ...CATAN,
         categories: [{ id: 1021, name: "Negotiation" }],
         mechanics: [{ id: 2072, name: "Dice Rolling" }],
-      },
+      }),
     });
 
     renderPage();
@@ -453,9 +480,10 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows the strategy, family, and thematic game ranks alongside the overall BGG rank", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, rank: 627, strategyRank: 592, familyRank: 206, thematicRank: 1 },
+      game: bggCoreFrom({ ...CATAN, rank: 627, strategyRank: 592, familyRank: 206, thematicRank: 1 }),
     });
 
     renderPage();
@@ -469,9 +497,10 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("says nothing about a strategy/family/thematic rank the game does not have", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, rank: 627, strategyRank: null, familyRank: null, thematicRank: null },
+      game: bggCoreFrom({ ...CATAN, rank: 627, strategyRank: null, familyRank: null, thematicRank: null }),
     });
 
     renderPage();
@@ -489,9 +518,10 @@ describe("BoardgameLookupPage", () => {
     ["one-vs-all", "One vs. All"],
     ["competitive", "Competitive"],
   ] as const)("shows the interaction type %s as %s (#131)", async (interaction, label) => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, interaction },
+      game: bggCoreFrom({ ...CATAN, interaction }),
     });
 
     renderPage();
@@ -502,9 +532,10 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows nothing for interaction type rather than guessing when it's null", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, interaction: null },
+      game: bggCoreFrom({ ...CATAN, interaction: null }),
     });
 
     renderPage();
@@ -517,7 +548,8 @@ describe("BoardgameLookupPage", () => {
 
   it("shows no award badge for a game that isn't in the panel (#117)", async () => {
     vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN }); // bggId 13
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) }); // bggId 13
 
     renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
@@ -528,16 +560,17 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows a disambiguation list and resolves the picked candidate", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "disambiguation",
       candidates: [
         { bggId: 13, name: "Catan", yearPublished: 1995 },
         { bggId: 1234, name: "Catan: Cities and Knights", yearPublished: 1998 },
       ],
     });
-    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggById").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         bggId: 13,
         name: "Catan",
         description: "Trade, build, settle.",
@@ -555,7 +588,7 @@ describe("BoardgameLookupPage", () => {
         prices: [], isExpansion: false,
         rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
-      },
+      }),
     });
 
     renderPage();
@@ -565,14 +598,15 @@ describe("BoardgameLookupPage", () => {
     const option = await screen.findByRole("button", { name: /Catan \(1995\)/ });
     fireEvent.click(option);
 
-    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(13, "en"));
+    await waitFor(() => expect(api.fetchBggById).toHaveBeenCalledWith(13, "en"));
     expect(await screen.findByText("Trade, build, settle.")).toBeInTheDocument();
   });
 
   it("says so plainly when only the ranks-dump data is available", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         bggId: 13,
         name: "Catan",
         description: "",
@@ -593,7 +627,7 @@ describe("BoardgameLookupPage", () => {
         prices: [], isExpansion: false,
         rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
-      },
+      }),
     });
 
     renderPage();
@@ -605,9 +639,10 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows every external rating with its own scale", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         bggId: 13, name: "Catan", description: "Trade, build, settle.",
         rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
         ratings: [
@@ -622,7 +657,7 @@ describe("BoardgameLookupPage", () => {
         prices: [], isExpansion: false,
         rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
-      },
+      }),
     });
 
     renderPage();
@@ -639,9 +674,10 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows the facts that decide whether a game suits the table", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         bggId: 926, name: "Catan: Cities & Knights", description: "More Catan.",
         rating: 7.4, numRatings: 40000, good: null, bad: null, partial: false,
         ratings: [], bgq: null,
@@ -652,7 +688,7 @@ describe("BoardgameLookupPage", () => {
         prices: [], isExpansion: true,
         rank: 401,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/926" },
-      },
+      }),
     });
 
     renderPage();
@@ -671,9 +707,10 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("labels a BGG-scale complexity by its nearest weight vote", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: { ...CATAN, complexity: { value: 2.83, max: 5, source: "BoardGameGeek" } },
+      game: bggCoreFrom({ ...CATAN, complexity: { value: 2.83, max: 5, source: "BoardGameGeek" } }),
     });
 
     renderPage();
@@ -685,15 +722,16 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("leaves out facts no source published, rather than showing empty labels", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         bggId: 13, name: "Catan", description: "Trade, build, settle.",
         rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
         ratings: [], bgq: null,
         players: "3 - 4", duration: null, age: null, complexity: null, prices: [], isExpansion: false, rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
-      },
+      }),
     });
 
     renderPage();
@@ -708,9 +746,10 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows Board Game Quest's score and how the game plays", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         bggId: 331106, name: "Intarsia", description: "", rating: 7.2, numRatings: 900,
         good: ["Beautiful production"], bad: ["Lacking replay value"], partial: true, players: "2 - 4", duration: "30 - 45 Minuten",
         age: null, complexity: null, prices: [], isExpansion: false, rank: null,
@@ -725,7 +764,7 @@ describe("BoardgameLookupPage", () => {
           title: "Intarsia Review", url: "https://www.boardgamequest.com/intarsia-review/",
         },
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/331106" },
-      },
+      }),
     });
 
     renderPage();
@@ -747,15 +786,16 @@ describe("BoardgameLookupPage", () => {
   // one that mounts with its text already inside it is routinely not
   // announced at all, which is the failure mode this asserts against.
   it("announces the outcome through a live region that is already mounted", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         bggId: 13, name: "Catan", description: "Trade, build, settle.",
         rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
         ratings: [], bgq: null, players: null, duration: null, age: null,
         complexity: null, prices: [], isExpansion: false, rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
-      },
+      }),
     });
 
     renderPage();
@@ -776,15 +816,16 @@ describe("BoardgameLookupPage", () => {
       { bggId: 13, name: "Catan", yearPublished: 1995 },
       { bggId: 926, name: "Catan: Cities & Knights", yearPublished: 1998 },
     ]);
-    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggById").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         bggId: 13, name: "Catan", description: "Trade, build, settle.",
         rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
         ratings: [], bgq: null, players: null, duration: null, age: null,
         complexity: null, prices: [], isExpansion: false, rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
-      },
+      }),
     });
 
     renderPage();
@@ -798,7 +839,7 @@ describe("BoardgameLookupPage", () => {
 
     fireEvent.click(options[0]);
 
-    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(13, "en"));
+    await waitFor(() => expect(api.fetchBggById).toHaveBeenCalledWith(13, "en"));
     expect(await screen.findByText("Trade, build, settle.")).toBeInTheDocument();
     expect(screen.queryByRole("option")).not.toBeInTheDocument();
   });
@@ -818,15 +859,16 @@ describe("BoardgameLookupPage", () => {
       { bggId: 13, name: "Catan", yearPublished: 1995 },
       { bggId: 926, name: "Catan: Cities & Knights", yearPublished: 1998 },
     ]);
-    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggById").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         bggId: 926, name: "Catan: Cities & Knights", description: "More Catan.",
         rating: 7.4, numRatings: 40000, good: null, bad: null, partial: false,
         ratings: [], bgq: null, players: null, duration: null, age: null,
         complexity: null, prices: [], isExpansion: true, rank: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/926" },
-      },
+      }),
     });
 
     renderPage();
@@ -840,7 +882,7 @@ describe("BoardgameLookupPage", () => {
 
     fireEvent.keyDown(input, { key: "Enter" });
 
-    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(926, "en"));
+    await waitFor(() => expect(api.fetchBggById).toHaveBeenCalledWith(926, "en"));
     expect(await screen.findByText("More Catan.")).toBeInTheDocument();
   });
 
@@ -867,8 +909,9 @@ describe("BoardgameLookupPage", () => {
     await waitFor(() => expect(api.suggestBoardgames).toHaveBeenCalled());
     expect(screen.queryByRole("option")).not.toBeInTheDocument();
   });
+
   it("offers close names instead of an error when nothing matches (#92)", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "not_found",
       query: "teasd",
       suggestions: [
@@ -889,7 +932,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("says 'no exact match' once, in the status region only (#107)", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "not_found",
       query: "teasd",
       suggestions: [{ bggId: 13, name: "Catan", yearPublished: 1995 }],
@@ -903,11 +946,11 @@ describe("BoardgameLookupPage", () => {
     // the same sentence twice, stacked.
     await waitFor(() => expect(screen.getByText(/did you mean/i)).toBeInTheDocument());
     expect(screen.getAllByText(/no exact match/i)).toHaveLength(1);
-    expect(screen.getByRole("status")).toHaveTextContent(/no exact match for “teasd”\. 1 similar name suggested\./i);
+    expect(screen.getByRole("status")).toHaveTextContent(/no exact match for "teasd"\. 1 similar name suggested\./i);
   });
 
   it("says so plainly when nothing matches and there is nothing to suggest", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "not_found",
       query: "zzzzqqqq",
       suggestions: [],
@@ -927,12 +970,12 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("puts the chosen name in the search box when a did-you-mean suggestion is taken", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "not_found",
       query: "ctaan",
       suggestions: [{ bggId: 13, name: "Catan", yearPublished: 1995 }],
     });
-    const byId = vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({
+    const byId = vi.spyOn(api, "fetchBggById").mockResolvedValue({
       status: "disambiguation",
       candidates: [],
     });
@@ -951,12 +994,12 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("does not reopen the typeahead over the result after taking a suggestion", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "not_found",
       query: "ctaan",
       suggestions: [{ bggId: 13, name: "Catan", yearPublished: 1995 }],
     });
-    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "disambiguation", candidates: [] });
+    vi.spyOn(api, "fetchBggById").mockResolvedValue({ status: "disambiguation", candidates: [] });
 
     renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "ctaan" } });
@@ -992,7 +1035,7 @@ describe("BoardgameLookupPage", () => {
 
     // The slow half never settles during this test, so anything asserted
     // below is necessarily coming from the instant path.
-    vi.spyOn(api, "lookupBoardgame").mockReturnValue(new Promise(() => {}));
+    vi.spyOn(api, "fetchBggByQuery").mockReturnValue(new Promise(() => {}));
 
     renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
@@ -1015,15 +1058,16 @@ describe("BoardgameLookupPage", () => {
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         bggId: 13, name: "Catan", description: "Trade, build, settle.", rating: 7.2,
         numRatings: 1000, good: ["Great trading game."], bad: ["Too much luck."],
         partial: false, ratings: [], bgq: null, players: "3-4", duration: null,
         age: null, complexity: null, prices: [], isExpansion: false, rank: 566,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
-      },
+      }),
     });
 
     renderPage();
@@ -1045,7 +1089,7 @@ describe("BoardgameLookupPage", () => {
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       },
     });
-    vi.spyOn(api, "lookupBoardgame").mockRejectedValue(new Error("upstream down"));
+    vi.spyOn(api, "fetchBggByQuery").mockRejectedValue(new Error("upstream down"));
 
     renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
@@ -1080,7 +1124,7 @@ describe("BoardgameLookupPage", () => {
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/13" },
       } as unknown as Boardgame,
     });
-    vi.spyOn(api, "lookupBoardgame").mockReturnValue(new Promise(() => {}));
+    vi.spyOn(api, "fetchBggByQuery").mockReturnValue(new Promise(() => {}));
 
     renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
@@ -1098,9 +1142,10 @@ describe("BoardgameLookupPage", () => {
 
   it("offers the top-ranked games before a search and resolves the clicked one by id", async () => {
     vi.spyOn(api, "topBoardgames").mockResolvedValue(topGames);
-    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggById").mockResolvedValue({
       status: "ok",
-      game: {
+      game: bggCoreFrom({
         bggId: 224517,
         name: "Brass: Birmingham",
         description: "Canals and coal.",
@@ -1118,7 +1163,7 @@ describe("BoardgameLookupPage", () => {
         prices: [], isExpansion: false,
         rank: 1,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/224517" },
-      },
+      }),
     });
 
     renderPage();
@@ -1135,13 +1180,13 @@ describe("BoardgameLookupPage", () => {
 
     // By id, never by name: a name round-trip can land on the
     // disambiguation flow, which is absurd for a curated list.
-    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(224517, "en"));
+    await waitFor(() => expect(api.fetchBggById).toHaveBeenCalledWith(224517, "en"));
     expect(await screen.findByText("Canals and coal.")).toBeInTheDocument();
   });
 
   it("gets out of the way once a result is on screen", async () => {
     vi.spyOn(api, "topBoardgames").mockResolvedValue(topGames);
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "not_found",
       query: "zzz",
       suggestions: [],
@@ -1170,13 +1215,18 @@ describe("BoardgameLookupPage", () => {
 
   // #90
   it("shows the amazon.de retail price and links to used-market searches", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: {
-        ...CATAN,
-        prices: [{ value: 22.9, currency: "EUR", source: "Amazon.de", url: "https://www.amazon.de/dp/B0DSWFN2XZ" }],
-      },
+      game: bggCoreFrom(CATAN),
     });
+    vi.spyOn(api, "fetchAmazon").mockResolvedValue({
+      rating: null,
+      price: { value: 22.9, currency: "EUR", source: "Amazon.de", url: "https://www.amazon.de/dp/B0DSWFN2XZ" },
+    });
+    vi.spyOn(api, "fetchBoardGameQuest").mockResolvedValue({ rating: null, review: null });
+    vi.spyOn(api, "fetchHall9000").mockResolvedValue({ rating: null, players: null, duration: null, age: null });
+    vi.spyOn(api, "fetchBrettspieleReport").mockResolvedValue({ rating: null, complexity: null });
+    vi.spyOn(api, "fetchBrettspielpreise").mockResolvedValue(null);
 
     renderPage("/boardgames?q=catan");
 
@@ -1192,16 +1242,20 @@ describe("BoardgameLookupPage", () => {
   // #176: brettspielpreise.de and amazon.de each contribute their own price
   // when they both have one for this game - neither displaces the other.
   it("shows every source's price when more than one has one", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
-      game: {
-        ...CATAN,
-        prices: [
-          { value: 19.99, currency: "EUR", source: "Brettspielpreise.de", url: "https://brettspielpreise.de/item/go?x" },
-          { value: 22.9, currency: "EUR", source: "Amazon.de", url: "https://www.amazon.de/dp/B0DSWFN2XZ" },
-        ],
-      },
+      game: bggCoreFrom(CATAN),
     });
+    vi.spyOn(api, "fetchAmazon").mockResolvedValue({
+      rating: null,
+      price: { value: 22.9, currency: "EUR", source: "Amazon.de", url: "https://www.amazon.de/dp/B0DSWFN2XZ" },
+    });
+    vi.spyOn(api, "fetchBoardGameQuest").mockResolvedValue({ rating: null, review: null });
+    vi.spyOn(api, "fetchHall9000").mockResolvedValue({ rating: null, players: null, duration: null, age: null });
+    vi.spyOn(api, "fetchBrettspieleReport").mockResolvedValue({ rating: null, complexity: null });
+    vi.spyOn(api, "fetchBrettspielpreise").mockResolvedValue(
+      { value: 19.99, currency: "EUR", source: "Brettspielpreise.de", url: "https://brettspielpreise.de/item/go?x" }
+    );
 
     renderPage("/boardgames?q=catan");
 
@@ -1216,7 +1270,8 @@ describe("BoardgameLookupPage", () => {
   // with no retail price anywhere reads as free advertising with nothing
   // behind it, so they hide alongside the rest of "Where to buy" instead.
   it("hides the used-market search links when no source has a price", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
 
     renderPage("/boardgames?q=catan");
 
@@ -1226,7 +1281,8 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("the Clear button empties the search and returns to the overview", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
 
     renderPage("/boardgames?q=catan");
     await screen.findByText("Trade, build, settle.");
@@ -1241,7 +1297,8 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("clicking the page heading also resets to the overview", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
 
     renderPage("/boardgames?q=catan");
 
@@ -1261,7 +1318,8 @@ describe("BoardgameLookupPage", () => {
     const scrollTo = vi.fn();
     main.scrollTo = scrollTo;
 
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
 
     renderPage("/boardgames?q=catan");
     await screen.findByText("Trade, build, settle.");
@@ -1276,7 +1334,8 @@ describe("BoardgameLookupPage", () => {
 // #99: a result you cannot link to might as well not have happened.
 describe("BoardgameLookupPage — shareable searches", () => {
   it("puts the submitted search in the URL", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
 
     renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "catan" } });
@@ -1286,23 +1345,25 @@ describe("BoardgameLookupPage — shareable searches", () => {
   });
 
   it("runs the lookup from ?q= on mount, so a shared link lands on the result", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
 
     renderPage("/boardgames?q=catan");
 
     expect(await screen.findByText("Trade, build, settle.")).toBeInTheDocument();
-    expect(api.lookupBoardgame).toHaveBeenCalledWith("catan", "en");
+    expect(api.fetchBggByQuery).toHaveBeenCalledWith("catan", "en");
     // The box shows what is being searched for, not an empty field.
     expect(screen.getByRole("combobox")).toHaveValue("catan");
   });
 
   it("resolves ?bgg_id= from the URL without guessing at a name", async () => {
-    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "ok", game: CATAN });
-    const byName = vi.spyOn(api, "lookupBoardgame");
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggById").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
+    const byName = vi.spyOn(api, "fetchBggByQuery");
 
     renderPage("/boardgames?bgg_id=13");
 
-    await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(13, "en"));
+    await waitFor(() => expect(api.fetchBggById).toHaveBeenCalledWith(13, "en"));
     expect(byName).not.toHaveBeenCalled();
   });
 
@@ -1326,7 +1387,7 @@ describe("BoardgameLookupPage — shareable searches", () => {
     });
     // The slow half never settles, so anything on screen came from the instant
     // path - the blank-page bug was that this path was skipped entirely (#115).
-    vi.spyOn(api, "lookupBoardgameById").mockReturnValue(new Promise(() => {}));
+    vi.spyOn(api, "fetchBggById").mockReturnValue(new Promise(() => {}));
 
     renderPage("/boardgames?bgg_id=13");
 
@@ -1343,7 +1404,8 @@ describe("BoardgameLookupPage — shareable searches", () => {
     ]);
     vi.spyOn(api, "randomBoardgame").mockResolvedValue(342942);
     vi.spyOn(api, "lookupBoardgameLocalById").mockResolvedValue({ status: "not_found" });
-    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "ok", game: CATAN });
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggById").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
 
     renderPage();
 
@@ -1360,7 +1422,8 @@ describe("BoardgameLookupPage — shareable searches", () => {
     // The award panel reads its own source (sdj_awards), not the ranks dump.
     vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
     vi.spyOn(api, "lookupBoardgameLocalById").mockResolvedValue({ status: "not_found" });
-    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "ok", game: CATAN });
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggById").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
 
     renderPage();
 
@@ -1384,7 +1447,8 @@ describe("BoardgameLookupPage — shareable searches", () => {
   it("resolves a nominee with a seeded id directly by bgg_id (#105)", async () => {
     vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
     vi.spyOn(api, "lookupBoardgameLocalById").mockResolvedValue({ status: "not_found" });
-    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "ok", game: CATAN });
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggById").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
 
     renderPage();
 
@@ -1397,7 +1461,7 @@ describe("BoardgameLookupPage — shareable searches", () => {
 
   it("runs a name search for an id-less nominee or recommendation (#105)", async () => {
     vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "not_found",
       query: "Wilmot's Warehouse",
       suggestions: [],
@@ -1436,11 +1500,12 @@ describe("BoardgameLookupPage — shareable searches", () => {
   });
 
   it("writes bgg_id to the URL when a candidate is picked", async () => {
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "disambiguation",
       candidates: [{ bggId: 13, name: "Catan", yearPublished: 1995 }],
     });
-    vi.spyOn(api, "lookupBoardgameById").mockResolvedValue({ status: "ok", game: CATAN });
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggById").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
 
     renderPage("/boardgames?q=catan");
 
@@ -1464,7 +1529,8 @@ describe("BoardgameLookupPage — shareable searches", () => {
   it("copies a bgg_id link for the resolved game and confirms it", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
 
     renderPage("/boardgames?q=catan");
 
@@ -1484,7 +1550,8 @@ describe("BoardgameLookupPage — shareable searches", () => {
       clipboard: { writeText: vi.fn().mockRejectedValue(new Error("nope")) },
     });
     // jsdom has no execCommand at all - the same as an old browser refusing.
-    vi.spyOn(api, "lookupBoardgame").mockResolvedValue({ status: "ok", game: CATAN });
+    mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
 
     renderPage("/boardgames?q=catan");
 
