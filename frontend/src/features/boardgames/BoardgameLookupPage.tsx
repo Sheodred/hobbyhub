@@ -406,9 +406,19 @@ export function BoardgameLookupPage() {
     setActiveIndex(-1);
   }
 
-  function fireAllSources(bggId: number) {
+  // #180/#186 fix (reviewer round 1): patch takes the bggId/local/lang this
+  // fireAllSources call was fired for, so a slow response from an abandoned
+  // search can't clobber whatever the current result now is - the bggId
+  // check guards that - and every arrival recomputes state.game via
+  // mergeSources, not just state.sources, so the merged view actually moves
+  // as sources land instead of staying frozen at the bgg-only render.
+  function fireAllSources(bggId: number, local: Boardgame, lang: Lang) {
     const patch = (patchFn: (s: Sources) => Sources) =>
-      setState((current) => (current.kind === "result" ? { ...current, sources: patchFn(current.sources) } : current));
+      setState((current) => {
+        if (current.kind !== "result" || current.game.bggId !== bggId) return current;
+        const sources = patchFn(current.sources);
+        return { ...current, game: mergeSources(local, sources, lang), sources };
+      });
 
     fetchAmazon(bggId).then(
       (value) => patch((s) => ({ ...s, amazon: { status: "done", value } })),
@@ -436,7 +446,7 @@ export function BoardgameLookupPage() {
     if (result.status === "ok") {
       const sources: Sources = { ...initialSources(), bgg: { status: "done", value: result.game } };
       setState({ kind: "result", game: mergeSources(local, sources, lang), sources });
-      fireAllSources(result.game.bggId);
+      fireAllSources(result.game.bggId, local, lang);
     } else if (result.status === "not_found") {
       setState({ kind: "not_found", query: result.query, suggestions: result.suggestions });
     } else {
@@ -446,6 +456,23 @@ export function BoardgameLookupPage() {
 
   function errorState(err: unknown): ViewState {
     return { kind: "error", message: err instanceof ApiError ? err.message : "Something went wrong." };
+  }
+
+  // #180/#186 fix (reviewer round 1): when the local answer rendered but the
+  // full bgg fetch itself then threw, fireAllSources never runs - nothing
+  // else would ever mark these five as settled, so a per-source "loading…"
+  // indicator would spin forever on a plain bgg outage. bgg stays "pending"
+  // (it's the one that actually failed); these five get the same
+  // null-shaped fallback their own fetch failure handlers use above.
+  function withExternalSourcesFailed(sources: Sources): Sources {
+    return {
+      ...sources,
+      amazon: { status: "done", value: { rating: null, price: null } },
+      boardgamequest: { status: "done", value: { rating: null, review: null } },
+      hall9000: { status: "done", value: { rating: null, players: null, duration: null, age: null } },
+      brettspielereport: { status: "done", value: { rating: null, complexity: null } },
+      brettspielpreise: { status: "done", value: null },
+    };
   }
 
   async function runSearch(term: string) {
@@ -467,7 +494,9 @@ export function BoardgameLookupPage() {
     try {
       applyBggResult(await fetchBggByQuery(term, lang), local ?? FALLBACK_PARTIAL);
     } catch (err) {
-      setState((current) => (current.kind === "result" ? current : errorState(err)));
+      setState((current) =>
+        current.kind === "result" ? { ...current, sources: withExternalSourcesFailed(current.sources) } : errorState(err)
+      );
     }
   }
 
@@ -488,7 +517,9 @@ export function BoardgameLookupPage() {
     try {
       applyBggResult(await fetchBggById(bggId, lang), local ?? FALLBACK_PARTIAL);
     } catch (err) {
-      setState((current) => (current.kind === "result" ? current : errorState(err)));
+      setState((current) =>
+        current.kind === "result" ? { ...current, sources: withExternalSourcesFailed(current.sources) } : errorState(err)
+      );
     }
   }
 
