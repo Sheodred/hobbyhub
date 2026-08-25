@@ -316,6 +316,18 @@ function Spinner() {
   );
 }
 
+// #180/#186: replaces the single global "Loading the other sources…"
+// message - each external section gets its own, so a fast source's
+// content appears immediately instead of waiting for the slowest one.
+function SectionLoading({ label }: { label: string }) {
+  return (
+    <p aria-live="polite" className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+      <Spinner />
+      <span>Loading {label}…</span>
+    </p>
+  );
+}
+
 // The game's cover (#135), hotlinked from BGG's CDN - the API caches the URL,
 // not the bytes. The parent flex puts it right of the text on desktop and
 // above it on mobile.
@@ -679,7 +691,7 @@ export function BoardgameLookupPage() {
   if (state.kind === "loading") statusText = "Searching…";
   else if (state.kind === "disambiguation") statusText = "Several games match that name — which one did you mean?";
   else if (state.kind === "result")
-    statusText = state.enriching
+    statusText = Object.values(state.sources).some((s) => s.status === "pending")
       ? `${state.game.name} found — still checking the other sources`
       : `${state.game.name} found`;
   else if (state.kind === "not_found")
@@ -1060,63 +1072,52 @@ export function BoardgameLookupPage() {
                   matched by bgg_id against the already-loaded award data. */}
               <AwardBadge bggId={state.game.bggId} awards={awards} year={awardYear} />
 
-              {/* #128: a subtle "still loading the other sources" cue on the
-                  card while the slow half of the lookup runs, so a partial
-                  answer doesn't read as final. aria-hidden - the status region
-                  narrates it. */}
-              {state.enriching && (
-                <p
-                  data-testid="enriching-indicator"
-                  aria-hidden="true"
-                  className="mt-3 flex items-center gap-2 text-xs text-slate-400"
-                >
-                  <Spinner />
-                  <span>Loading the other sources…</span>
-                </p>
-              )}
-
               {/* One chip per fact rather than a dot-separated line: these are
                   the facts that decide whether a game suits your table, and as
                   small grey text they were the hardest thing on the card to
                   read. */}
-              {(state.game.players ||
-                state.game.duration ||
-                state.game.age ||
-                state.game.rank !== null ||
-                typeof state.game.strategyRank === "number" ||
-                typeof state.game.familyRank === "number" ||
-                typeof state.game.thematicRank === "number" ||
-                state.game.interaction ||
-                state.game.complexity) && (
-                <p className="mt-3 flex flex-wrap items-center gap-2">
-                  {[
-                    state.game.players && `${state.game.players} players`,
-                    state.game.duration,
-                    state.game.age,
-                    state.game.rank !== null && `BGG rank #${state.game.rank}`,
-                    // #131-style family league tables, alongside the overall
-                    // rank rather than replacing it - a game can be #627
-                    // overall and still #592 among strategy games.
-                    typeof state.game.strategyRank === "number" && `Strategy rank #${state.game.strategyRank}`,
-                    typeof state.game.familyRank === "number" && `Family rank #${state.game.familyRank}`,
-                    typeof state.game.thematicRank === "number" && `Thematic rank #${state.game.thematicRank}`,
-                    state.game.interaction && INTERACTION_LABELS[state.game.interaction],
-                  ]
-                    .filter((fact): fact is string => Boolean(fact))
-                    .map((fact) => (
-                      <span
-                        key={fact}
-                        className="rounded-full border border-indigo-400/25 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-100"
-                      >
-                        {fact}
+              {state.sources.bgg.status === "pending" ? (
+                <SectionLoading label="details" />
+              ) : (
+                (state.game.players ||
+                  state.game.duration ||
+                  state.game.age ||
+                  state.game.rank !== null ||
+                  typeof state.game.strategyRank === "number" ||
+                  typeof state.game.familyRank === "number" ||
+                  typeof state.game.thematicRank === "number" ||
+                  state.game.interaction ||
+                  state.game.complexity) && (
+                  <p className="mt-3 flex flex-wrap items-center gap-2">
+                    {[
+                      state.game.players && `${state.game.players} players`,
+                      state.game.duration,
+                      state.game.age,
+                      state.game.rank !== null && `BGG rank #${state.game.rank}`,
+                      // #131-style family league tables, alongside the overall
+                      // rank rather than replacing it - a game can be #627
+                      // overall and still #592 among strategy games.
+                      typeof state.game.strategyRank === "number" && `Strategy rank #${state.game.strategyRank}`,
+                      typeof state.game.familyRank === "number" && `Family rank #${state.game.familyRank}`,
+                      typeof state.game.thematicRank === "number" && `Thematic rank #${state.game.thematicRank}`,
+                      state.game.interaction && INTERACTION_LABELS[state.game.interaction],
+                    ]
+                      .filter((fact): fact is string => Boolean(fact))
+                      .map((fact) => (
+                        <span
+                          key={fact}
+                          className="rounded-full border border-indigo-400/25 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-100"
+                        >
+                          {fact}
+                        </span>
+                      ))}
+                    {state.game.complexity && (
+                      <span className="rounded-full border border-indigo-400/25 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-100">
+                        Komplexität: {complexityText(state.game.complexity)}
                       </span>
-                    ))}
-                  {state.game.complexity && (
-                    <span className="rounded-full border border-indigo-400/25 bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-100">
-                      Komplexität: {complexityText(state.game.complexity)}
-                    </span>
-                  )}
-                </p>
+                    )}
+                  </p>
+                )
               )}
 
               {/* #131: BGG's category (theme) links, e.g. "Economic",
@@ -1139,21 +1140,6 @@ export function BoardgameLookupPage() {
                     </a>
                   ))}
                 </p>
-              )}
-
-              {state.game.bgq && (
-                <section className="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-4">
-                  <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">How it plays</h3>
-                  <p className="mt-1 text-sm text-slate-300">{state.game.bgq.rules}</p>
-                  <a
-                    href={state.game.bgq.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-3 inline-block text-xs text-slate-400 underline hover:text-slate-300"
-                  >
-                    Read the full review at Board Game Quest
-                  </a>
-                </section>
               )}
 
               {/* Description text with the cover-image placeholder beside it:
@@ -1232,48 +1218,82 @@ export function BoardgameLookupPage() {
                 </div>
               )}
 
+              {/* #180/#186: moved here from just above the description - sits
+                  directly before "Also rated by" now, both driven by the same
+                  boardgamequest fetch alongside the other rating sources. */}
+              {state.sources.boardgamequest.status === "pending" ? (
+                <SectionLoading label="how it plays" />
+              ) : (
+                state.game.bgq && (
+                  <section className="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-4">
+                    <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">How it plays</h3>
+                    <p className="mt-1 text-sm text-slate-300">{state.game.bgq.rules}</p>
+                    <a
+                      href={state.game.bgq.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-block text-xs text-slate-400 underline hover:text-slate-300"
+                    >
+                      Read the full review at Board Game Quest
+                    </a>
+                  </section>
+                )
+              )}
+
               {/* ?. rather than .length despite the type saying this is
                   always an array: it came from the network, and when the
                   instant-answer endpoint omitted the key this threw and -
                   with no error boundary in the app - blanked the page
                   instead of dropping one section. */}
-              {(state.game.ratings?.length ?? 0) > 0 && (
-                <div className="mt-6 border-t border-slate-800 pt-4">
-                  <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Also rated by</h3>
-                  <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-                    {(state.game.ratings ?? []).map((rating) => (
-                      // min-w-0: a grid item defaults to min-width:auto, so
-                      // without it the card grows to fit the longest retail
-                      // title ("Pegasus Spiele 51896G - Spirit Island
-                      // (deutsche Ausgabe)") and drags the whole page into a
-                      // sideways scroll on a phone. The truncate below can
-                      // only do its job once the item is allowed to shrink.
-                      <li key={rating.source} className="min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-lg font-semibold text-amber-300">{rating.value.toFixed(1)}</span>
-                          {/* Each source has its own scale - never dropped, or
-                              a 15 would read as worse than a 4.8. */}
-                          <span className="shrink-0 text-xs text-slate-400">/ {rating.max}</span>
-                          <span className="ml-auto min-w-0 truncate text-xs text-slate-400">{rating.source}</span>
-                        </div>
-                        {rating.count !== null && (
-                          <p className="mt-1 text-xs text-slate-400">{rating.count.toLocaleString("en")} ratings</p>
-                        )}
-                        {/* What the source actually matched, so a wrong match
-                            is visible rather than hidden behind a number. */}
-                        <a
-                          href={rating.url}
-                          target="_blank"
-                          rel="noreferrer nofollow"
-                          className="mt-1 block truncate text-xs text-slate-400 underline hover:text-slate-300"
-                        >
-                          {rating.title ?? "View on site"}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {(() => {
+                const ratingsPending =
+                  state.sources.amazon.status === "pending" ||
+                  state.sources.boardgamequest.status === "pending" ||
+                  state.sources.hall9000.status === "pending" ||
+                  state.sources.brettspielereport.status === "pending";
+                if (ratingsPending && (state.game.ratings?.length ?? 0) === 0) {
+                  return <SectionLoading label="other ratings" />;
+                }
+                return (
+                  (state.game.ratings?.length ?? 0) > 0 && (
+                    <div className="mt-6 border-t border-slate-800 pt-4">
+                      <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Also rated by</h3>
+                      <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+                        {(state.game.ratings ?? []).map((rating) => (
+                          // min-w-0: a grid item defaults to min-width:auto, so
+                          // without it the card grows to fit the longest retail
+                          // title ("Pegasus Spiele 51896G - Spirit Island
+                          // (deutsche Ausgabe)") and drags the whole page into a
+                          // sideways scroll on a phone. The truncate below can
+                          // only do its job once the item is allowed to shrink.
+                          <li key={rating.source} className="min-w-0 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-lg font-semibold text-amber-300">{rating.value.toFixed(1)}</span>
+                              {/* Each source has its own scale - never dropped, or
+                                  a 15 would read as worse than a 4.8. */}
+                              <span className="shrink-0 text-xs text-slate-400">/ {rating.max}</span>
+                              <span className="ml-auto min-w-0 truncate text-xs text-slate-400">{rating.source}</span>
+                            </div>
+                            {rating.count !== null && (
+                              <p className="mt-1 text-xs text-slate-400">{rating.count.toLocaleString("en")} ratings</p>
+                            )}
+                            {/* What the source actually matched, so a wrong match
+                                is visible rather than hidden behind a number. */}
+                            <a
+                              href={rating.url}
+                              target="_blank"
+                              rel="noreferrer nofollow"
+                              className="mt-1 block truncate text-xs text-slate-400 underline hover:text-slate-300"
+                            >
+                              {rating.title ?? "View on site"}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )
+                );
+              })()}
 
               {/* #90/#172/#176: one retail-price card per source that has an
                   entry for this game (docs/adr/0020) - brettspielpreise.de
@@ -1281,49 +1301,58 @@ export function BoardgameLookupPage() {
                   search link-outs. eBay.de and Kleinanzeigen.de are not
                   fetched - see usedMarketSearchUrls for why - so this always
                   renders once a game resolves, with or without a price. */}
-              <div className="mt-6 border-t border-slate-800 pt-4">
-                <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Where to buy</h3>
-                <div className="mt-3 flex flex-wrap gap-3">
-                  {/* ?? [] rather than relying on the type: the dump-backed
-                      partial answer (/api/boardgames/local) never sets this
-                      field at all, same reason ratings above reads
-                      optionally - see #91. */}
-                  {(state.game.prices ?? []).map((price) => (
-                    <a
-                      key={price.source}
-                      href={price.url}
-                      target="_blank"
-                      rel="noreferrer nofollow"
-                      className="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 hover:border-indigo-500"
-                    >
-                      <span className="block text-lg font-semibold text-emerald-300">
-                        {price.value.toFixed(2)} €
-                      </span>
-                      <span className="text-xs text-slate-400">Neu, via {price.source}</span>
-                    </a>
-                  ))}
-                  {usedMarket && (
-                    <>
-                      <a
-                        href={usedMarket.ebay}
-                        target="_blank"
-                        rel="noreferrer nofollow"
-                        className="flex items-center rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
-                      >
-                        Gebrauchte Angebote auf eBay.de
-                      </a>
-                      <a
-                        href={usedMarket.kleinanzeigen}
-                        target="_blank"
-                        rel="noreferrer nofollow"
-                        className="flex items-center rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
-                      >
-                        Gebrauchte Angebote auf Kleinanzeigen.de
-                      </a>
-                    </>
-                  )}
-                </div>
-              </div>
+              {(() => {
+                const pricesPending =
+                  state.sources.amazon.status === "pending" || state.sources.brettspielpreise.status === "pending";
+                if (pricesPending && (state.game.prices?.length ?? 0) === 0) {
+                  return <SectionLoading label="prices" />;
+                }
+                return (
+                  <div className="mt-6 border-t border-slate-800 pt-4">
+                    <h3 className="text-xs font-medium uppercase tracking-wide text-slate-400">Where to buy</h3>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      {/* ?? [] rather than relying on the type: the dump-backed
+                          partial answer (/api/boardgames/local) never sets this
+                          field at all, same reason ratings above reads
+                          optionally - see #91. */}
+                      {(state.game.prices ?? []).map((price) => (
+                        <a
+                          key={price.source}
+                          href={price.url}
+                          target="_blank"
+                          rel="noreferrer nofollow"
+                          className="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 hover:border-indigo-500"
+                        >
+                          <span className="block text-lg font-semibold text-emerald-300">
+                            {price.value.toFixed(2)} €
+                          </span>
+                          <span className="text-xs text-slate-400">Neu, via {price.source}</span>
+                        </a>
+                      ))}
+                      {usedMarket && (
+                        <>
+                          <a
+                            href={usedMarket.ebay}
+                            target="_blank"
+                            rel="noreferrer nofollow"
+                            className="flex items-center rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
+                          >
+                            Gebrauchte Angebote auf eBay.de
+                          </a>
+                          <a
+                            href={usedMarket.kleinanzeigen}
+                            target="_blank"
+                            rel="noreferrer nofollow"
+                            className="flex items-center rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
+                          >
+                            Gebrauchte Angebote auf Kleinanzeigen.de
+                          </a>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* #99: the address bar already carries the search, but nobody
                   expects that to work on a search page, so the card says so.
