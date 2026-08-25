@@ -110,6 +110,18 @@ CREATE TABLE bgg_ranks (
     -- 0, which the importer converts. Not called `rank` because that is a
     -- reserved word in MySQL 8 and MariaDB 10.2+.
     bgg_rank INT NULL,
+    -- BGG's per-category league tables, same export, same "0 means
+    -- unranked" convention as bgg_rank above. Most games have none of
+    -- these (they only rank in categories they're actually in); shown on
+    -- the top-10 tiles when a game happens to have one (#179 follow-up).
+    abstracts_rank INT NULL,
+    cgs_rank INT NULL,
+    childrensgames_rank INT NULL,
+    familygames_rank INT NULL,
+    partygames_rank INT NULL,
+    strategygames_rank INT NULL,
+    thematic_rank INT NULL,
+    wargames_rank INT NULL,
     INDEX idx_bgg_ranks_name (name)
 );
 

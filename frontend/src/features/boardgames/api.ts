@@ -218,6 +218,12 @@ export function lookupBoardgameLocalById(bggId: number, lang?: Lang): Promise<Bo
  * ranks export never had those (#179, confirmed live against BGG's own
  * dump). No image - see #101.
  */
+/** One of BGG's per-category league tables this game happens to place in (#179 follow-up). */
+export interface CategoryRank {
+  label: string;
+  rank: number;
+}
+
 export interface TopBoardgame {
   bggId: number;
   name: string;
@@ -225,6 +231,8 @@ export interface TopBoardgame {
   rank: number;
   rating: number | null;
   numRatings: number | null;
+  /** Empty for most games - only the categories BGG actually ranks this one in. */
+  categoryRanks: CategoryRank[];
 }
 
 /** Empty when the ranks dump has not been imported - render nothing, not an empty grid. */

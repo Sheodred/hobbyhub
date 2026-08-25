@@ -895,9 +895,12 @@ export function BoardgameLookupPage() {
             <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:flex-1 lg:content-between">
               {/* #179: taller tile than a single baseline row - BGG's ranks
                   dump carries no player count/duration/age (confirmed live
-                  against BGG's own export), so the added height goes to a
-                  rating bar and the ratings count instead, both already free
-                  on this row. */}
+                  against BGG's own export), so the added height goes to the
+                  ratings count and, when a game has one, its category rank(s)
+                  instead. A rating bar shipped here first but got dropped
+                  (#179 follow-up): every top-10 game sits in a narrow 8.3-8.7
+                  band, so the bars all read as the same length - decoration
+                  with no signal in it. */}
               {top.map((game) => (
                 <li key={game.bggId}>
                   <button
@@ -915,15 +918,17 @@ export function BoardgameLookupPage() {
                         <span className="shrink-0 text-xs text-slate-400">{game.rating.toFixed(1)} / 10</span>
                       )}
                     </div>
-                    {game.rating !== null && (
-                      // Decorative only - the rating is already stated as text
-                      // above, this just gives the eye a faster read of it.
-                      <div aria-hidden="true" className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-                        <div
-                          className="h-full rounded-full bg-indigo-400"
-                          style={{ width: `${(game.rating / 10) * 100}%` }}
-                        />
-                      </div>
+                    {game.categoryRanks.length > 0 && (
+                      <p className="flex flex-wrap items-center gap-1.5">
+                        {game.categoryRanks.map((cat) => (
+                          <span
+                            key={cat.label}
+                            className="rounded-full border border-indigo-400/25 bg-indigo-500/10 px-2 py-0.5 text-xs font-medium text-indigo-100"
+                          >
+                            #{cat.rank} {cat.label}
+                          </span>
+                        ))}
+                      </p>
                     )}
                     {game.numRatings !== null && (
                       <span className="text-xs text-slate-400">{game.numRatings.toLocaleString("en")} ratings</span>

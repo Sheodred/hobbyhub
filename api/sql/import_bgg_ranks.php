@@ -32,11 +32,22 @@ foreach (['id', 'name', 'yearpublished', 'rank', 'average', 'usersrated', 'is_ex
     }
 }
 
+// Category league tables (#179 follow-up) - optional columns, present in
+// BGG's export as of 2026-08 but not required: an older dump this importer
+// still needs to accept may not have them, and every game not IN a given
+// category has no value for it regardless.
+$categoryColumns = [
+    'abstracts_rank', 'cgs_rank', 'childrensgames_rank', 'familygames_rank',
+    'partygames_rank', 'strategygames_rank', 'thematic_rank', 'wargames_rank',
+];
+$presentCategoryColumns = array_values(array_filter($categoryColumns, fn(string $c) => isset($col[$c])));
+
 $pdo = db();
 $pdo->beginTransaction();
 $stmt = $pdo->prepare(
-    'REPLACE INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion, bgg_rank)
-     VALUES (?, ?, ?, ?, ?, ?, ?)'
+    'REPLACE INTO bgg_ranks (bgg_id, name, year_published, average, users_rated, is_expansion, bgg_rank, '
+        . implode(', ', $categoryColumns)
+        . ') VALUES (?, ?, ?, ?, ?, ?, ?, ' . implode(', ', array_fill(0, count($categoryColumns), '?')) . ')'
 );
 
 $imported = 0;
@@ -48,7 +59,13 @@ while (($row = fgetcsv($handle)) !== false) {
         $skipped++;
         continue;
     }
-    $stmt->execute([
+    $categoryValues = array_map(
+        // Same "0 means unranked, not rank zero" convention as bgg_rank -
+        // and null outright for a dump that predates this column.
+        fn(string $c) => in_array($c, $presentCategoryColumns, true) ? ((int) ($row[$col[$c]] ?? 0)) ?: null : null,
+        $categoryColumns
+    );
+    $stmt->execute(array_merge([
         $id,
         mb_substr($name, 0, 255),
         ($row[$col['yearpublished']] ?? '') === '' ? null : (int) $row[$col['yearpublished']],
@@ -59,7 +76,7 @@ while (($row = fgetcsv($handle)) !== false) {
         // of the file. Storing that verbatim would let "rank 0" reach the
         // page as if it were a position.
         ((int) ($row[$col['rank']] ?? 0)) ?: null,
-    ]);
+    ], $categoryValues));
     $imported++;
 }
 $pdo->commit();

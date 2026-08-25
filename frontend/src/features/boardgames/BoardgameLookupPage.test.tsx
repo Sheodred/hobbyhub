@@ -1092,8 +1092,8 @@ describe("BoardgameLookupPage", () => {
 
   // #102: a way in for someone who has nothing to type yet.
   const topGames = [
-    { bggId: 224517, name: "Brass: Birmingham", yearPublished: 2018, rank: 1, rating: 8.6, numRatings: 45832 },
-    { bggId: 161936, name: "Pandemic Legacy: Season 1", yearPublished: 2015, rank: 2, rating: 8.5, numRatings: 57708 },
+    { bggId: 224517, name: "Brass: Birmingham", yearPublished: 2018, rank: 1, rating: 8.6, numRatings: 45832, categoryRanks: [] },
+    { bggId: 161936, name: "Pandemic Legacy: Season 1", yearPublished: 2015, rank: 2, rating: 8.5, numRatings: 57708, categoryRanks: [] },
   ];
 
   it("offers the top-ranked games before a search and resolves the clicked one by id", async () => {
@@ -1137,6 +1137,37 @@ describe("BoardgameLookupPage", () => {
     // disambiguation flow, which is absurd for a curated list.
     await waitFor(() => expect(api.lookupBoardgameById).toHaveBeenCalledWith(224517, "en"));
     expect(await screen.findByText("Canals and coal.")).toBeInTheDocument();
+  });
+
+  // #179 follow-up: every top-10 rating sits in an 8.3-8.7 band, so a
+  // decorative rating bar read as the same length on every tile - dropped
+  // in favour of category rank badges, shown only for the categories a
+  // game actually places in.
+  it("shows a badge per category rank a top-10 game has, and none for one that has none", async () => {
+    vi.spyOn(api, "topBoardgames").mockResolvedValue([
+      {
+        bggId: 224517,
+        name: "Brass: Birmingham",
+        yearPublished: 2018,
+        rank: 1,
+        rating: 8.6,
+        numRatings: 45832,
+        categoryRanks: [
+          { label: "Strategy Games", rank: 12 },
+          { label: "Family Games", rank: 45 },
+        ],
+      },
+      { bggId: 161936, name: "Pandemic Legacy: Season 1", yearPublished: 2015, rank: 2, rating: 8.5, numRatings: 57708, categoryRanks: [] },
+    ]);
+
+    renderPage();
+
+    const card = await screen.findByRole("button", { name: /Brass: Birmingham/ });
+    expect(card).toHaveAccessibleName(expect.stringContaining("12 Strategy Games"));
+    expect(card).toHaveAccessibleName(expect.stringContaining("45 Family Games"));
+
+    const otherCard = await screen.findByRole("button", { name: /Pandemic Legacy/ });
+    expect(otherCard).not.toHaveAccessibleName(expect.stringContaining("Games"));
   });
 
   it("gets out of the way once a result is on screen", async () => {
@@ -1339,7 +1370,7 @@ describe("BoardgameLookupPage — shareable searches", () => {
   it("navigates to a random game by bgg_id when Surprise me is clicked (#120)", async () => {
     // The dump is non-empty (top-10 loaded), so the button renders.
     vi.spyOn(api, "topBoardgames").mockResolvedValue([
-      { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1, numRatings: 143738 },
+      { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1, numRatings: 143738, categoryRanks: [] },
     ]);
     vi.spyOn(api, "randomBoardgame").mockResolvedValue(342942);
     vi.spyOn(api, "lookupBoardgameLocalById").mockResolvedValue({ status: "not_found" });
@@ -1355,7 +1386,7 @@ describe("BoardgameLookupPage — shareable searches", () => {
 
   it("offers this year's Spiel-des-Jahres results as entry points and resolves a winner click by bgg_id (#105)", async () => {
     vi.spyOn(api, "topBoardgames").mockResolvedValue([
-      { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1, numRatings: 143738 },
+      { bggId: 13, name: "Catan", yearPublished: 1995, rank: 566, rating: 7.1, numRatings: 143738, categoryRanks: [] },
     ]);
     // The award panel reads its own source (sdj_awards), not the ranks dump.
     vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
