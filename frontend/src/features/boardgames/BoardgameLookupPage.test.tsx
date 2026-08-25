@@ -52,11 +52,27 @@ function mockEmptyExternalSources() {
   vi.spyOn(api, "fetchBrettspielpreise").mockResolvedValue(null);
 }
 
+// #180/#186: runSearch/runLookupById await the instant local-dump answer
+// before firing the six parallel sources - a test that doesn't care about
+// that instant path still has to give it a resolved value, or the real
+// (unmocked) fetch call hangs past the default waitFor timeout.
+function mockNoInstantLocal() {
+  vi.spyOn(api, "lookupBoardgameLocal").mockResolvedValue({ status: "unavailable" });
+  vi.spyOn(api, "lookupBoardgameLocalById").mockResolvedValue({ status: "unavailable" });
+}
+
 // The BggCoreResult shape bgg.php now returns - every Boardgame field
 // except ratings/bgq/prices (those come from the other five endpoints).
+// Boardgame's age is a labeled string ("ab 12 Jahren"); BggCoreResult's is
+// the raw, unit-free number - every fixture that goes through this helper
+// only ever needs age: null, so the narrowing here is safe. A fixture that
+// needs a real age builds its BggCoreResult directly instead.
 function bggCoreFrom(game: Boardgame): api.BggCoreResult {
-  const { ratings: _ratings, bgq: _bgq, prices: _prices, ...core } = game;
-  return core;
+  const { ratings, bgq, prices, age, ...core } = game;
+  void ratings;
+  void bgq;
+  void prices;
+  return { ...core, age: age === null ? null : Number(age) };
 }
 
 const AWARDS_2026: api.BoardgameAwards = {
@@ -384,6 +400,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows a per-section loading indicator while the slow sources load (#128/#186)", async () => {
+    mockNoInstantLocal();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
     let resolveAmazon!: (r: api.AmazonResult) => void;
     vi.spyOn(api, "fetchAmazon").mockReturnValue(new Promise((resolve) => { resolveAmazon = resolve; }));
@@ -404,6 +421,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows a Spiel-des-Jahres badge when the game is in this year's panel (#117)", async () => {
+    mockNoInstantLocal();
     vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
     // DITO! (400495) is the Spiel-des-Jahres winner in the fixture.
     mockEmptyExternalSources();
@@ -421,6 +439,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("renders BGG mechanic and category tags on the result card (#131)", async () => {
+    mockNoInstantLocal();
     mockEmptyExternalSources();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
@@ -455,6 +474,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("links each mechanic and category tag to BGG's own page for it", async () => {
+    mockNoInstantLocal();
     mockEmptyExternalSources();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
@@ -480,6 +500,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows the strategy, family, and thematic game ranks alongside the overall BGG rank", async () => {
+    mockNoInstantLocal();
     mockEmptyExternalSources();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
@@ -497,6 +518,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("says nothing about a strategy/family/thematic rank the game does not have", async () => {
+    mockNoInstantLocal();
     mockEmptyExternalSources();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
@@ -518,6 +540,7 @@ describe("BoardgameLookupPage", () => {
     ["one-vs-all", "One vs. All"],
     ["competitive", "Competitive"],
   ] as const)("shows the interaction type %s as %s (#131)", async (interaction, label) => {
+    mockNoInstantLocal();
     mockEmptyExternalSources();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
@@ -532,6 +555,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows nothing for interaction type rather than guessing when it's null", async () => {
+    mockNoInstantLocal();
     mockEmptyExternalSources();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
@@ -547,6 +571,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows no award badge for a game that isn't in the panel (#117)", async () => {
+    mockNoInstantLocal();
     vi.spyOn(api, "boardgameAwards").mockResolvedValue(AWARDS_2026);
     mockEmptyExternalSources();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) }); // bggId 13
@@ -560,6 +585,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows a disambiguation list and resolves the picked candidate", async () => {
+    mockNoInstantLocal();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "disambiguation",
       candidates: [
@@ -603,6 +629,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("says so plainly when only the ranks-dump data is available", async () => {
+    mockNoInstantLocal();
     mockEmptyExternalSources();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
@@ -639,19 +666,26 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows every external rating with its own scale", async () => {
+    mockNoInstantLocal();
     mockEmptyExternalSources();
+    vi.spyOn(api, "fetchAmazon").mockResolvedValue({
+      rating: { source: "Amazon.de", value: 4.7, max: 5, count: 257, title: "KOSMOS Catan - Das Spiel", url: "https://www.amazon.de/dp/B00CATAN01" },
+      price: null,
+    });
+    vi.spyOn(api, "fetchHall9000").mockResolvedValue({
+      rating: { source: "H@LL9000", value: 4.8, max: 6, count: 17, title: null, url: "https://www.hall9000.de/html/spiel/catan" },
+      players: null,
+      duration: null,
+      age: null,
+    });
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
       game: bggCoreFrom({
         bggId: 13, name: "Catan", description: "Trade, build, settle.",
         rating: 7.2, numRatings: 1000, good: null, bad: null, partial: false,
-        ratings: [
-          { source: "Amazon.de", value: 4.7, max: 5, count: 257, title: "KOSMOS Catan - Das Spiel", url: "https://www.amazon.de/dp/B00CATAN01" },
-          { source: "H@LL9000", value: 4.8, max: 6, count: 17, title: null, url: "https://www.hall9000.de/html/spiel/catan" },
-        ],
-        bgq: null,
+        ratings: [], bgq: null,
         players: "2 - 4",
-        duration: "30 - 45 Minuten",
+        duration: "30 - 45",
         age: null,
         complexity: null,
         prices: [], isExpansion: false,
@@ -674,31 +708,32 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows the facts that decide whether a game suits the table", async () => {
+    mockNoInstantLocal();
     mockEmptyExternalSources();
-    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
-      status: "ok",
-      game: bggCoreFrom({
-        bggId: 926, name: "Catan: Cities & Knights", description: "More Catan.",
-        rating: 7.4, numRatings: 40000, good: null, bad: null, partial: false,
-        ratings: [], bgq: null,
-        players: "3 - 4",
-        duration: "90 Minuten",
-        age: "ab 12 Jahren",
-        complexity: { value: 12, max: 20, source: "brettspiele-report" },
-        prices: [], isExpansion: true,
-        rank: 401,
-        source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/926" },
-      }),
-    });
+    // Built directly as a BggCoreResult (not via bggCoreFrom) - `age` is a
+    // raw unit-free number here, which Boardgame's own (labeled-string) age
+    // field can't express.
+    const game: api.BggCoreResult = {
+      bggId: 926, name: "Catan: Cities & Knights", description: "More Catan.",
+      rating: 7.4, numRatings: 40000, good: null, bad: null, partial: false,
+      players: "3 - 4",
+      duration: "90",
+      age: 12,
+      complexity: { value: 12, max: 20, source: "brettspiele-report" },
+      isExpansion: true,
+      rank: 401,
+      source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/926" },
+    };
+    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game });
 
     renderPage();
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "cities and knights" } });
     fireEvent.submit(screen.getByRole("search"));
 
-    // One chip per fact, not one dot-separated line.
+    // One chip per fact, not one dot-separated line. Default lang is "en".
     expect(await screen.findByText("3 - 4 players")).toBeInTheDocument();
-    expect(screen.getByText("90 Minuten")).toBeInTheDocument();
-    expect(screen.getByText("ab 12 Jahren")).toBeInTheDocument();
+    expect(screen.getByText("90 minutes")).toBeInTheDocument();
+    expect(screen.getByText("ages 12+")).toBeInTheDocument();
     expect(screen.getByText("BGG rank #401")).toBeInTheDocument();
     expect(screen.getByText("Expansion")).toBeInTheDocument();
     // Not a BGG 1-5 weight vote (max !== 5), so no Light/Medium/Heavy label -
@@ -707,6 +742,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("labels a BGG-scale complexity by its nearest weight vote", async () => {
+    mockNoInstantLocal();
     mockEmptyExternalSources();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
@@ -722,6 +758,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("leaves out facts no source published, rather than showing empty labels", async () => {
+    mockNoInstantLocal();
     mockEmptyExternalSources();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
@@ -746,23 +783,27 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("shows Board Game Quest's score and how the game plays", async () => {
+    mockNoInstantLocal();
     mockEmptyExternalSources();
+    vi.spyOn(api, "fetchBoardGameQuest").mockResolvedValue({
+      rating: { source: "Board Game Quest", value: 3.5, max: 5, count: null, title: "Intarsia Review", url: "https://www.boardgamequest.com/intarsia-review/" },
+      review: {
+        rules: "Players start with a random hand of ten cards in four colors plus wilds.",
+        hits: ["Beautiful production"], misses: ["Lacking replay value"],
+        title: "Intarsia Review", url: "https://www.boardgamequest.com/intarsia-review/",
+      },
+    });
+    vi.spyOn(api, "fetchBrettspieleReport").mockResolvedValue({
+      rating: { source: "brettspiele-report", value: 15, max: 20, count: null, title: "Intarsia", url: "https://www.brettspiele-report.de/intarsia/" },
+      complexity: null,
+    });
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
       game: bggCoreFrom({
         bggId: 331106, name: "Intarsia", description: "", rating: 7.2, numRatings: 900,
-        good: ["Beautiful production"], bad: ["Lacking replay value"], partial: true, players: "2 - 4", duration: "30 - 45 Minuten",
+        good: ["Beautiful production"], bad: ["Lacking replay value"], partial: true, players: "2 - 4", duration: "30 - 45",
         age: null, complexity: null, prices: [], isExpansion: false, rank: null,
-        ratings: [
-          { source: "Board Game Quest", value: 3.5, max: 5, count: null, title: "Intarsia Review", url: "https://www.boardgamequest.com/intarsia-review/" },
-          { source: "brettspiele-report", value: 15, max: 20, count: null, title: "Intarsia", url: "https://www.brettspiele-report.de/intarsia/" },
-        ],
-        bgq: {
-          score: 3.5,
-          rules: "Players start with a random hand of ten cards in four colors plus wilds.",
-          hits: ["Beautiful production"], misses: ["Lacking replay value"],
-          title: "Intarsia Review", url: "https://www.boardgamequest.com/intarsia-review/",
-        },
+        ratings: [], bgq: null,
         source: { name: "BoardGameGeek", url: "https://boardgamegeek.com/boardgame/331106" },
       }),
     });
@@ -786,6 +827,7 @@ describe("BoardgameLookupPage", () => {
   // one that mounts with its text already inside it is routinely not
   // announced at all, which is the failure mode this asserts against.
   it("announces the outcome through a live region that is already mounted", async () => {
+    mockNoInstantLocal();
     mockEmptyExternalSources();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
@@ -911,6 +953,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("offers close names instead of an error when nothing matches (#92)", async () => {
+    mockNoInstantLocal();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "not_found",
       query: "teasd",
@@ -932,6 +975,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("says 'no exact match' once, in the status region only (#107)", async () => {
+    mockNoInstantLocal();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "not_found",
       query: "teasd",
@@ -946,10 +990,11 @@ describe("BoardgameLookupPage", () => {
     // the same sentence twice, stacked.
     await waitFor(() => expect(screen.getByText(/did you mean/i)).toBeInTheDocument());
     expect(screen.getAllByText(/no exact match/i)).toHaveLength(1);
-    expect(screen.getByRole("status")).toHaveTextContent(/no exact match for "teasd"\. 1 similar name suggested\./i);
+    expect(screen.getByRole("status")).toHaveTextContent(/no exact match for “teasd”\. 1 similar name suggested\./i);
   });
 
   it("says so plainly when nothing matches and there is nothing to suggest", async () => {
+    mockNoInstantLocal();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "not_found",
       query: "zzzzqqqq",
@@ -970,6 +1015,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("puts the chosen name in the search box when a did-you-mean suggestion is taken", async () => {
+    mockNoInstantLocal();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "not_found",
       query: "ctaan",
@@ -994,6 +1040,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   it("does not reopen the typeahead over the result after taking a suggestion", async () => {
+    mockNoInstantLocal();
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "not_found",
       query: "ctaan",

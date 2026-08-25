@@ -1090,7 +1090,7 @@ export function BoardgameLookupPage() {
                   state.game.complexity) && (
                   <p className="mt-3 flex flex-wrap items-center gap-2">
                     {[
-                      state.game.players && `${state.game.players} players`,
+                      state.game.players,
                       state.game.duration,
                       state.game.age,
                       state.game.rank !== null && `BGG rank #${state.game.rank}`,
