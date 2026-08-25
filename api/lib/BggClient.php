@@ -591,11 +591,24 @@ class BggClient
      */
     public function topRanked(int $limit = 10): array
     {
-        $rows = db()->query(
-            'SELECT bgg_id, name, year_published, average, users_rated, bgg_rank, '
-                . implode(', ', array_keys(self::CATEGORY_RANK_LABELS))
-                . ' FROM bgg_ranks WHERE bgg_rank > 0 ORDER BY bgg_rank ASC LIMIT ' . $limit
-        )->fetchAll();
+        try {
+            $rows = db()->query(
+                'SELECT bgg_id, name, year_published, average, users_rated, bgg_rank, '
+                    . implode(', ', array_keys(self::CATEGORY_RANK_LABELS))
+                    . ' FROM bgg_ranks WHERE bgg_rank > 0 ORDER BY bgg_rank ASC LIMIT ' . $limit
+            )->fetchAll();
+        } catch (PDOException $e) {
+            // Category-rank columns land via a manual phpMyAdmin ALTER TABLE
+            // (no migration runner - see docs/deploy-checklist.md), which can
+            // lag behind this code deploying. Degrade to the pre-#179-follow-up
+            // columns instead of erroring out the whole top-10 list until
+            // someone applies it; $row[$column] ?? 0 below already treats an
+            // absent column the same as an unranked one.
+            $rows = db()->query(
+                'SELECT bgg_id, name, year_published, average, users_rated, bgg_rank'
+                    . ' FROM bgg_ranks WHERE bgg_rank > 0 ORDER BY bgg_rank ASC LIMIT ' . $limit
+            )->fetchAll();
+        }
 
         return array_map(fn(array $row) => [
             'bggId' => (int) $row['bgg_id'],
