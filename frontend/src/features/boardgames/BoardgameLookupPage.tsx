@@ -319,9 +319,12 @@ function Spinner() {
 // #180/#186: replaces the single global "Loading the other sources…"
 // message - each external section gets its own, so a fast source's
 // content appears immediately instead of waiting for the slowest one.
+// aria-hidden like the indicator it replaces (see its removed comment):
+// the always-mounted role="status" region already narrates the wait in
+// words, so up to four of these announcing at once would be redundant.
 function SectionLoading({ label }: { label: string }) {
   return (
-    <p aria-live="polite" className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+    <p aria-hidden="true" className="mt-3 flex items-center gap-2 text-xs text-slate-400">
       <Spinner />
       <span>Loading {label}…</span>
     </p>
@@ -470,15 +473,19 @@ export function BoardgameLookupPage() {
     return { kind: "error", message: err instanceof ApiError ? err.message : "Something went wrong." };
   }
 
-  // #180/#186 fix (reviewer round 1): when the local answer rendered but the
-  // full bgg fetch itself then threw, fireAllSources never runs - nothing
-  // else would ever mark these five as settled, so a per-source "loading…"
-  // indicator would spin forever on a plain bgg outage. bgg stays "pending"
-  // (it's the one that actually failed); these five get the same
-  // null-shaped fallback their own fetch failure handlers use above.
+  // #180/#186 fix (reviewer round 1, amended in final review): when the
+  // local answer rendered but the full bgg fetch itself then threw,
+  // fireAllSources never runs - nothing else would ever mark these six as
+  // settled, so a per-source "loading…" indicator (and the status region's
+  // "still checking the other sources") would spin forever on a plain bgg
+  // outage. bgg is the one that actually failed, so it becomes "failed"
+  // (a terminal state with no value - distinct from "done"); the other five
+  // never ran at all, so they get the same null-shaped fallback their own
+  // fetch failure handlers use above.
   function withExternalSourcesFailed(sources: Sources): Sources {
     return {
       ...sources,
+      bgg: { status: "failed" },
       amazon: { status: "done", value: { rating: null, price: null } },
       boardgamequest: { status: "done", value: { rating: null, review: null } },
       hall9000: { status: "done", value: { rating: null, players: null, duration: null, age: null } },
@@ -1299,8 +1306,10 @@ export function BoardgameLookupPage() {
                   entry for this game (docs/adr/0020) - brettspielpreise.de
                   and amazon.de never displace each other - plus used-market
                   search link-outs. eBay.de and Kleinanzeigen.de are not
-                  fetched - see usedMarketSearchUrls for why - so this always
-                  renders once a game resolves, with or without a price. */}
+                  fetched - see usedMarketSearchUrls for why. #180/#186: this
+                  whole "Where to buy" block is itself gated on pricesPending
+                  below, showing SectionLoading while either price source is
+                  still out. */}
               {(() => {
                 const pricesPending =
                   state.sources.amazon.status === "pending" || state.sources.brettspielpreise.status === "pending";

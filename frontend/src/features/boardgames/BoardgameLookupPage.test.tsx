@@ -1145,9 +1145,16 @@ describe("BoardgameLookupPage", () => {
     // Throwing away a good partial answer because the enrichment failed
     // would be a regression on today's behaviour, which at least shows the
     // dump's data when BGG is unreachable.
-    await waitFor(() => expect(screen.getByRole("status")).not.toHaveTextContent(/still/i));
-    expect(screen.getByText("Catan")).toBeInTheDocument();
+    expect(await screen.findByText("Catan")).toBeInTheDocument();
     expect(screen.getByText("7.1")).toBeInTheDocument();
+    // Positive assertion, not `not.toHaveTextContent(/still/i)` - the page
+    // reads "Catan found — still checking the other sources" from the
+    // moment the instant answer renders, before the rejection above has
+    // even had a chance to settle, so a negative assertion here would pass
+    // vacuously on the very first waitFor poll regardless of whether the
+    // rejected bgg fetch ever gets marked settled at all.
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Catan found"));
+    expect(screen.getByRole("status")).not.toHaveTextContent(/still/i);
   });
   it("survives an instant answer that omits the fields no source has filled yet", async () => {
     // Deliberately NOT a full Boardgame fixture. This is the exact shape
@@ -1415,11 +1422,17 @@ describe("BoardgameLookupPage — shareable searches", () => {
   });
 
   it("ignores a nonsense bgg_id instead of asking the API about it", () => {
-    const byId = vi.spyOn(api, "lookupBoardgameById");
+    const byId = vi.spyOn(api, "fetchBggById");
+    const byQuery = vi.spyOn(api, "fetchBggByQuery");
+    const localById = vi.spyOn(api, "lookupBoardgameLocalById");
+    const local = vi.spyOn(api, "lookupBoardgameLocal");
 
     renderPage("/boardgames?bgg_id=nope");
 
     expect(byId).not.toHaveBeenCalled();
+    expect(byQuery).not.toHaveBeenCalled();
+    expect(localById).not.toHaveBeenCalled();
+    expect(local).not.toHaveBeenCalled();
   });
 
   it("shows the local dump answer instantly on a ?bgg_id= link before the slow lookup lands (#115)", async () => {

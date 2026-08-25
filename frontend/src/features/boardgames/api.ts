@@ -246,16 +246,6 @@ export function fetchBrettspielpreise(bggId: number): Promise<RetailPrice | null
   );
 }
 
-export type BoardgameLookupResult =
-  | { status: "ok"; game: Boardgame }
-  | { status: "disambiguation"; candidates: BoardgameCandidate[] }
-  /**
-   * The search ran and found nothing - a result, not a failure, so it
-   * arrives as a 200. `suggestions` holds the closest names in the local
-   * catalogue and is empty when even those miss.
-   */
-  | { status: "not_found"; query: string; suggestions: BoardgameCandidate[] };
-
 /**
  * #130: which name to display - the German alias where one exists ("Die
  * Siedler von Catan"), or BGG's own primary name for "en" (today's
@@ -266,16 +256,6 @@ export type Lang = "de" | "en";
 
 function withLang(base: Record<string, string>, lang?: Lang): URLSearchParams {
   return new URLSearchParams(lang ? { ...base, lang } : base);
-}
-
-export function lookupBoardgame(query: string, lang?: Lang): Promise<BoardgameLookupResult> {
-  const params = withLang({ q: query }, lang);
-  return apiFetch<BoardgameLookupResult>(`/api/boardgames/lookup?${params.toString()}`);
-}
-
-export function lookupBoardgameById(bggId: number, lang?: Lang): Promise<BoardgameLookupResult> {
-  const params = withLang({ bgg_id: String(bggId) }, lang);
-  return apiFetch<BoardgameLookupResult>(`/api/boardgames/lookup?${params.toString()}`);
 }
 
 /**

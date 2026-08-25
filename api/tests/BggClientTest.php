@@ -684,6 +684,32 @@ final class BggClientTest extends TestCase
         $this->assertSame([], (new BggClient(fn() => null))->localSearchNames(999999));
     }
 
+    public function testLocalSearchNamesFallsBackToANameAlreadyCachedFromAnEarlierBggLookup(): void
+    {
+        // A game published/added since the last bgg_ranks import has no dump
+        // row, but once anyone has looked it up here even once, bgg.php's
+        // own successful call already cached its name - this fallback finds
+        // that instead of losing all four name-based sources silently.
+        db()->exec(
+            "INSERT INTO bgg_lookup_cache (bgg_id, response_json, expires_at) VALUES
+             (454672, '{\"bggId\":454672,\"name\":\"Some New Release\"}', DATE_ADD(NOW(), INTERVAL 1 DAY))"
+        );
+
+        $names = (new BggClient(fn() => null))->localSearchNames(454672);
+
+        $this->assertSame(['Some New Release'], $names);
+    }
+
+    public function testLocalSearchNamesIgnoresAnExpiredCacheEntry(): void
+    {
+        db()->exec(
+            "INSERT INTO bgg_lookup_cache (bgg_id, response_json, expires_at) VALUES
+             (454672, '{\"bggId\":454672,\"name\":\"Some New Release\"}', DATE_SUB(NOW(), INTERVAL 1 DAY))"
+        );
+
+        $this->assertSame([], (new BggClient(fn() => null))->localSearchNames(454672));
+    }
+
     public function testLocalSearchNamesNeverCallsBgg(): void
     {
         $this->seedRanks();

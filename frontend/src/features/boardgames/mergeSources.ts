@@ -11,7 +11,10 @@ import type {
   RetailPrice,
 } from "./api";
 
-export type SourceState<T> = { status: "pending" } | { status: "done"; value: T };
+// #180/#186 fix (final review): "failed" is its own terminal state, distinct
+// from "pending" - a source that errored is settled and must stop showing a
+// spinner, but (unlike "done") has no value to merge in.
+export type SourceState<T> = { status: "pending" } | { status: "done"; value: T } | { status: "failed" };
 
 export interface Sources {
   bgg: SourceState<BggCoreResult>;
