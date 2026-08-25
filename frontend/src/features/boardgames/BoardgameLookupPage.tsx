@@ -491,11 +491,17 @@ export function BoardgameLookupPage() {
       // Fall through to the full lookup.
     }
 
+    // FALLBACK_PARTIAL's bggId (0) never collides with a real result - so
+    // when this invocation never rendered its own local answer, the catch
+    // guard below correctly never matches an unrelated result on screen.
+    const localOrFallback = local ?? FALLBACK_PARTIAL;
     try {
-      applyBggResult(await fetchBggByQuery(term, lang), local ?? FALLBACK_PARTIAL);
+      applyBggResult(await fetchBggByQuery(term, lang), localOrFallback);
     } catch (err) {
       setState((current) =>
-        current.kind === "result" ? { ...current, sources: withExternalSourcesFailed(current.sources) } : errorState(err)
+        current.kind === "result" && current.game.bggId === localOrFallback.bggId
+          ? { ...current, sources: withExternalSourcesFailed(current.sources) }
+          : errorState(err)
       );
     }
   }
@@ -514,11 +520,14 @@ export function BoardgameLookupPage() {
       // Fall through to the full lookup.
     }
 
+    const localOrFallback = local ?? FALLBACK_PARTIAL;
     try {
-      applyBggResult(await fetchBggById(bggId, lang), local ?? FALLBACK_PARTIAL);
+      applyBggResult(await fetchBggById(bggId, lang), localOrFallback);
     } catch (err) {
       setState((current) =>
-        current.kind === "result" ? { ...current, sources: withExternalSourcesFailed(current.sources) } : errorState(err)
+        current.kind === "result" && current.game.bggId === localOrFallback.bggId
+          ? { ...current, sources: withExternalSourcesFailed(current.sources) }
+          : errorState(err)
       );
     }
   }
