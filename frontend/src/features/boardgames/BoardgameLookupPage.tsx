@@ -498,11 +498,14 @@ export function BoardgameLookupPage() {
     try {
       applyBggResult(await fetchBggByQuery(term, lang), localOrFallback);
     } catch (err) {
-      setState((current) =>
-        current.kind === "result" && current.game.bggId === localOrFallback.bggId
-          ? { ...current, sources: withExternalSourcesFailed(current.sources) }
-          : errorState(err)
-      );
+      setState((current) => {
+        if (current.kind !== "result") return errorState(err);
+        // A stale invocation's own bggId doesn't match what's on screen -
+        // leave the newer, unrelated result alone rather than replacing it
+        // with an error for a background request nobody is waiting on.
+        if (current.game.bggId !== localOrFallback.bggId) return current;
+        return { ...current, sources: withExternalSourcesFailed(current.sources) };
+      });
     }
   }
 
@@ -524,11 +527,14 @@ export function BoardgameLookupPage() {
     try {
       applyBggResult(await fetchBggById(bggId, lang), localOrFallback);
     } catch (err) {
-      setState((current) =>
-        current.kind === "result" && current.game.bggId === localOrFallback.bggId
-          ? { ...current, sources: withExternalSourcesFailed(current.sources) }
-          : errorState(err)
-      );
+      setState((current) => {
+        if (current.kind !== "result") return errorState(err);
+        // A stale invocation's own bggId doesn't match what's on screen -
+        // leave the newer, unrelated result alone rather than replacing it
+        // with an error for a background request nobody is waiting on.
+        if (current.game.bggId !== localOrFallback.bggId) return current;
+        return { ...current, sources: withExternalSourcesFailed(current.sources) };
+      });
     }
   }
 
