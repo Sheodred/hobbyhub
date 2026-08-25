@@ -1629,10 +1629,31 @@ final class BggClientTest extends TestCase
         $this->assertSame(
             [
                 'bggId' => 926, 'name' => 'Catan: Cities & Knights', 'yearPublished' => 1998,
-                'rank' => 401, 'rating' => 7.4, 'numRatings' => 40000,
+                'rank' => 401, 'rating' => 7.4, 'numRatings' => 40000, 'categoryRanks' => [],
             ],
             $result[0]
         );
+    }
+
+    public function testTopRankedIncludesOnlyTheCategoryLeagueTablesAGameActuallyHas(): void
+    {
+        // Most games have none of these - they only rank in categories
+        // they're actually in. 0 means unranked, same convention as
+        // bgg_rank, and a category never present for this game at all
+        // stays the column's default NULL (not seeded here).
+        $this->seedRanks();
+        db()->exec(
+            'UPDATE bgg_ranks SET strategygames_rank = 12, wargames_rank = 0, familygames_rank = 45 WHERE bgg_id = 926'
+        );
+
+        $result = (new BggClient())->topRanked();
+
+        $this->assertSame(
+            [['label' => 'Strategy Games', 'rank' => 12], ['label' => 'Family Games', 'rank' => 45]],
+            $result[0]['categoryRanks'],
+            'wargames_rank=0 (unranked) must not appear, and display order follows CATEGORY_RANK_LABELS'
+        );
+        $this->assertSame([], $result[1]['categoryRanks'], 'Catan (13) was never given a category rank in this test');
     }
 
     public function testTopRankedTreatsRankZeroAsUnrankedRatherThanFirst(): void

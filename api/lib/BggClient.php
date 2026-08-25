@@ -32,6 +32,20 @@ class BggClient
     // outside it.
     private const MAX_DISAMBIGUATION_CANDIDATES = 20;
 
+    // #179 follow-up: BGG's per-category league tables from the same ranks
+    // export bgg_rank comes from - column name => the label shown on a
+    // top-10 tile. Order here is display order, not significance.
+    private const CATEGORY_RANK_LABELS = [
+        'strategygames_rank' => 'Strategy Games',
+        'familygames_rank' => 'Family Games',
+        'thematic_rank' => 'Thematic Games',
+        'wargames_rank' => 'War Games',
+        'partygames_rank' => 'Party Games',
+        'abstracts_rank' => 'Abstract Games',
+        'childrensgames_rank' => "Children's Games",
+        'cgs_rank' => 'Customizable Games',
+    ];
+
     /** @var callable */
     private $httpGetXml;
     private string $apiToken;
@@ -573,13 +587,14 @@ class BggClient
      * "unranked". import_bgg_ranks.php normalises that to NULL, but this way
      * a single un-normalised row can't sort ahead of the actual number one.
      *
-     * @return list<array{bggId:int,name:string,yearPublished:int|null,rank:int,rating:float|null,numRatings:int|null}>
+     * @return list<array{bggId:int,name:string,yearPublished:int|null,rank:int,rating:float|null,numRatings:int|null,categoryRanks:list<array{label:string,rank:int}>}>
      */
     public function topRanked(int $limit = 10): array
     {
         $rows = db()->query(
-            'SELECT bgg_id, name, year_published, average, users_rated, bgg_rank FROM bgg_ranks'
-                . ' WHERE bgg_rank > 0 ORDER BY bgg_rank ASC LIMIT ' . $limit
+            'SELECT bgg_id, name, year_published, average, users_rated, bgg_rank, '
+                . implode(', ', array_keys(self::CATEGORY_RANK_LABELS))
+                . ' FROM bgg_ranks WHERE bgg_rank > 0 ORDER BY bgg_rank ASC LIMIT ' . $limit
         )->fetchAll();
 
         return array_map(fn(array $row) => [
@@ -589,6 +604,20 @@ class BggClient
             'rank' => (int) $row['bgg_rank'],
             'rating' => $row['average'] === null ? null : round((float) $row['average'], 1),
             'numRatings' => $row['users_rated'] === null ? null : (int) $row['users_rated'],
+            // #179 follow-up: most games have none of these (they only
+            // rank in categories they're actually in) - shown only when a
+            // game happens to have one, in place of the removed rating bar.
+            'categoryRanks' => array_values(array_filter(array_map(
+                // Same defensive "0/null both mean unranked" read as
+                // topRanked()'s own bgg_rank > 0 WHERE clause above -
+                // import_bgg_ranks.php normalises 0 to NULL already, this
+                // is belt-and-braces against a row that predates that.
+                fn(string $column, string $label) => (int) ($row[$column] ?? 0) > 0
+                    ? ['label' => $label, 'rank' => (int) $row[$column]]
+                    : null,
+                array_keys(self::CATEGORY_RANK_LABELS),
+                self::CATEGORY_RANK_LABELS
+            ))),
         ], $rows);
     }
 
