@@ -1299,7 +1299,7 @@ describe("BoardgameLookupPage", () => {
   });
 
   // #90
-  it("shows the amazon.de retail price and links to used-market searches", async () => {
+  it("shows the amazon.de retail price", async () => {
     vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({
       status: "ok",
       game: bggCoreFrom(CATAN),
@@ -1317,11 +1317,6 @@ describe("BoardgameLookupPage", () => {
 
     const priceLink = await screen.findByRole("link", { name: /22,90|22\.90/ });
     expect(priceLink).toHaveAttribute("href", "https://www.amazon.de/dp/B0DSWFN2XZ");
-
-    const ebay = screen.getByRole("link", { name: /eBay\.de/ });
-    expect(ebay).toHaveAttribute("href", expect.stringContaining("ebay.de/sch/i.html?_nkw=Catan"));
-    const kleinanzeigen = screen.getByRole("link", { name: /Kleinanzeigen\.de/ });
-    expect(kleinanzeigen).toHaveAttribute("href", expect.stringContaining("kleinanzeigen.de/s-suchanfrage.html?keywords=Catan"));
   });
 
   // #176: brettspielpreise.de and amazon.de each contribute their own price
@@ -1348,21 +1343,6 @@ describe("BoardgameLookupPage", () => {
     expect(bspLink).toHaveAttribute("href", "https://brettspielpreise.de/item/go?x");
     const amazonLink = screen.getByRole("link", { name: /22,90|22\.90/ });
     expect(amazonLink).toHaveAttribute("href", "https://www.amazon.de/dp/B0DSWFN2XZ");
-  });
-
-  // #177: eBay/Kleinanzeigen are permanent search link-outs, never a
-  // fetched listing (see usedMarketSearchUrls) - showing them for a game
-  // with no retail price anywhere reads as free advertising with nothing
-  // behind it, so they hide alongside the rest of "Where to buy" instead.
-  it("hides the used-market search links when no source has a price", async () => {
-    mockEmptyExternalSources();
-    vi.spyOn(api, "fetchBggByQuery").mockResolvedValue({ status: "ok", game: bggCoreFrom(CATAN) });
-
-    renderPage("/boardgames?q=catan");
-
-    await screen.findByText("Trade, build, settle.");
-    expect(screen.queryByRole("link", { name: /eBay\.de/ })).toBeNull();
-    expect(screen.queryByRole("link", { name: /Kleinanzeigen\.de/ })).toBeNull();
   });
 
   it("the Clear button empties the search and returns to the overview", async () => {

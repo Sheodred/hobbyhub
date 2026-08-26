@@ -46,9 +46,7 @@ export interface Complexity {
  * #90/#172/#176: one source's retail (new) price - brettspielpreise.de
  * (docs/adr/0020, keyed by BGG id, aggregates many stores) and amazon.de each
  * contribute their own entry when they have one; neither displaces the
- * other. A genuinely different question from the used-market price this
- * issue also asked about, which has no lawful source today and is a
- * link-out (see usedMarketSearchUrls) rather than a fetched number.
+ * other.
  */
 export interface RetailPrice {
   value: number;
@@ -360,21 +358,4 @@ export function suggestBoardgames(query: string, lang?: Lang): Promise<Boardgame
   return apiFetch<{ suggestions: BoardgameCandidate[] }>(`/api/boardgames/suggest?${params.toString()}`).then(
     (res) => res.suggestions
   );
-}
-
-/**
- * #90: used-market search link-outs, not a fetched price. eBay's robots.txt
- * disallows scraping its search paths and carries an explicit anti-scraping
- * banner; Kleinanzeigen's Nutzungsbedingungen name "Crawler, Spider, Scraper"
- * directly. Both were checked live before this issue was scoped - see its
- * source-by-source table - and neither is a source this project reads from.
- * A plain search link needs no permission, same as the existing Moxfield
- * link-out, and it is what "at least the lowest price" resolves to today.
- */
-export function usedMarketSearchUrls(gameName: string): { ebay: string; kleinanzeigen: string } {
-  const q = encodeURIComponent(gameName);
-  return {
-    ebay: `https://www.ebay.de/sch/i.html?_nkw=${q}`,
-    kleinanzeigen: `https://www.kleinanzeigen.de/s-suchanfrage.html?keywords=${q}`,
-  };
 }

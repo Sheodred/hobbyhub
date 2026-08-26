@@ -71,8 +71,8 @@ export function FaqPage() {
 
           <Question question="Why are there no ads, and is anything for sale?">
             Nothing here is monetised. It is a private, non-commercial hobby project — no ads, no affiliate
-            links, no sponsored placements, nothing to buy. The links out to eBay and Kleinanzeigen on the board
-            game page are plain search links, not referrals, and earn nothing.
+            links, no sponsored placements, nothing to buy. The links out to a board game's retail sources are
+            plain links, not referrals, and earn nothing.
           </Question>
         </div>
 
