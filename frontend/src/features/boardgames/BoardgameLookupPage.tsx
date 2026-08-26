@@ -19,7 +19,6 @@ import {
   randomBoardgame,
   suggestBoardgames,
   topBoardgames,
-  usedMarketSearchUrls,
   type AwardCategory,
   type AwardEntry,
   type Boardgame,
@@ -713,17 +712,6 @@ export function BoardgameLookupPage() {
   if (copyState === "copied" && state.kind === "result")
     statusText = `Link copied — it opens ${state.game.name} for whoever you send it to.`;
 
-  // #90/#177: used-market search link-outs, computed once per result rather
-  // than inline in the JSX below. Shown only alongside a real retail price -
-  // eBay.de/Kleinanzeigen.de can never be more than a canned search link
-  // (robots.txt disallows scraping either, see usedMarketSearchUrls), so
-  // with no price found anywhere they would be pure advertising with
-  // nothing backing them.
-  const usedMarket =
-    state.kind === "result" && (state.game.prices ?? []).length > 0
-      ? usedMarketSearchUrls(state.game.name)
-      : null;
-
   return (
     <div>
       <h1 className="text-3xl font-semibold text-white sm:text-4xl">
@@ -1309,9 +1297,7 @@ export function BoardgameLookupPage() {
 
               {/* #90/#172/#176: one retail-price card per source that has an
                   entry for this game (docs/adr/0020) - brettspielpreise.de
-                  and amazon.de never displace each other - plus used-market
-                  search link-outs. eBay.de and Kleinanzeigen.de are not
-                  fetched - see usedMarketSearchUrls for why. #180/#186: this
+                  and amazon.de never displace each other. #180/#186: this
                   whole "Where to buy" block is itself gated on pricesPending
                   below, showing SectionLoading while either price source is
                   still out. */}
@@ -1343,26 +1329,6 @@ export function BoardgameLookupPage() {
                           <span className="text-xs text-slate-400">Neu, via {price.source}</span>
                         </a>
                       ))}
-                      {usedMarket && (
-                        <>
-                          <a
-                            href={usedMarket.ebay}
-                            target="_blank"
-                            rel="noreferrer nofollow"
-                            className="flex items-center rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
-                          >
-                            Gebrauchte Angebote auf eBay.de
-                          </a>
-                          <a
-                            href={usedMarket.kleinanzeigen}
-                            target="_blank"
-                            rel="noreferrer nofollow"
-                            className="flex items-center rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
-                          >
-                            Gebrauchte Angebote auf Kleinanzeigen.de
-                          </a>
-                        </>
-                      )}
                     </div>
                   </div>
                 );
