@@ -937,15 +937,20 @@ export function BoardgameLookupPage() {
           // pushed both panels off the right edge to be silently clipped.
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             {awards.length > 0 && (
-              <section>
+              <section className="lg:flex lg:flex-col">
                 <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   Spiel des Jahres {awardYear}
                 </h2>
-                {/* #179 follow-up: more room per box (space-y-4/p-4, wider
+                {/* #179 follow-up: more room per box (gap-4/p-4, wider
                     internal margins) so the column's total depth reads
                     closer to the top-10 grid beside it on desktop, rather
-                    than three tightly-packed boxes next to five open rows. */}
-                <ul className="mt-3 space-y-4">
+                    than three tightly-packed boxes next to five open rows.
+                    lg:flex-1 + lg:justify-between then spreads whatever slack
+                    is left over the three boxes, the mirror of what the top-10
+                    ul does, so the two columns end level and their gaps stay
+                    even instead of one block trailing off short. gap-4 is the
+                    floor the spread never goes below. */}
+                <ul className="mt-3 flex flex-col gap-4 lg:flex-1 lg:justify-between">
                   {awards.map((cat) => (
                     <li
                       key={cat.category}
@@ -997,7 +1002,7 @@ export function BoardgameLookupPage() {
                   dump carries no player count/duration/age (confirmed live
                   against BGG's own export), so the added height goes to the
                   ratings count and, when a game has one, its category rank(s)
-                  instead. A rating bar shipped here first but got dropped
+                  beside it. A rating bar shipped here first but got dropped
                   (#179 follow-up): every top-10 game sits in a narrow 8.3-8.7
                   band, so the bars all read as the same length - decoration
                   with no signal in it. */}
@@ -1018,8 +1023,11 @@ export function BoardgameLookupPage() {
                         <span className="shrink-0 text-xs text-slate-400">{game.rating.toFixed(1)} / 10</span>
                       )}
                     </div>
-                    {game.categoryRanks.length > 0 && (
-                      <p className="flex flex-wrap items-center gap-1.5">
+                    {/* Badges and the ratings count share one wrapping row -
+                        on their own lines the tile ran to three rows once the
+                        category columns actually had data in them. */}
+                    {(game.categoryRanks.length > 0 || game.numRatings !== null) && (
+                      <p className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
                         {game.categoryRanks.map((cat) => (
                           <span
                             key={cat.label}
@@ -1028,10 +1036,10 @@ export function BoardgameLookupPage() {
                             #{cat.rank} {cat.label}
                           </span>
                         ))}
+                        {game.numRatings !== null && (
+                          <span className="text-xs text-slate-400">{game.numRatings.toLocaleString("en")} ratings</span>
+                        )}
                       </p>
-                    )}
-                    {game.numRatings !== null && (
-                      <span className="text-xs text-slate-400">{game.numRatings.toLocaleString("en")} ratings</span>
                     )}
                   </button>
                 </li>
