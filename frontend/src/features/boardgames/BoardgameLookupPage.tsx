@@ -383,6 +383,12 @@ export function BoardgameLookupPage() {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [top, setTop] = useState<TopBoardgame[]>([]);
   const [awards, setAwards] = useState<AwardCategory[]>([]);
+  // Both idle panels arrive from their own fetch, and before this flag existed
+  // they mounted straight from nothing into ~540px of content - one shift worth
+  // 99.8% of this page's CLS. Space is reserved while either source is still
+  // out, and only released once BOTH have answered, so a still-loading panel
+  // never collapses the block its sibling is about to fill.
+  const [panelsPending, setPanelsPending] = useState(true);
   const [awardYear, setAwardYear] = useState<number | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [lang, setLang] = useState<Lang>(initialLang);
@@ -402,17 +408,27 @@ export function BoardgameLookupPage() {
   useEffect(() => {
     // Nothing to do on failure: the initial state is already "show nothing",
     // and this is a nice-to-have the page never promised.
-    topBoardgames().then(setTop, () => {});
+    // finally(), not then(): a failed source still has to release the reserved
+    // space, or a dead endpoint leaves an empty block on the page forever.
+    let settled = 0;
+    const settle = () => {
+      if (++settled === 2) setPanelsPending(false);
+    };
+    topBoardgames()
+      .then(setTop, () => {})
+      .finally(settle);
     // #105: the award panel's own source (sdj_awards table), independent of the
     // ranks dump. Same fail-quiet contract - an un-seeded table or a failed
     // fetch leaves the panel unrendered.
-    boardgameAwards().then(
-      (result) => {
-        setAwards(result.categories);
-        setAwardYear(result.year);
-      },
-      () => {}
-    );
+    boardgameAwards()
+      .then(
+        (result) => {
+          setAwards(result.categories);
+          setAwardYear(result.year);
+        },
+        () => {}
+      )
+      .finally(settle);
   }, []);
 
   function closeSuggestions() {
@@ -802,11 +818,19 @@ export function BoardgameLookupPage() {
         {/* #120: only when the dump has games to draw from - top.length is the
             same "dump imported" signal the top-10 list uses, so no extra
             request just to decide whether to show the button. */}
-        {top.length > 0 && (
+        {/* Held in the layout but invisible while the dump is still answering:
+            appearing from nothing changed this row's height and shoved the
+            DE/EN toggle beside it up by 3px, a second jump a full second after
+            the first. visibility:hidden keeps the width without making a dead
+            button focusable or reachable by a screen reader. Once the dump has
+            answered with nothing, it goes away entirely as before. */}
+        {(top.length > 0 || panelsPending) && (
           <button
             type="button"
             onClick={surpriseMe}
-            className="rounded-md border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 hover:border-indigo-500 hover:text-indigo-400"
+            className={`rounded-md border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 hover:border-indigo-500 hover:text-indigo-400${
+              top.length === 0 ? " invisible" : ""
+            }`}
           >
             Surprise me
           </button>
@@ -924,7 +948,7 @@ export function BoardgameLookupPage() {
             alone. Winners are real buttons that activate a lookup (by bgg_id,
             or by name when no id is seeded); nominees and the recommendation
             list are name buttons that run a search. */}
-        {state.kind === "idle" && (top.length > 0 || awards.length > 0) && (
+        {state.kind === "idle" && (panelsPending || top.length > 0 || awards.length > 0) && (
           // grid-cols-1 (not bare `grid`, which leaves columns unset below lg)
           // matters here specifically: Tailwind's numbered grid-cols utilities
           // emit minmax(0,1fr) tracks, capping the column's minimum size at 0.
@@ -935,7 +959,12 @@ export function BoardgameLookupPage() {
           // "Twilight Imperium: Fourth Edition (2017)", set the column's
           // floor width at ~337px, wider than a 320-375px phone screen, and
           // pushed both panels off the right edge to be silently clipped.
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          // min-h holds the block's rough finished height from the first
+          // paint, so the two panels fade into reserved space instead of
+          // pushing 540px of page down when their fetches land. Deliberately a
+          // floor and not a fixed height - the real content is free to be
+          // taller, and on mobile (stacked columns) it always is.
+          <div className="grid min-h-[34rem] grid-cols-1 gap-8 lg:grid-cols-2">
             {awards.length > 0 && (
               <section className="lg:flex lg:flex-col">
                 <h2 className="text-xs font-medium uppercase tracking-wide text-slate-400">
