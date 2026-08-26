@@ -108,6 +108,20 @@ up, since shared-hosting WebCron products vary here).
       stale while the other columns update - the CLI importer writes it, but
       only reaches the dev database.
 
+- [x] **The 8 `*_rank` category columns filled for #179** (2026-08-26, via
+      phpMyAdmin, same reason as the `bgg_rank` entry above). The columns
+      themselves shipped with #194 and were added manually the day before;
+      this filled them from the 2026-08-25 dump. Only 15,306 of the dump's
+      180,392 games carry any category rank, so the generated SQL was a
+      734 KB helper-table import (`CREATE` -> batched `INSERT` -> `UPDATE
+      ... JOIN` -> `DROP`), touching those 8 columns and nothing else.
+      15,306 rows updated; verified live afterwards on
+      `/api/boardgames/top.php` (Brass: Birmingham Strategy #1, Pandemic
+      Legacy S1 Strategy #3 + Thematic #1).
+
+      Note this was a category-only import: `bgg_rank`, `average` and
+      `users_rated` in production still come from the 2026-08-15 dump.
+
 - [x] Confirmed the MySQL/MariaDB database IONOS provisions matches what
       `api/config.local.php` points at (`dbs15977419` / `dbu2649442` /
       `db5021097409.hosting-data.io`, not `hobbyhub`).
